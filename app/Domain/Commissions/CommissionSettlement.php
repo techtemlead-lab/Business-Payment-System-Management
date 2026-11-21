@@ -37,6 +37,9 @@ final class CommissionSettlement
      */
     public const CompanyProfitCategory = 'company_profit_fund';
 
+    /** Marks a Commission extra fund row holding the paisa left over from an equal split. */
+    public const SplitRemainder = 'split_remainder';
+
     /** Settlement payout rows written per insert statement. */
     private const PayoutInsertChunk = 2000;
 
@@ -82,26 +85,36 @@ final class CommissionSettlement
             ->where('metadata->period_month', $month)->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all();
 
         $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
+        $dealerIds = $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        // Sub-dealers share the rank royalty too under the owner's rule of 2026-11-21 (only funds of orders captured
+        // with that rule let them in; see settleChunk()).
+        $subDealers = $kind === 'royalty' && $fundIds !== []
+            ? User::query()->where('role', 'sub_dealer')->where('status', 'active')->orderBy('id')->get()
+            : collect();
         $context = [
             'dealers' => $dealers,
-            'dealerIds' => $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(),
-            'volumes' => $fundIds === [] ? [] : $this->qualification->monthlyVolumesFor($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month),
+            'dealerIds' => $dealerIds,
+            'subDealerIds' => $subDealers->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            'volumes' => $fundIds === [] ? [] : $this->qualification->monthlyVolumesFor($dealerIds, $month),
             // Salary is shared within each division (বিভাগ): the dealer's division, resolved the same way an order resolves its buyer's.
             'dealerDivisions' => $kind === 'salary' && $fundIds !== [] ? $this->dealerDivisions($dealers) : [],
+            // Each dealer's kind sets his one monthly target (MonthlyTargets).
+            'dealerKinds' => $kind === 'salary' && $fundIds !== [] ? app(DealerKinds::class)->for($dealerIds) : [],
             'paidAsByRules' => [],
-            'split' => FairPaisaSplit::forMonth($month),
-            'subDealerNames' => [],
-            'payees' => $dealers->keyBy('id')->all(),
+            'subDealerNames' => $subDealers->pluck('name', 'id')->all(),
+            'payees' => $dealers->keyBy('id')->all() + $subDealers->keyBy('id')->all(),
         ];
         $total = 0;
         $distributed = [];
         $tiers = [];
         $divisionSummary = [];
         $toCompanyProfit = 0;
+        $toExtraFund = 0;
         foreach (array_chunk($fundIds, max(1, (int) config('madina.settlement_close_chunk', self::CloseChunk))) as $chunkIds) {
             $chunk = DB::transaction(fn (): array => $this->settleChunk($chunkIds, $month, $kind, $context), 3);
             $total += $chunk['total'];
             $toCompanyProfit += $chunk['to_company_profit'];
+            $toExtraFund += $chunk['to_extra_fund'];
             foreach ($chunk['distributed'] as $id => $amount) {
                 $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
             }
@@ -164,12 +177,13 @@ final class CommissionSettlement
             ];
         }
         $totalPaid = array_sum($distributed);
-        $result = DB::transaction(function () use ($month, $kind, $requestKey, $actorId, $totalPaid, $toCompanyProfit, $total, $distributed, $result, $tiers, $divisions): array {
+        $result = DB::transaction(function () use ($month, $kind, $requestKey, $actorId, $totalPaid, $toCompanyProfit, $toExtraFund, $total, $distributed, $result, $tiers, $divisions): array {
             CommissionWallet::lockShared();
             Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, [
                 'distributed' => Money::decimal($totalPaid),
                 'rolled_to_reserve' => '0.00',
                 'to_company_profit' => Money::decimal($toCompanyProfit),
+                'to_commission_extra_fund' => Money::decimal($toExtraFund),
                 'request_key' => $requestKey,
             ]);
 
@@ -177,6 +191,7 @@ final class CommissionSettlement
                 'status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
                 'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => '0.00',
                 'total_to_company_profit' => Money::decimal($toCompanyProfit),
+                'total_to_commission_extra_fund' => Money::decimal($toExtraFund),
                 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
                 'divisions' => $divisions,
             ]);
@@ -200,7 +215,7 @@ final class CommissionSettlement
     {
         CommissionWallet::lockShared();
         $funds = CommissionAllocation::query()->whereIn('id', $fundIds)->where('status', 'pending')->orderBy('id')->lockForUpdate()->get();
-        $chunk = ['total' => 0, 'to_company_profit' => 0, 'distributed' => [], 'tiers' => [], 'divisions' => []];
+        $chunk = ['total' => 0, 'to_company_profit' => 0, 'to_extra_fund' => 0, 'distributed' => [], 'tiers' => [], 'divisions' => []];
         if ($funds->isEmpty()) {
             return $chunk;
         }
@@ -208,7 +223,6 @@ final class CommissionSettlement
         /** @var Collection<int, User> $dealers */
         $dealers = $context['dealers'];
         $dealerIds = $context['dealerIds'];
-        $split = $context['split'];
         $batchPolicies = $this->batchPolicies($funds);
         $buyerGeographies = $kind === 'salary' ? $this->fundBuyerGeographies($funds, $batchPolicies) : [];
         $partners = User::query()
@@ -224,36 +238,64 @@ final class CommissionSettlement
         $refundedBasis = $this->refundedBasisByOrder($funds);
         $payoutRows = [];
         foreach ($funds as $fund) {
-            [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $context['dealerDivisions'], $context['volumes'], $batchPolicies, $buyerGeographies);
+            [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $context['dealerDivisions'], $context['volumes'], $batchPolicies, $buyerGeographies, $context['dealerKinds']);
             $cents = Money::cents($fund->amount);
             $shares = [];
+            $tierReason = false;
+            $leftover = 0;
             if ($fund->category === 'sub_dealer_salary') {
                 $partner = $fund->user_id !== null ? $partners->get($fund->user_id) : null;
                 if ($partner?->role === 'sub_dealer' && $partner->status === 'active') {
-                    $shares[$partner->id] = $cents;
                     $context['subDealerNames'][$partner->id] = $partner->name;
                     if (! array_key_exists($partner->id, $context['volumes'])) {
                         $context['volumes'][$partner->id] = $partnerVolumes[$partner->id] ?? 0;
                     }
+                    // Owner's rule of 2026-11-21: the sub-dealer is paid the tier his own month's purchase reached; the
+                    // rest of the salary set aside goes to the company profit fund. Older orders paid all of it.
+                    $tierBasisPoints = MonthlyTargets::salaryBasisPoints($rules, $context['volumes'][$partner->id]);
+                    $tierReason = $tierBasisPoints !== null;
+                    $paid = $tierBasisPoints === null ? $cents
+                        : MonthlyTargets::tierShare($cents, $tierBasisPoints, Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints);
+                    if ($paid > 0) {
+                        $shares[$partner->id] = $paid;
+                    }
                 }
             } elseif ($kind === 'salary') {
-                $shares = $split->divide($cents, $qualifiedIds, 'salary');
+                // Equal to the paisa; the paisa that do not divide go to the Commission extra fund (owner, 2026-11-21).
+                // Nobody qualified: the whole fund goes to the company profit fund below.
+                ['shares' => $shares, 'leftover' => $splitLeftover] = EqualSplit::among($cents, $qualifiedIds);
+                $leftover = $qualifiedIds === [] ? 0 : $splitLeftover;
                 [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
                 $chunk['divisions'][$divisionKey]['name'] = $label;
                 $chunk['divisions'][$divisionKey]['pool_cents'] = ($chunk['divisions'][$divisionKey]['pool_cents'] ?? 0) + $cents;
                 $chunk['divisions'][$divisionKey]['qualifiers'] = max($chunk['divisions'][$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
             } else {
-                $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
-                $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
+                // The four rank funds (1% each by default), each rounded down; the paisa left go to the Commission extra fund.
+                ['parts' => $buckets, 'leftover' => $leftover] = EqualSplit::byWeights($cents, $this->rankWeights($rules['rank_royalty']['parameters']));
+                // Who may share: dealers, and sub-dealers too when the order was captured under the owner's rule of 2026-11-21.
+                $candidates = $dealerIds;
+                if (MonthlyTargets::subDealersEarnRanks($rules)) {
+                    $candidates = [...$dealerIds, ...$context['subDealerIds']];
+                    sort($candidates);
+                }
+                $rulesKey = hash('xxh3', json_encode([
+                    $rules['rank_maintenance']['parameters'] ?? [],
+                    MonthlyTargets::usesMonthlyTargets($rules)
+                        ? [$rules['dealer_monthly_salary']['parameters'] ?? [], $rules['rank_royalty']['parameters'][MonthlyTargets::SubDealerRoyaltyParameter] ?? null]
+                        : null,
+                ], JSON_THROW_ON_ERROR));
                 if (! isset($context['paidAsByRules'][$rulesKey])) {
-                    $context['paidAsByRules'][$rulesKey] = $this->qualification->paidAsFor($dealerIds, $month, $rules);
+                    $context['paidAsByRules'][$rulesKey] = $this->qualification->paidAsFor($candidates, $month, $rules);
                 }
                 foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
                     $ids = array_values(array_filter(
-                        $dealerIds,
+                        $candidates,
                         fn (int $id): bool => ($context['paidAsByRules'][$rulesKey][$id]['paid_as_rank'] ?? 'dealer') === $code,
                     ));
-                    $tierShares = $split->divide($buckets[$index], $ids, 'royalty_'.$code);
+                    // A rank fund nobody qualified for goes whole to the company profit fund (below); a shared one leaves
+                    // only its undividable paisa, which go to the Commission extra fund.
+                    ['shares' => $tierShares, 'leftover' => $tierLeftover] = EqualSplit::among($buckets[$index], $ids);
+                    $leftover += $ids === [] ? 0 : $tierLeftover;
                     foreach ($tierShares as $id => $amount) {
                         $shares[$id] = ($shares[$id] ?? 0) + $amount;
                     }
@@ -276,15 +318,21 @@ final class CommissionSettlement
                 $this->insertPayouts($payoutRows);
             }
             $paidCents = array_sum($shares);
-            $remainder = $cents - $paidCents;
+            $extraId = null;
+            if ($leftover > 0) {
+                $extraId = $this->toCommissionExtraFund($fund, $leftover, $month, $kind);
+                $chunk['to_extra_fund'] += $leftover;
+            }
+            $remainder = $cents - $paidCents - $leftover;
             $reserveId = null;
             if ($remainder > 0) {
                 // Owner rule: every month closes in that month. Salary or royalty nobody earned
                 // (including a sub-dealer who is no longer active) goes to the company profit fund.
                 if ($fund->category === 'sub_dealer_salary') {
-                    $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, null, 'retained_reason_unclaimed_sub_dealer_salary');
+                    $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, null, $tierReason ? 'retained_reason_sub_dealer_salary_tier' : 'retained_reason_unclaimed_sub_dealer_salary');
                 } else {
-                    $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null);
+                    $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null,
+                        ($fundDivision['nationwide'] ?? false) === true ? 'retained_reason_unclaimed_national_salary' : null);
                     if ($kind === 'salary') {
                         [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
                         $chunk['divisions'][$divisionKey]['name'] = $label;
@@ -295,7 +343,8 @@ final class CommissionSettlement
             }
             $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
                 'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
-                'settlement_reserve_allocation_id' => $reserveId]]);
+                'settlement_reserve_allocation_id' => $reserveId,
+                ...($extraId !== null ? ['split_leftover' => Money::decimal($leftover), 'split_leftover_allocation_id' => $extraId] : [])]]);
         }
         $this->insertPayouts($payoutRows);
         $this->creditSettlement($chunk['distributed'], $month, $kind);
@@ -394,14 +443,15 @@ final class CommissionSettlement
         $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
         $volumes = $this->qualification->monthlyVolumesFor($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month);
         $dealerDivisions = $this->dealerDivisions($dealers);
+        $dealerKinds = app(DealerKinds::class)->for($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all());
         $batchPolicies = $this->batchPolicies($funds);
         $buyerGeographies = $this->fundBuyerGeographies($funds, $batchPolicies);
         $divisions = [];
         $shares = [];
         $shareDivision = [];
         $shareDivisionId = [];
+        $shareNationwide = [];
         $subDealerCents = 0;
-        $split = FairPaisaSplit::forMonth($month);
         foreach ($funds as $fund) {
             $cents = Money::cents($fund->amount);
             if ($fund->category === 'sub_dealer_salary') {
@@ -409,18 +459,22 @@ final class CommissionSettlement
 
                 continue;
             }
-            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
+            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies, $dealerKinds);
             [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
-            $fundShares = $split->divide($cents, $qualifiedIds, 'salary');
+            ['shares' => $fundShares, 'leftover' => $leftover] = EqualSplit::among($cents, $qualifiedIds);
+            $leftover = $qualifiedIds === [] ? 0 : $leftover;
             $divisions[$divisionKey]['name'] = $label;
             $divisions[$divisionKey]['id'] = $fundDivision['id'] ?? null;
+            $divisions[$divisionKey]['nationwide'] = (bool) ($fundDivision['nationwide'] ?? false);
             $divisions[$divisionKey]['pool'] = ($divisions[$divisionKey]['pool'] ?? 0) + $cents;
-            $divisions[$divisionKey]['to_company'] = ($divisions[$divisionKey]['to_company'] ?? 0) + $cents - array_sum($fundShares);
+            $divisions[$divisionKey]['to_extra'] = ($divisions[$divisionKey]['to_extra'] ?? 0) + $leftover;
+            $divisions[$divisionKey]['to_company'] = ($divisions[$divisionKey]['to_company'] ?? 0) + $cents - array_sum($fundShares) - $leftover;
             $divisions[$divisionKey]['qualifiers'] = max($divisions[$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
             foreach ($fundShares as $id => $amount) {
                 $shares[$id] = ($shares[$id] ?? 0) + $amount;
                 $shareDivision[$id] = $label;
                 $shareDivisionId[$id] = $fundDivision['id'] ?? null;
+                $shareNationwide[$id] = (bool) ($fundDivision['nationwide'] ?? false);
             }
         }
         uasort($divisions, fn (array $a, array $b): int => $a['name'] <=> $b['name']);
@@ -434,6 +488,7 @@ final class CommissionSettlement
                 'dealer_code' => $dealer?->dealer_code,
                 'division' => $shareDivision[$id],
                 'division_id' => $shareDivisionId[$id] ?? null,
+                'nationwide' => $shareNationwide[$id] ?? false,
                 'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
                 'share' => Money::decimal($amount),
             ];
@@ -446,13 +501,16 @@ final class CommissionSettlement
                 'division_id' => $row['id'],
                 'pool' => Money::decimal($row['pool']),
                 'qualifiers' => (int) $row['qualifiers'],
-                'per_head' => Money::decimal($row['qualifiers'] > 0 ? intdiv($row['pool'] - $row['to_company'], $row['qualifiers']) : 0),
+                'nationwide' => $row['nationwide'],
+                'per_head' => Money::decimal($row['qualifiers'] > 0 ? intdiv($row['pool'] - $row['to_company'] - $row['to_extra'], $row['qualifiers']) : 0),
                 'to_company_profit' => Money::decimal($row['to_company']),
+                'to_commission_extra_fund' => Money::decimal($row['to_extra']),
             ], array_values($divisions)),
             'dealers' => $dealerRows,
             'dealer_pool' => Money::decimal(array_sum(array_column($divisions, 'pool'))),
             'sub_dealer_salary' => Money::decimal($subDealerCents),
             'to_company_profit' => Money::decimal(array_sum(array_column($divisions, 'to_company'))),
+            'to_commission_extra_fund' => Money::decimal(array_sum(array_column($divisions, 'to_extra'))),
         ];
     }
 
@@ -530,20 +588,28 @@ final class CommissionSettlement
      * @param  array<int, int>  $volumes
      * @param  array<int|string, string|null>  $batchPolicies
      * @param  array<int|string, array<string, mixed>|null>  $buyerGeographies  preloaded by fundBuyerGeographies()
+     * @param  array<int, string|null>  $dealerKinds  each dealer's kind (DealerKinds), which sets his monthly target
      * @return array{0: array<string, mixed>, 1: array<string, mixed>|null, 2: list<int>}
      */
-    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies, array $buyerGeographies = []): array
+    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies, array $buyerGeographies = [], array $dealerKinds = []): array
     {
         $source = $batchPolicies[$fund->order_id] ?? null;
         $policy = $source ? json_decode((string) $source, true, 512, JSON_THROW_ON_ERROR) : null;
         $rules = $policy['rules'] ?? $this->policies->snapshot()['rules'];
-        $minVolume = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
-        $fundDivision = $kind === 'salary' ? $this->divisionOf($policy['geography'] ?? (array_key_exists($fund->order_id, $buyerGeographies)
-            ? $buyerGeographies[$fund->order_id]
-            : $this->orderBuyerGeography($fund))) : null;
+        // Owner's rule of 2026-11-21: one salary pool for all of Bangladesh, shared by every dealer in the country who met
+        // his own target. Older orders keep the salary pool of the buyer's division.
+        $nationwide = MonthlyTargets::usesMonthlyTargets($rules);
+        $fundDivision = match (true) {
+            $kind !== 'salary' => null,
+            $nationwide => ['id' => null, 'name' => __('portal.report_area_nationwide'), 'nationwide' => true],
+            default => $this->divisionOf($policy['geography'] ?? (array_key_exists($fund->order_id, $buyerGeographies)
+                ? $buyerGeographies[$fund->order_id]
+                : $this->orderBuyerGeography($fund))),
+        };
+        // The order's rules say the target: each dealer's one target by kind, or (older orders) one minimum for all.
         $qualifiedIds = $dealers
-            ->filter(fn (User $user): bool => ($kind !== 'salary' || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
-                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= $minVolume))
+            ->filter(fn (User $user): bool => ($kind !== 'salary' || $nationwide || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
+                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= MonthlyTargets::dealerTarget($rules, $dealerKinds[(int) $user->id] ?? null)))
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->values()
@@ -641,12 +707,15 @@ final class CommissionSettlement
      * The row key and label of a fund's division in the salary summary: keyed by place
      * code id so two divisions that share a name never merge.
      *
-     * @param  array{id: int|null, name: string|null}|null  $division
+     * @param  array{id: int|null, name: string|null, nationwide?: bool}|null  $division
      * @return array{0: string, 1: string}
      */
     private function divisionSummaryKey(?array $division): array
     {
         $label = $division['name'] ?? __('portal.report_area_unknown');
+        if (($division['nationwide'] ?? false) === true) {
+            return ['nationwide', $label];
+        }
 
         return [($division['id'] ?? null) !== null ? 'place:'.$division['id'] : 'unplaced', $label];
     }
@@ -659,32 +728,58 @@ final class CommissionSettlement
         return $buyer ? $this->geography->forBuyer($buyer) : null;
     }
 
-    /** @param array<string,mixed> $parameters @return array<int,int> */
-    private function rankBuckets(int $amount, array $parameters): array
+    /**
+     * The weights of the four rank funds (MO, AM, SM, ME), from their share percents.
+     *
+     * @param  array<string, mixed>  $parameters
+     * @return list<int>
+     */
+    private function rankWeights(array $parameters): array
     {
         $weights = [];
         foreach (['mo', 'am', 'sm', 'me'] as $key) {
             $weights[] = Percentage::from((string) $parameters[$key.'_share_pct'])->basisPoints;
         }
-        $total = array_sum($weights);
-        if ($total === 0) {
+        if (array_sum($weights) === 0) {
             throw ValidationException::withMessages(['rules' => __('portal.err_settle_royalty_shares')]);
         }
-        $result = [];
-        $fractions = [];
-        foreach ($weights as $index => $weight) {
-            $result[$index] = intdiv($amount * $weight, $total);
-            $fractions[$index] = ($amount * $weight) % $total;
-        }
-        arsort($fractions, SORT_NUMERIC);
-        $remainder = $amount - array_sum($result);
-        foreach (array_keys($fractions) as $index) {
-            if ($remainder-- <= 0) {
-                break;
-            } $result[$index]++;
-        }
 
-        return $result;
+        return $weights;
+    }
+
+    /**
+     * The paisa left over when a fund is split equally (owner, 2026-11-21) go to the Commission extra fund (the fund
+     * that also takes the purchase surplus), on their own row with the reason "split_remainder", so Treasury and
+     * reports show them apart. The row keeps its source fund, so a later refund takes back its fair share as it does
+     * for the company profit rows.
+     */
+    public function toCommissionExtraFund(CommissionAllocation $fund, int $amount, string $month, string $kind): int
+    {
+        $fundNow = Money::cents($fund->amount);
+        $originalAmount = $fundNow > 0 ? self::scaled($amount, Money::cents($fund->original_amount ?? $fund->amount), $fundNow) : $amount;
+
+        return CommissionAllocation::query()->create([
+            'order_id' => $fund->order_id,
+            'user_id' => null,
+            'category' => RetainedFundLedger::BenefitsCategory,
+            'rate_percentage' => $fund->rate_percentage,
+            'cash_basis' => $fund->cash_basis,
+            'amount' => Money::decimal($amount),
+            'original_amount' => Money::decimal($originalAmount),
+            'status' => 'reserved',
+            'metadata' => [
+                'basis' => 'purchase_value',
+                'period_month' => $month,
+                'source_allocation_id' => $fund->id,
+                'source_category' => $fund->category,
+                'settlement_kind' => $kind,
+                'retained_by' => 'owner_commission_benefits_fund',
+                'owner_only' => true,
+                'source' => self::SplitRemainder,
+                'reason_key' => 'money_core.reason_split_remainder',
+                'reason' => __('money_core.reason_split_remainder'),
+            ],
+        ])->id;
     }
 
     /** @param  User|null  $payee  the partner when already loaded, so a batch of payouts skips looking each one up */
@@ -838,6 +933,17 @@ final class CommissionSettlement
         return null;
     }
 
+    /**
+     * What is still in one rank prize fund row: its amount less the prizes paid from it and the surplus a month close
+     * moved to the company profit fund (ReserveService::closeRankPrizeSurplus()).
+     */
+    public static function incentiveLeft(CommissionAllocation $fund): int
+    {
+        return max(0, Money::cents($fund->amount)
+            - Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'))
+            - Money::cents((string) ($fund->metadata['moved_to_profit'] ?? '0.00')));
+    }
+
     /** @return array<string, mixed> */
     public function incentive(int $userId, ?int $actorId = null, ?string $requestKey = null): array
     {
@@ -878,7 +984,7 @@ final class CommissionSettlement
             if ($unconditionalIncentive && ($awardRank === 'dealer' || $awardRank === null)) {
                 $awardRank = PartnerBenefitControls::forcedRoyaltyRank($user) ?? 'mo';
             }
-            if ($user->role !== 'dealer' || $user->status !== 'active' || ($awardRank === 'dealer' && ! $unconditionalIncentive)) {
+            if (! in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->status !== 'active' || ($awardRank === 'dealer' && ! $unconditionalIncentive)) {
                 return ['success' => false, 'message' => __('portal.cmd_val_incentive_rank_required')];
             }
             if (DB::table('rank_incentive_awards')->where('user_id', $userId)->where('rank', $awardRank)->exists()) {
@@ -898,7 +1004,7 @@ final class CommissionSettlement
             }
             $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$awardRank.'_bonus']);
             $funds = CommissionAllocation::where('category', 'rank_incentive_pool')->whereIn('status', ['pending', 'partially_settled'])->orderBy('id')->lockForUpdate()->get();
-            $available = $funds->sum(fn ($fund): int => Money::cents($fund->amount) - Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00')));
+            $available = $funds->sum(fn ($fund): int => self::incentiveLeft($fund));
             if ($amount <= 0 || $available < $amount) {
                 return ['success' => false, 'message' => __('portal.cmd_val_incentive_unfunded')];
             }
@@ -906,11 +1012,12 @@ final class CommissionSettlement
             $sources = [];
             foreach ($funds as $fund) {
                 $used = Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'));
-                $take = min($remaining, Money::cents($fund->amount) - $used);
+                $left = self::incentiveLeft($fund);
+                $take = min($remaining, $left);
                 if ($take > 0) {
                     $this->pay($fund, $userId, $take, $period, 'rank_'.$awardRank);
                     $sources[$fund->id] = Money::decimal($take);
-                    $fund->update(['status' => $used + $take === Money::cents($fund->amount) ? 'settled' : 'partially_settled',
+                    $fund->update(['status' => $take === $left ? 'settled' : 'partially_settled',
                         'metadata' => [...$fund->metadata, 'incentive_consumed' => Money::decimal($used + $take)]]);
                     $remaining -= $take;
                 }

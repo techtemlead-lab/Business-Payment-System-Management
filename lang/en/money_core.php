@@ -191,4 +191,5 @@ return [
     'wo_reason' => 'Why are you writing this off? (needed)',
     'wo_confirm' => 'I understand: ৳:amount owed by this partner is written off as a company loss.',
     'wo_submit' => 'Write off ৳:amount',
+    'reason_split_remainder' => 'Paisa left over when a salary or royalty fund was shared equally',
 ];

@@ -10,7 +10,6 @@ use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\UnownedShareSweeps;
 use App\Models\DealerRank;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -23,9 +22,6 @@ use Throwable;
 class AutoApprovePayouts extends Command
 {
     /** Pending fund categories each monthly settlement pays out. */
-    /** How many closed months back the automatic run may settle (last month, plus one for a missed run). */
-    public const AutomaticMonthsBack = 2;
-
     private const MonthlyFunds = [
         'salary' => ['dealer_monthly_salary_pool', 'sub_dealer_salary'],
         'royalty' => ['rank_royalty_pool'],
@@ -46,16 +42,9 @@ class AutoApprovePayouts extends Command
 
                 continue;
             }
-            $oldestAutomatic = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth())
-                ->subMonthsNoOverflow(self::AutomaticMonthsBack)->format('Y-m');
+            // Owner's decision (2026-11-21): every ended month that still has unpaid fund money is closed, oldest
+            // first, however long ago it ended (a missed run never leaves a month open). Each close is idempotent.
             foreach ($this->closedMonthsWithPendingFunds($categories) as $month) {
-                // Older months are left for a person to settle on the Settlements page, so turning
-                // auto-approval on never pays a long backlog in one go with today's dealer list.
-                if ($month < $oldestAutomatic) {
-                    $summary[$kind.':'.$month] = 'older month: needs approval';
-
-                    continue;
-                }
                 $summary[$kind.':'.$month] = $this->closeMonth($kind, $month, fn () => $kind === 'salary'
                     ? $commissions->settleMonthlySalaryPool($month)['status']
                     : $commissions->settleRankRoyaltyPool($month)['status']);
@@ -79,10 +68,8 @@ class AutoApprovePayouts extends Command
         $summary['closed_account_holds'] = $this->attempt(fn () => $sweeps->closedAccountHoldsToCompanyProfit()['status']);
         $summary['suspended_holds'] = $this->attempt(fn () => $sweeps->suspendedHoldsToCompanyProfit()['status']);
 
-        // Month close for the sub-dealer additional-rank fund (last month, plus one for a missed run).
-        $current = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth());
-        foreach ([2, 1] as $back) {
-            $month = $current->subMonthsNoOverflow($back)->format('Y-m');
+        // Month close for the sub-dealer additional-rank fund: every ended month that still has an open fund row.
+        foreach ($this->closedMonthsWithPendingFunds(['additional_rank_pool']) as $month) {
             $summary['additional_rank_close:'.$month] = $this->closeMonth('additional_rank', $month, fn () => $reserves->closeAdditionalRankFund($month)['status']);
         }
 
@@ -101,6 +88,9 @@ class AutoApprovePayouts extends Command
         } else {
             $summary['rank_incentive'] = 'needs approval';
         }
+        // Owner's decision (2026-11-21): after the prizes above, the rank prize fund keeps what the waiting prizes need;
+        // money above that from months that have ended goes to the company profit fund.
+        $summary['rank_prize_surplus'] = $this->attempt(fn () => $reserves->closeRankPrizeSurplus()['status']);
 
         $this->line(json_encode($summary, JSON_THROW_ON_ERROR));
 
@@ -137,7 +127,7 @@ class AutoApprovePayouts extends Command
     }
 
     /**
-     * Active dealers holding a rank whose one-time reward is not paid yet.
+     * Active dealers and sub-dealers holding a rank whose one-time reward is not paid yet.
      * The reward itself re-checks every rule, so a candidate who is not yet
      * eligible is simply skipped until a later run.
      *
@@ -147,7 +137,8 @@ class AutoApprovePayouts extends Command
     {
         return DealerRank::query()
             ->whereNotIn('current_rank', ['dealer'])
-            ->whereIn('user_id', User::query()->where('role', 'dealer')->where('status', 'active')->select('id'))
+            // Sub-dealers hold ranks too since the owner's rule of 2026-11-21.
+            ->whereIn('user_id', User::query()->whereIn('role', ['dealer', 'sub_dealer'])->where('status', 'active')->select('id'))
             // The current rank, or any lower rank reached on the way (MO then AM within one run),
             // whose one-time reward is still unpaid.
             ->where(fn ($query) => $query

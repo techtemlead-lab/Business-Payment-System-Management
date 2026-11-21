@@ -516,6 +516,10 @@ final class CommissionPosting
         $areaPool = CommissionPolicy::rate($rules, 'area_dealer_pool')->of($cash, 'half_up');
         $areaRemaining = $areaPool;
         $geography = $snapshot['geography'];
+        // Owner's rule of 2026-11-21: area income is decided once a month against the dealer's one monthly target, so
+        // a seated dealer's share always waits for the month to end. Older rules paid it at once when the seat's own
+        // target was already met.
+        $monthlyArea = MonthlyTargets::usesMonthlyTargets($rules);
         foreach (['division', 'district', 'upazila', 'union'] as $level) {
             $rate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters'][$level.'_share_pct'] : '0.00';
             $share = min($areaRemaining, Percentage::from($rate)->of($cash, 'half_up'));
@@ -541,14 +545,21 @@ final class CommissionPosting
             $id = $assignment?->user_id;
             $status = $recipient($id);
             $quotaHold = false;
-            if ($assignment && $this->qualification->monthlyVolume($id, CommissionQualification::currentMonth()) < Money::cents($assignment->monthly_quota)) {
+            $quota = $assignment?->monthly_quota;
+            if ($assignment && $monthlyArea) {
+                $quota = Money::decimal(MonthlyTargets::dealerTarget($rules, app(DealerKinds::class)->of((int) $id)));
+                // An inactive dealer's share is held as before (released if he is active again and met the target).
+                $quotaHold = $status === $eligibleStatus;
+                $status = 'held';
+            } elseif ($assignment && $this->qualification->monthlyVolume($id, CommissionQualification::currentMonth()) < Money::cents($assignment->monthly_quota)) {
                 $status = 'held';
                 $quotaHold = true;
             }
             $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
                 [
                     'assignment_id' => $assignment?->id,
-                    'monthly_quota' => $assignment?->monthly_quota,
+                    'monthly_quota' => $quota,
+                    ...($assignment && $monthlyArea ? ['monthly_close' => true] : []),
                     'unassigned' => ! $id,
                     // No dealer holds this place code at this level (yet): the share is company
                     // profit at order time. A dealer seated later earns only on later orders.

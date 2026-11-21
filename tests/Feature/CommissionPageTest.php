@@ -171,17 +171,20 @@ class CommissionPageTest extends TestCase
         $inParts = collect($page['heads'])->flatMap(fn (array $head): array => array_map(fn (array $child): string => $head['key'].'.'.$child['param'], array_filter($head['children'] ?? [], fn (array $child): bool => $child['param'] !== null)))->all();
         $editable = [...$inConditions, ...$inParts];
 
-        // Rank join targets and counts, team depth, rank keep minimums and grace days, the one-time prizes, the royalty parts, bike and car numbers.
-        foreach (['rank_royalty', 'rank_maintenance', 'rank_incentive', 'car_bike_incentive'] as $rule) {
+        // Rank join targets and counts, team depth, the royalty target and parts, the one-time prizes, bike and car numbers,
+        // the one monthly target by dealer kind and the sub-dealer salary steps. rank_maintenance (per-rank keep minimums and
+        // grace days) is deliberately not on the page any more: it applies only to orders captured before the new rules.
+        foreach (['rank_royalty', 'rank_incentive', 'car_bike_incentive', 'dealer_monthly_salary', 'sub_dealer_salary'] as $rule) {
             foreach ($this->liveRules()[$rule]['parameters'] as $name => $value) {
                 $this->assertContains($rule.'.'.$name, $editable, "{$rule}.{$name} is read by the engine but cannot be edited on the page.");
             }
         }
+        $this->assertNotContains('rank_maintenance.mo_min_monthly_volume', $editable);
 
         $this->change($this->owner, [
             'rank_royalty' => ['parameters' => ['mo_target' => '300000.00', 'am_count' => 11, 'sm_count' => 12, 'me_count' => 13, 'qualification_depth' => 4,
                 'mo_share_pct' => '1.50', 'am_share_pct' => '1.00', 'sm_share_pct' => '0.75', 'me_share_pct' => '0.75']],
-            'rank_maintenance' => ['parameters' => ['mo_min_monthly_volume' => '6000.00', 'am_min_monthly_volume' => '16000.00', 'sm_min_monthly_volume' => '31000.00', 'me_min_monthly_volume' => '51000.00', 'grace_period_days' => 20]],
+            'dealer_monthly_salary' => ['parameters' => ['union_target' => '31000.00', 'upazila_target' => '51000.00', 'district_target' => '101000.00', 'division_target' => '102000.00', 'min_monthly_volume' => '32000.00']],
             'rank_incentive' => ['parameters' => ['mo_bonus' => '6000.00', 'am_bonus' => '51000.00', 'sm_bonus' => '251000.00', 'me_bonus' => '301000.00']],
             'car_bike_incentive' => ['parameters' => ['bike_target' => '5100000.00', 'bike_leg_cap' => '810000.00', 'bike_award_amount' => '310000.00', 'car_target' => '251000000.00',
                 'car_leg_cap' => '21000000.00', 'car_award_amount' => '600000.00', 'bike_pool_share_pct' => '60.00']],
@@ -191,13 +194,15 @@ class CommissionPageTest extends TestCase
         $this->assertSame(['300000.00', 11, 12, 13, 4, '1.50', '0.75'], [$live['rank_royalty']['parameters']['mo_target'], (int) $live['rank_royalty']['parameters']['am_count'], (int) $live['rank_royalty']['parameters']['sm_count'],
             (int) $live['rank_royalty']['parameters']['me_count'], (int) $live['rank_royalty']['parameters']['qualification_depth'], $live['rank_royalty']['parameters']['mo_share_pct'], $live['rank_royalty']['parameters']['sm_share_pct']]);
         $this->assertSame(['6000.00', '301000.00'], [$live['rank_incentive']['parameters']['mo_bonus'], $live['rank_incentive']['parameters']['me_bonus']]);
-        $this->assertSame(['6000.00', 20], [$live['rank_maintenance']['parameters']['mo_min_monthly_volume'], (int) $live['rank_maintenance']['parameters']['grace_period_days']]);
+        $this->assertSame(['31000.00', '51000.00', '101000.00', '102000.00', '32000.00'], array_map(fn (string $name): string => $live['dealer_monthly_salary']['parameters'][$name], ['union_target', 'upazila_target', 'district_target', 'division_target', 'min_monthly_volume']));
         $this->assertSame(['310000.00', '600000.00', '60.00'], [$live['car_bike_incentive']['parameters']['bike_award_amount'], $live['car_bike_incentive']['parameters']['car_award_amount'], $live['car_bike_incentive']['parameters']['bike_pool_share_pct']]);
 
         // The page then shows what the engine now reads.
         $numbers = collect($this->pageProps($this->finance)['conditions'])->flatMap(fn (array $condition): array => collect($condition['numbers'])->mapWithKeys(fn (array $number): array => [$condition['rule'].'.'.$number['param'] => $number['value']])->all());
         $this->assertSame('300000.00', $numbers['rank_royalty.mo_target']);
         $this->assertSame('301000.00', $numbers['rank_incentive.me_bonus']);
+        $this->assertSame('31000.00', $numbers['dealer_monthly_salary.union_target']);
+        $this->assertSame('102000.00', $numbers['dealer_monthly_salary.division_target']);
     }
 
     public function test_conditions_are_shown_separately_for_dealers_and_sub_dealers(): void

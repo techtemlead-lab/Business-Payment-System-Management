@@ -16,7 +16,7 @@ final class FundCatalog
     public const MonthPools = ['salary_pool', 'royalty_pool', 'rank_bonus'];
 
     /** Funds where a closed month is finished: everything in that row has gone out. */
-    public const ClosedRowFunds = ['salary_pool', 'royalty_pool', 'rank_reward'];
+    public const ClosedRowFunds = ['salary_pool', 'royalty_pool', 'rank_bonus', 'rank_reward'];
 
     /** Old money only. The card appears only while something came in. */
     public const HiddenWhileEmpty = ['car_bike', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];

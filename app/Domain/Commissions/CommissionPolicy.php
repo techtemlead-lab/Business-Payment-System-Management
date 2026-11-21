@@ -23,7 +23,8 @@ final class CommissionPolicy
     private const AwardAmountParameters = ['bike_award_amount', 'car_award_amount'];
 
     /** Sales targets: a target of zero would make every partner qualify, so it must stay above zero. */
-    private const TargetParameters = ['bike_target', 'car_target', 'mo_target'];
+    private const TargetParameters = ['bike_target', 'car_target', 'mo_target', 'division_target', 'district_target', 'upazila_target', 'union_target',
+        'sub_dealer_royalty_target', 'tier1_volume', 'tier2_volume', 'tier3_volume'];
 
     /**
      * Where the sub-dealer "extra" percent (rule additional_rank) goes: 'extra_fund' is the company fund "Sub-dealer
@@ -71,13 +72,22 @@ final class CommissionPolicy
             'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00',
                 'division_monthly_quota' => '50000.00', 'district_monthly_quota' => '40000.00', 'upazila_monthly_quota' => '20000.00', 'union_monthly_quota' => '10000.00',
                 'held_share_months' => 3]],
-            'dealer_monthly_salary' => ['salary', 'Dealer Acquisition Target Bonus', '2.00', ['min_monthly_volume' => '10000.00']],
-            'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '250000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00']],
+            // One monthly target per dealer by the kind of dealer (owner, 2026-11-21); it unlocks the salary, the rank
+            // royalty and the area income of that month. min_monthly_volume is the target of a dealer with no area yet.
+            'dealer_monthly_salary' => ['salary', 'Dealer Acquisition Target Bonus', '2.00', ['min_monthly_volume' => '30000.00',
+                'division_target' => '100000.00', 'district_target' => '100000.00', 'upazila_target' => '50000.00', 'union_target' => '30000.00']],
+            'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '500000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00',
+                'sub_dealer_royalty_target' => '30000.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
-            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => null, 'bike_pool_share_pct' => '50.00']],
+            // Owner's rule of 2026-11-21: bike at ৳1 crore of team sales (at most ৳20 lakh from one direct line),
+            // prize ৳3 lakh; car at ৳50 crore (at most ৳8 crore from one direct line), prize ৳25 lakh.
+            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '10000000.00', 'bike_leg_cap' => '2000000.00', 'car_target' => '500000000.00', 'car_leg_cap' => '80000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => '2500000.00', 'bike_pool_share_pct' => '50.00']],
             'additional_rank' => ['sub_dealer', 'Sub-dealer extra', '4.00', ['destination' => self::ExtraDestinationDefault]],
-            'sub_dealer_salary' => ['sub_dealer', 'Sub-dealer salary', '3.00', []],
+            // The salary is set aside at the full percent; at month end the sub-dealer is paid the tier his own month's
+            // purchase reached and the rest goes to the company profit fund (owner, 2026-11-21).
+            'sub_dealer_salary' => ['sub_dealer', 'Sub-dealer salary', '3.00', ['tier1_volume' => '10000.00', 'tier1_pct' => '1.00',
+                'tier2_volume' => '20000.00', 'tier2_pct' => '2.00', 'tier3_volume' => '40000.00', 'tier3_pct' => '3.00']],
             'sub_dealer_tour' => ['sub_dealer', 'Tour', '3.00', []],
             'commission_cooling_off' => ['operations', 'Commission cooling-off', '0.00', ['cooling_off_days' => 0]],
             'payout_tax_withholding' => ['operations', 'Configured payout withholding', '0.00', ['threshold' => '0.00']],
@@ -379,14 +389,38 @@ final class CommissionPolicy
             if ($royaltyTotal !== Percentage::from((string) $rules['rank_royalty']['percentage'])->basisPoints) {
                 throw new InvalidArgumentException(__('portal.err_policy_rank_shares'));
             }
+            $this->validateSalaryTiers($rules);
         } catch (InvalidArgumentException $exception) {
             throw ValidationException::withMessages(['rules' => $exception->getMessage()]);
         }
     }
 
     /**
+     * Sub-dealer salary tiers: each tier needs more purchase than the one before, pays at least as much, and never
+     * more than the salary percent set aside on every order. Rules saved before the tiers existed have none.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     */
+    private function validateSalaryTiers(array $rules): void
+    {
+        $tiers = MonthlyTargets::salaryTiers($rules);
+        if ($tiers === []) {
+            return;
+        }
+        $setAside = Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints;
+        $previous = null;
+        foreach ($tiers as $tier) {
+            if ($tier['basis_points'] > $setAside || ($previous !== null && ($tier['volume'] <= $previous['volume'] || $tier['basis_points'] < $previous['basis_points']))) {
+                throw new InvalidArgumentException(__('commission_page.err_salary_tiers'));
+            }
+            $previous = $tier;
+        }
+    }
+
+    /**
      * The monthly target a newly seated area dealer starts with, from the area rule (the seat itself
-     * can still be changed by hand). An unknown level has none.
+     * can still be changed by hand). An unknown level has none. Orders captured under the owner's rule of
+     * 2026-11-21 gate area income with the dealer's one monthly target (MonthlyTargets) instead.
      */
     public static function standardAreaQuota(?string $level): string
     {

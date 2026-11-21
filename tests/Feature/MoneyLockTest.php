@@ -77,24 +77,28 @@ class MoneyLockTest extends TestCase
         config(['madina.settlement_close_chunk' => 2]);
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
-        foreach (range(1, 5) as $ignored) {
-            $buyer = User::factory()->create();
-            $product = Product::factory()->create(['mrp' => '20000.00', 'dealer_price' => '10000.00']);
+        // Five buyers of ৳10,000 and the MO himself, who buys ৳30,000 so he meets the dealer's monthly target for the royalty.
+        foreach ([...array_fill(0, 5, null), $leader] as $buyer) {
+            $buyer ??= User::factory()->create();
+            $cash = $buyer->is($leader) ? '30000.00' : '10000.00';
+            $product = Product::factory()->create(['mrp' => bcmul($cash, '2', 2), 'dealer_price' => $cash]);
             $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
-            $order->update(['paid' => '10000.00', 'status' => 'delivered']);
+            $order->update(['paid' => $cash, 'status' => 'delivered']);
             app(CommissionService::class)->processOrder($order);
         }
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         $result = app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
 
-        // Each ৳10,000 order puts ৳400 in the royalty pool; the MO quarter (৳100) goes to the one MO, the rest to company profit.
-        $this->assertSame('2000.00', $result['total_pool']);
-        $this->assertSame('500.00', $result['total_distributed']);
-        $this->assertSame('1500.00', $result['total_to_company_profit']);
-        $this->assertSame('500.00', DB::table('wallets')->where('user_id', $leader->id)->value('available'));
-        $this->assertSame(5, DB::table('commission_settlement_payouts')->where('user_id', $leader->id)->count());
-        $this->assertSame(1, DB::table('account_notices')->where('user_id', $leader->id)->count());
+        // 4% of the ৳80,000 bought puts ৳3,200 in the royalty pool; the MO quarter (৳800) goes to the one MO, the rest to company profit.
+        $this->assertSame('3200.00', $result['total_pool']);
+        $this->assertSame('800.00', $result['total_distributed']);
+        $this->assertSame('2400.00', $result['total_to_company_profit']);
+        $this->assertSame('0.00', $result['total_to_commission_extra_fund']);
+        // His ৳1,500 cashback plus the ৳800 royalty.
+        $this->assertSame('2300.00', DB::table('wallets')->where('user_id', $leader->id)->value('available'));
+        $this->assertSame(6, DB::table('commission_settlement_payouts')->where('user_id', $leader->id)->count());
+        $this->assertSame(1, DB::table('account_notices')->where('user_id', $leader->id)->where('title', __('portal.notice_settle_title'))->count());
         $this->assertSame('empty_pool', app(CommissionService::class)->settleRankRoyaltyPool('2026-09')['status']);
     }
 }

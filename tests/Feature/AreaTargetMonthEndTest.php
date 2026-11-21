@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Finance\EventLog;
 use App\Domain\Finance\ReserveService;
@@ -19,6 +20,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -52,8 +54,13 @@ class AreaTargetMonthEndTest extends TestCase
         return $order;
     }
 
+    /**
+     * Since the owner's rule of 2026-11-21 the target is the dealer's one monthly target by kind (a division dealer: the
+     * division target), not the seat's own quota, so the tests set that number.
+     */
     private function seatedDealer(string $target = '100000.00'): User
     {
+        app(CommissionPolicy::class)->update(User::factory()->staff('super_admin')->create(), ['dealer_monthly_salary' => ['parameters' => ['division_target' => $target]]]);
         $dealer = User::factory()->inPlace($this->division)->create();
         AreaDealerAssignment::create(['user_id' => $dealer->id, 'level' => 'division', 'place_code_id' => $this->division->id,
             'division' => 'Rangpur', 'zone_name' => 'Rangpur', 'monthly_quota' => $target, 'is_active' => true]);
@@ -138,24 +145,45 @@ class AreaTargetMonthEndTest extends TestCase
         $this->assertSame('forfeited', $share->fresh()->status);
     }
 
-    public function test_a_met_target_pays_as_before(): void
+    public function test_a_met_target_pays_every_share_of_the_month_at_the_month_end(): void
     {
         $dealer = $this->seatedDealer('100.00');
-        $heldBeforeTarget = $this->areaShare($this->purchase($this->buyer()));
+        $beforeTarget = $this->areaShare($this->purchase($this->buyer()));
         $this->purchase($dealer);
-        $paidAfterTarget = $this->areaShare($this->purchase($this->buyer()));
-        $this->assertSame('held', $heldBeforeTarget->status);
-        $this->assertSame('available', $paidAfterTarget->status);
-        $wallet = DB::table('wallets')->where('user_id', $dealer->id)->value('available');
+        $afterTarget = $this->areaShare($this->purchase($this->buyer()));
+        // Decided once a month: even a share posted after the target was met waits for the month to end.
+        $this->assertSame('held', $beforeTarget->status);
+        $this->assertSame('held', $afterTarget->status);
+        $this->assertTrue($afterTarget->metadata['monthly_close']);
+        $this->assertSame('100.00', (string) $afterTarget->metadata['monthly_quota']);
+        $walletBefore = $this->walletTotal($dealer);
+        try {
+            app(ReserveService::class)->release(User::factory()->staff('finance')->create(), $afterTarget->id, 'Target reached');
+            $this->fail('A share must not be released before its month ends.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(__('portal.err_hold_month_open'), $exception->errors()['hold'][0]);
+        }
+        $this->assertSame($walletBefore, $this->walletTotal($dealer));
 
         $this->closeNovember();
 
-        $this->assertSame('held', $heldBeforeTarget->fresh()->status);
-        $this->assertSame('available', $paidAfterTarget->fresh()->status);
-        $this->assertSame($wallet, DB::table('wallets')->where('user_id', $dealer->id)->value('available'));
+        $this->assertContains($beforeTarget->fresh()->status, ['available', 'maturing']);
+        $this->assertContains($afterTarget->fresh()->status, ['available', 'maturing']);
         $this->assertSame(0, $this->movedToProfit());
-        app(ReserveService::class)->release(User::factory()->staff('finance')->create(), $heldBeforeTarget->id, 'Target reached');
-        $this->assertSame('available', $heldBeforeTarget->fresh()->status);
+        $paid = Money::cents((string) $beforeTarget->amount) + Money::cents((string) $afterTarget->amount);
+        // The month close also pays the dealer's salary share, so the wallet grew by at least the two area shares.
+        $this->assertGreaterThanOrEqual($walletBefore + $paid, $this->walletTotal($dealer));
+        $afterClose = $this->walletTotal($dealer);
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        $this->assertSame($afterClose, $this->walletTotal($dealer));
+    }
+
+    private function walletTotal(User $user): int
+    {
+        $wallet = DB::table('wallets')->where('user_id', $user->id)->first();
+
+        return $wallet ? Money::cents((string) $wallet->available) + Money::cents((string) $wallet->commission_held) : 0;
     }
 
     public function test_a_dealer_held_only_for_being_suspended_keeps_the_hold_when_the_target_was_met(): void

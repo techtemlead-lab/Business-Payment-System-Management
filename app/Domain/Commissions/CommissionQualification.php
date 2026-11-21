@@ -102,7 +102,9 @@ final class CommissionQualification
         $rank->update(['lifetime_purchase_total' => Money::decimal(Money::cents($rank->lifetime_purchase_total) + $cash),
             'monthly_purchase_total' => Money::decimal($this->monthlyVolume($buyer->id, CommissionQualification::currentMonth())), 'purchase_period' => CommissionQualification::currentMonth()]);
         $parameters = $rules['rank_royalty']['parameters'];
-        if ($buyer->role === 'dealer' && $rank->current_rank === 'dealer' && Money::cents($rank->lifetime_purchase_total) >= Money::cents((string) $parameters['mo_target'])) {
+        // From the owner's rule of 2026-11-21 a sub-dealer earns ranks too; older rules ranked dealers only.
+        $canRank = $buyer->role === 'dealer' || ($buyer->role === 'sub_dealer' && MonthlyTargets::subDealersEarnRanks($rules));
+        if ($canRank && $rank->current_rank === 'dealer' && Money::cents($rank->lifetime_purchase_total) >= Money::cents((string) $parameters['mo_target'])) {
             $this->promote($rank, 'mo');
         }
         $ancestors = ReferralTreePath::getUplines($buyer->id, 100);
@@ -145,11 +147,16 @@ final class CommissionQualification
     }
 
     /**
-     * How many active dealers of each rank sit within $depth levels under each leader:
-     * the count rank promotion is decided on, worked out in one query.
+     * The team count rank promotion is decided on, per direct-referral line (owner's rule, 2026-11-21): each of the
+     * leader's direct referrals is one line, and a line counts ONCE, at the best rank held by an active dealer or
+     * sub-dealer in it — the direct referral himself or anyone under him, within $depth levels of the leader. Two MOs
+     * in one line still count as one line. Worked out in one query for all leaders.
+     *
+     * The result is leader id => rank => number of lines whose best rank is that rank, so leadersAtOrAbove() gives the
+     * number of lines holding a rank or better.
      *
      * @param  list<int>  $leaderIds
-     * @return array<int, array<string, int>> leader id => rank => count
+     * @return array<int, array<string, int>> leader id => rank => count of lines
      */
     public function teamRankCounts(array $leaderIds, int $depth): array
     {
@@ -157,29 +164,122 @@ final class CommissionQualification
         foreach ($leaderIds as $leaderId) {
             $countsByLeader[(int) $leaderId] = array_fill_keys(self::RankLevels, 0);
         }
-        if ($countsByLeader === []) {
-            return [];
+        if ($countsByLeader === [] || $depth < 1) {
+            return $countsByLeader;
         }
-        $rankCounts = DB::table('referral_tree_paths')
-            ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
-            ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
-            ->whereIn('referral_tree_paths.ancestor_id', array_keys($countsByLeader))
-            ->whereBetween('referral_tree_paths.depth', [1, $depth])
-            ->where('users.status', 'active')
-            ->where('users.role', 'dealer')
-            ->groupBy('referral_tree_paths.ancestor_id', 'dealer_ranks.current_rank')
-            ->selectRaw('referral_tree_paths.ancestor_id, dealer_ranks.current_rank, COUNT(*) AS aggregate_count')
-            ->get();
-        foreach ($rankCounts as $row) {
-            $ancestorId = (int) $row->ancestor_id;
-            $currentRank = (string) $row->current_rank;
-            if (! isset($countsByLeader[$ancestorId][$currentRank])) {
-                continue;
-            }
-            $countsByLeader[$ancestorId][$currentRank] = (int) $row->aggregate_count;
+        $ids = array_keys($countsByLeader);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $order = [];
+        foreach (self::RankLevels as $index => $code) {
+            $order[] = "WHEN '{$code}' THEN {$index}";
+        }
+        $rankIndex = 'CASE dealer_ranks.current_rank '.implode(' ', $order).' ELSE 0 END';
+        $rows = DB::select(<<<SQL
+            WITH heads AS (
+                SELECT ancestor_id AS leader_id, descendant_id AS head_id
+                FROM referral_tree_paths
+                WHERE ancestor_id IN ({$placeholders}) AND depth = 1
+            ), members AS (
+                SELECT leader_id, head_id, head_id AS member_id FROM heads
+                UNION
+                SELECT heads.leader_id, heads.head_id, below.descendant_id
+                FROM heads
+                INNER JOIN referral_tree_paths AS below ON below.ancestor_id = heads.head_id AND below.depth BETWEEN 1 AND ?
+            )
+            SELECT members.leader_id, members.head_id, MAX({$rankIndex}) AS best
+            FROM members
+            INNER JOIN dealer_ranks ON dealer_ranks.user_id = members.member_id
+            INNER JOIN users ON users.id = members.member_id
+            WHERE users.status = 'active' AND users.role IN ('dealer', 'sub_dealer')
+            GROUP BY members.leader_id, members.head_id
+        SQL, [...$ids, $depth - 1]);
+        foreach ($rows as $row) {
+            $code = self::RankLevels[(int) $row->best] ?? 'dealer';
+            $countsByLeader[(int) $row->leader_id][$code]++;
         }
 
         return $countsByLeader;
+    }
+
+    /**
+     * Checks every active partner's rank against today's rules, for a rule change (such as sub-dealers earning ranks or
+     * the line-by-line team count) that only takes effect on a partner's next posted order otherwise. With $apply false
+     * nothing is written: it lists who would move up. With $apply true each one is promoted exactly as an order would
+     * promote them (history, notice, SMS, and the one-time rank prize when automatic approval is on), and the check is
+     * repeated, since one promotion can lift a leader above. A rank is never lowered.
+     *
+     * @return list<array{user_id: int, role: string, from: string, to: string, steps: list<string>}>
+     */
+    public function recheckRanks(bool $apply): array
+    {
+        $rules = app(CommissionPolicy::class)->snapshot()['rules'];
+        $roles = MonthlyTargets::subDealersEarnRanks($rules) ? ['dealer', 'sub_dealer'] : ['dealer'];
+        $changes = [];
+        for ($pass = 0; $pass < count(self::RankLevels); $pass++) {
+            $found = $this->rankChanges($rules['rank_royalty']['parameters'], $roles);
+            if ($found === []) {
+                break;
+            }
+            array_push($changes, ...$found);
+            if (! $apply) {
+                break;
+            }
+            DB::transaction(function () use ($found): void {
+                CommissionWallet::lock();
+                foreach ($found as $change) {
+                    $rank = DealerRank::query()->where('user_id', $change['user_id'])->lockForUpdate()->first();
+                    if ($rank === null || $rank->current_rank !== $change['from']) {
+                        continue;
+                    }
+                    foreach ($change['steps'] as $step) {
+                        $this->promote($rank, $step);
+                        $rank->refresh();
+                    }
+                }
+            }, 3);
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Who would move up now, with the ranks they would pass through in order.
+     *
+     * @param  array<string, mixed>  $parameters  the rank royalty rule's parameters
+     * @param  list<string>  $roles
+     * @return list<array{user_id: int, role: string, from: string, to: string, steps: list<string>}>
+     */
+    private function rankChanges(array $parameters, array $roles): array
+    {
+        $users = User::query()->where('status', 'active')->whereIn('role', $roles)->pluck('role', 'id');
+        $ranks = DealerRank::query()->whereIn('user_id', $users->keys())->where('current_rank', '<>', 'me')->orderBy('user_id')->get();
+        if ($ranks->isEmpty()) {
+            return [];
+        }
+        $levels = self::RankLevels;
+        $counts = $this->teamRankCounts($ranks->pluck('user_id')->map(fn ($id): int => (int) $id)->all(), (int) $parameters['qualification_depth']);
+        $changes = [];
+        foreach ($ranks as $rank) {
+            $current = (string) $rank->current_rank;
+            $reached = (int) array_search($current, $levels, true);
+            $steps = [];
+            if ($current === 'dealer' && Money::cents((string) $rank->lifetime_purchase_total) >= Money::cents((string) $parameters['mo_target'])) {
+                $steps[] = 'mo';
+                $reached = (int) array_search('mo', $levels, true);
+            }
+            foreach (self::TeamRankRequirements as $target => $required) {
+                $index = (int) array_search($target, $levels, true);
+                if ($index > $reached && self::leadersAtOrAbove($counts[(int) $rank->user_id] ?? [], $required) >= (int) $parameters[$target.'_count']) {
+                    $steps[] = $target;
+                    $reached = $index;
+                }
+            }
+            if ($steps !== []) {
+                $changes[] = ['user_id' => (int) $rank->user_id, 'role' => (string) $users[$rank->user_id], 'from' => $current, 'to' => $steps[count($steps) - 1], 'steps' => $steps];
+            }
+        }
+
+        return $changes;
     }
 
     /**
@@ -199,9 +299,9 @@ final class CommissionQualification
     }
 
     /** @return array<string, mixed> */
-    public function paidAs(int $userId, ?string $month = null, ?array $rules = null): array
+    public function paidAs(int $userId, ?string $month = null, ?array $rules = null, ?array $kinds = null): array
     {
-        return $this->paidAsFor([$userId], $month, $rules)[$userId];
+        return $this->paidAsFor([$userId], $month, $rules, $kinds)[$userId];
     }
 
     /**
@@ -211,7 +311,7 @@ final class CommissionQualification
      * @param  array<string, array<string, mixed>>|null  $rules
      * @return array<int, array<string, mixed>>
      */
-    public function paidAsFor(array $userIds, ?string $month = null, ?array $rules = null): array
+    public function paidAsFor(array $userIds, ?string $month = null, ?array $rules = null, ?array $kinds = null): array
     {
         $month ??= self::currentMonth();
         [, $end] = self::period($month);
@@ -225,6 +325,11 @@ final class CommissionQualification
         $volumes = $this->monthlyVolumesFor($userIds, $month);
         $ranks = DealerRank::query()->whereIn('user_id', $userIds)->get()->keyBy('user_id');
         $users = User::query()->whereIn('id', $userIds)->get()->keyBy('id');
+        // Owner's rule of 2026-11-21: the royalty needs the month's target (a dealer's one target by kind, a
+        // sub-dealer's own royalty target) and has no grace period. Older rules keep the per-rank minimums and grace.
+        $monthlyTargets = MonthlyTargets::usesMonthlyTargets($rules);
+        // A page that already knows the dealer's kind passes it, so it is not read again.
+        $kinds = ! $monthlyTargets ? [] : ($kinds ?? app(DealerKinds::class)->for($users->where('role', 'dealer')->keys()->map(fn ($id): int => (int) $id)->all()));
         $asOf = $month === self::currentMonth() ? now() : $end->subSecond();
 
         $result = [];
@@ -243,10 +348,15 @@ final class CommissionQualification
                 }
             }
             $volume = $volumes[$userId] ?? 0;
-            $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);
-            $qualified = $volume >= $required;
-            $grace = $achievedAt && CarbonImmutable::parse($achievedAt)->addDays((int) $parameters['grace_period_days'])->gte($asOf);
             $user = $users->get($userId);
+            if ($monthlyTargets) {
+                $required = (int) MonthlyTargets::royaltyTarget($rules, (string) $user?->role, $kinds[$userId] ?? null);
+                $grace = false;
+            } else {
+                $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);
+                $grace = $achievedAt && CarbonImmutable::parse($achievedAt)->addDays((int) $parameters['grace_period_days'])->gte($asOf);
+            }
+            $qualified = $volume >= $required;
             if ($user && ($forced = PartnerBenefitControls::forcedRoyaltyRank($user))) {
                 $result[$userId] = [
                     'lifetime_rank' => $lifetime,
@@ -344,7 +454,7 @@ final class CommissionQualification
         $parameters = $this->rewardParameters();
         $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
 
-        return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()));
+        return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()), $this->legVolumes([$userId], false)[$userId] ?? 0);
     }
 
     /** @return array<string, mixed> */
@@ -378,11 +488,12 @@ final class CommissionQualification
         $parameters = $this->rewardParameters();
         $legs = User::query()->whereIn('sponsor_id', $leaderIds)->orderBy('id')->get(['id', 'name', 'sponsor_id']);
         $volumes = $this->legVolumes($legs->pluck('id')->all());
+        $own = $this->legVolumes($leaderIds, false);
         $legsByLeader = $legs->groupBy(fn (User $leg): int => (int) $leg->sponsor_id);
         foreach ($leaderIds as $leaderId) {
             $leaderLegs = $legsByLeader->get($leaderId, collect());
             foreach (['bike', 'car'] as $type) {
-                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $parameters, $leaderLegs, $volumes));
+                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $parameters, $leaderLegs, $volumes, $own[$leaderId] ?? 0));
             }
         }
     }
@@ -397,21 +508,25 @@ final class CommissionQualification
      * Paid, delivered, net-of-refund purchases of each leg's whole team (the leg and everyone under it).
      * A partly delivered order counts for the part commission was posted on, as monthly volume does.
      *
+     * With $withTeam false it is each person's own purchases only (the owner's rule of 2026-11-21 counts them toward
+     * the bike and the car too, outside any line's limit).
+     *
      * @param  array<int, int|string>  $legIds
      * @return array<int, int> leg user id => cents
      */
-    private function legVolumes(array $legIds): array
+    private function legVolumes(array $legIds, bool $withTeam = true): array
     {
         $legIds = array_values(array_unique(array_map('intval', $legIds)));
         if ($legIds === []) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($legIds), '?'));
+        $team = $withTeam ? 'TRUE' : 'FALSE';
         $rows = DB::select(<<<SQL
             WITH members AS (
                 SELECT ancestor_id AS leg_id, descendant_id AS user_id
                 FROM referral_tree_paths
-                WHERE ancestor_id IN ({$placeholders})
+                WHERE {$team} AND ancestor_id IN ({$placeholders})
                 UNION
                 SELECT id AS leg_id, id AS user_id
                 FROM users
@@ -470,28 +585,15 @@ final class CommissionQualification
      * @param  array<string, mixed>  $parameters
      * @param  Collection<int, User>  $directLegs
      * @param  array<int, int>  $legVolumes
+     * @param  int  $own  the person's own purchases: counted in full, outside any line's limit (owner's rule of 2026-11-21)
      * @return array<string, mixed>
      */
-    private function milestoneFromLegs(string $type, array $parameters, Collection $directLegs, array $legVolumes): array
+    private function milestoneFromLegs(string $type, array $parameters, Collection $directLegs, array $legVolumes, int $own = 0): array
     {
         $target = Money::cents((string) $parameters[$type.'_target']);
         $cap = Money::cents((string) $parameters[$type.'_leg_cap']);
-        if ($directLegs->isEmpty()) {
-            return [
-                'milestone_type' => $type,
-                'target_amount' => Money::decimal($target),
-                'leg_cap_amount' => Money::decimal($cap),
-                'raw_team_volume' => '0.00',
-                'qualifying_volume' => '0.00',
-                'achieved' => false,
-                'progress_percentage' => 0.0,
-                'percentage' => 0.0,
-                'legs' => [],
-            ];
-        }
-
-        $raw = 0;
-        $qualified = 0;
+        $raw = $own;
+        $qualified = $own;
         $legs = [];
         foreach ($directLegs as $leg) {
             $cents = $legVolumes[(int) $leg->id] ?? 0;
@@ -514,9 +616,10 @@ final class CommissionQualification
             'leg_cap_amount' => Money::decimal($cap),
             'raw_team_volume' => Money::decimal($raw),
             'qualifying_volume' => Money::decimal($qualified),
-            'achieved' => $qualified >= $target,
-            'progress_percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
-            'percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
+            'own_volume' => Money::decimal($own),
+            'achieved' => $target > 0 && $qualified >= $target,
+            'progress_percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0.0,
+            'percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0.0,
             'legs' => $legs,
         ];
     }

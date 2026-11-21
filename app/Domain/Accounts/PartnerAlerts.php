@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\DashboardManagement;
@@ -124,7 +125,10 @@ final class PartnerAlerts
             || ! DashboardManagement::partnerFeatureEnabled($user, 'salary')) {
             return [];
         }
-        $target = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
+        // Under the owner's rule of 2026-11-21 the dealer's one monthly target (by kind) is the paid-as target too.
+        $target = MonthlyTargets::usesMonthlyTargets($rules)
+            ? Money::cents((string) $paidAs['required_volume'])
+            : Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
         $volume = Money::cents((string) $paidAs['monthly_volume']);
         if ($volume >= $target) {
             return [];
@@ -140,7 +144,8 @@ final class PartnerAlerts
      */
     private function rankKeepAlert(User $user, array $rules, ?array $paidAs, int $daysLeft, string $month): array
     {
-        if ($daysLeft > self::RiskWindowDays || $paidAs === null
+        // A dealer holding no rank has no royalty to keep (his month target is the salary alert).
+        if ($daysLeft > self::RiskWindowDays || $paidAs === null || ($paidAs['lifetime_rank'] ?? 'dealer') === 'dealer'
             || ! in_array($paidAs['status'], ['grace_period', 'demoted'], true)
             || CommissionPolicy::rate($rules, 'rank_royalty')->basisPoints <= 0
             || ! DashboardManagement::partnerFeatureEnabled($user, 'ranks')) {

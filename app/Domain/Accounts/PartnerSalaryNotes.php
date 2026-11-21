@@ -4,6 +4,8 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\DealerKinds;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Domain\Finance\FundCatalog;
 use App\Models\User;
 use App\Support\Money;
@@ -29,7 +31,8 @@ final class PartnerSalaryNotes
         }
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $joined = $partner->created_at?->timezone($tz)->format('Y-m') ?? '0000-00';
-        $minVolume = Money::cents((string) (app(CommissionPolicy::class)->snapshot(false)['rules']['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
+        $minVolume = MonthlyTargets::dealerTarget(app(CommissionPolicy::class)->snapshot(false)['rules'], app(DealerKinds::class)->of((int) $partner->id));
         $closed = DB::table('commission_allocations')
             ->where('category', 'dealer_monthly_salary_pool')
             ->where('status', 'settled')

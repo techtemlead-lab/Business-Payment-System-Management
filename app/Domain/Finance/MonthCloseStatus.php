@@ -2,7 +2,6 @@
 
 namespace App\Domain\Finance;
 
-use App\Console\Commands\AutoApprovePayouts;
 use App\Domain\Commissions\CommissionQualification;
 use App\Support\LocalDigits;
 use App\Support\Money;
@@ -100,14 +99,13 @@ final class MonthCloseStatus
     private function waitingFrom(array $rows): array
     {
         $current = CommissionQualification::currentMonth();
-        $oldestAutomatic = CarbonImmutable::createFromFormat('!Y-m', $current)->subMonthsNoOverflow(AutoApprovePayouts::AutomaticMonthsBack)->format('Y-m');
         $months = [];
         foreach ($rows as $row) {
             if ($row->status !== 'pending' || ! is_string($row->month) || $row->month >= $current) {
                 continue;
             }
             $months[] = ['month' => $row->month, 'label' => self::label($row->month), 'kind' => (string) $row->kind,
-                'amount' => Money::decimal(Money::cents((string) $row->total)), 'automatic' => $row->month >= $oldestAutomatic];
+                'amount' => Money::decimal(Money::cents((string) $row->total)), 'automatic' => true];
         }
         usort($months, fn (array $first, array $second): int => [$first['month'], $first['kind']] <=> [$second['month'], $second['kind']]);
 

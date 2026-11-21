@@ -281,12 +281,12 @@ class CommissionLogicValidationTest extends TestCase
         // Total raw volume is 10 Crore
         $this->assertEquals(100000000.00, $eval['raw_team_volume']);
 
-        // But qualifying volume is strictly capped at ৳8 Lakh!
-        $this->assertEquals(800000.00, $eval['qualifying_volume']);
+        // But qualifying volume is strictly capped at ৳20 Lakh per direct line!
+        $this->assertEquals(2000000.00, $eval['qualifying_volume']);
 
-        // Bike milestone target is ৳50 Lakh, so achieved MUST BE FALSE!
+        // Bike milestone target is ৳1 Crore, so achieved MUST BE FALSE!
         $this->assertFalse($eval['achieved']);
-        $this->assertEquals(16.00, $eval['percentage']); // 8L / 50L = 16%
+        $this->assertEquals(20.00, $eval['percentage']); // 20L / 1Cr = 20%
     }
 
     public function test_legacy_compression_setting_cannot_automatically_reassign_inactive_recipients(): void
@@ -609,20 +609,20 @@ class CommissionLogicValidationTest extends TestCase
         $this->travelTo(now()->startOfMonth()->subMonth()->addDays(14));
         $period = now()->format('Y-m');
 
-        // Setup 2 dealers in the same division (salary is shared by division place code)
-        $division = PlaceCode::factory()->division()->create();
-        $dealer1 = User::factory()->inPlace($division)->create(['role' => 'dealer', 'status' => 'active']);
-        $dealer2 = User::factory()->inPlace($division)->create(['role' => 'dealer', 'status' => 'active']);
+        // Two union dealers (monthly target ৳30,000); the salary is one fund for the whole country.
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create())->create())->create();
+        $dealer1 = User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create())->create(['role' => 'dealer', 'status' => 'active']);
+        $dealer2 = User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create())->create(['role' => 'dealer', 'status' => 'active']);
 
-        // Dealer 1 has ৳15,000 monthly purchases (qualified >= ৳10,000)
+        // Dealer 1 buys ৳40,000 this month (qualified >= ৳30,000)
         DealerRank::create([
             'user_id' => $dealer1->id,
             'current_rank' => 'dealer',
-            'monthly_purchase_total' => 15000.00,
-            'lifetime_purchase_total' => 15000.00,
+            'monthly_purchase_total' => 40000.00,
+            'lifetime_purchase_total' => 40000.00,
         ]);
 
-        // Dealer 2 has ৳4,000 monthly purchases (unqualified < ৳10,000)
+        // Dealer 2 has ৳4,000 monthly purchases (unqualified < ৳30,000)
         DealerRank::create([
             'user_id' => $dealer2->id,
             'current_rank' => 'dealer',
@@ -630,15 +630,15 @@ class CommissionLogicValidationTest extends TestCase
             'lifetime_purchase_total' => 4000.00,
         ]);
 
-        // Create an order generating 2% salary pool: ৳20,000 * 2% = ৳400
+        // Create an order generating 2% salary pool: ৳40,000 * 2% = ৳800
         $order = $this->commissionOrder([
             'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => hash('sha256', 'salary_pool_order'),
             'number' => 'ORD-SALARY-001',
             'user_id' => $dealer1->id,
             'status' => 'delivered',
-            'total' => '20000.00',
-            'paid' => '20000.00',
+            'total' => '40000.00',
+            'paid' => '40000.00',
         ]);
         $service->processOrder($order);
 
@@ -648,19 +648,19 @@ class CommissionLogicValidationTest extends TestCase
 
         $this->assertEquals('settled', $result['status']);
         $this->assertEquals(1, $result['qualifiers_count']);
-        $this->assertEquals(400.00, (float) $result['total_pool']);
+        $this->assertEquals(800.00, (float) $result['total_pool']);
 
-        // Only Dealer 1 receives the ৳400 salary!
+        // Only Dealer 1 receives the ৳800 salary!
         $d1Wallet = (float) DB::table('wallets')->where('user_id', $dealer1->id)->value('available');
-        // Dealer 1 also got 5% own cashback (1000) + 400 salary = 1400
-        $this->assertEquals(1400.00, $d1Wallet);
+        // Dealer 1 also got 5% own cashback (2000) + 800 salary = 2800
+        $this->assertEquals(2800.00, $d1Wallet);
 
         // Dealer 2 received 0
         $d2Wallet = (float) DB::table('wallets')->where('user_id', $dealer2->id)->value('available');
         $this->assertEquals(0.00, $d2Wallet);
 
         // Double-entry journal entry was posted
-        $this->assertSettlementJournalCredits('salary', $period, $dealer1->id, '400.00');
+        $this->assertSettlementJournalCredits('salary', $period, $dealer1->id, '800.00');
         $this->assertSame(1, DB::table('commission_settlement_payouts')->where('kind', 'salary')->where('user_id', $dealer1->id)
             ->where('allocation_id', CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->value('id'))->count());
     }
@@ -678,33 +678,34 @@ class CommissionLogicValidationTest extends TestCase
         DealerRank::create(['user_id' => $mo1->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         DealerRank::create(['user_id' => $mo2->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
 
-        // Generate 4% rank royalty pool from a ৳1,00,000 order = ৳4,000 total pool
-        $buyer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
-        $order = $this->commissionOrder([
-            'idempotency_key' => (string) Str::uuid(),
-            'payload_hash' => hash('sha256', 'royalty_pool_order'),
-            'number' => 'ORD-ROYALTY-001',
-            'user_id' => $buyer->id,
-            'status' => 'delivered',
-            'total' => '10000.00',
-            'paid' => '10000.00',
-        ]);
-        $service->processOrder($order);
+        // Each MO buys ৳30,000 this month (the dealer's monthly target for the royalty); a plain dealer buys ৳10,000.
+        // The 4% rank royalty pool is 4% of ৳70,000 = ৳2,800.
+        foreach ([[$mo1, '30000.00'], [$mo2, '30000.00'], [User::factory()->create(['role' => 'dealer', 'status' => 'active']), '10000.00']] as $index => [$buyer, $total]) {
+            $service->processOrder($this->commissionOrder([
+                'idempotency_key' => (string) Str::uuid(),
+                'payload_hash' => hash('sha256', 'royalty_pool_order_'.$index),
+                'number' => 'ORD-ROYALTY-00'.$index,
+                'user_id' => $buyer->id,
+                'status' => 'delivered',
+                'total' => $total,
+                'paid' => $total,
+            ]));
+        }
 
         // Run Rank Royalty Settlement!
         $this->travelTo(now()->addMonth()->startOfMonth());
         $result = $service->settleRankRoyaltyPool($period);
 
         $this->assertEquals('settled', $result['status']);
-        $this->assertEquals(400.00, (float) $result['total_pool']);
+        $this->assertEquals(2800.00, (float) $result['total_pool']);
 
-        // MO tier pool = 4000 / 4 = ৳1,000 split equally between 2 MOs = ৳500 each!
-        $this->assertEquals(50.00, (float) DB::table('wallets')->where('user_id', $mo1->id)->value('available'));
-        $this->assertEquals(50.00, (float) DB::table('wallets')->where('user_id', $mo2->id)->value('available'));
+        // MO tier pool = 2800 / 4 = ৳700 split equally between 2 MOs = ৳350 each (on top of their 5% cashback)!
+        $this->assertEquals(1850.00, (float) DB::table('wallets')->where('user_id', $mo1->id)->value('available'));
+        $this->assertEquals(1850.00, (float) DB::table('wallets')->where('user_id', $mo2->id)->value('available'));
 
         // Journal entry was posted
-        $this->assertSettlementJournalCredits('royalty', $period, $mo1->id, '50.00');
-        $this->assertSettlementJournalCredits('royalty', $period, $mo2->id, '50.00');
+        $this->assertSettlementJournalCredits('royalty', $period, $mo1->id, '350.00');
+        $this->assertSettlementJournalCredits('royalty', $period, $mo2->id, '350.00');
     }
 
     public function test_one_time_rank_incentive_claim_and_payout(): void
@@ -722,14 +723,16 @@ class CommissionLogicValidationTest extends TestCase
         $funding = $this->commissionOrder(['idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', 'incentive-funding'), 'number' => 'INCENTIVE-FUNDING', 'user_id' => User::factory()->create()->id, 'status' => 'delivered', 'total' => '500000.00', 'paid' => '500000.00']);
         // ৳5 lakh funds ৳10,000: the buyer reaches MO and is paid ৳5,000 at once (owner rule); ৳5,000 is left for the leader.
         $service->processOrder($funding);
+        // The leader must have met his monthly target (৳30,000) to be paid as MO.
+        $service->processOrder($this->commissionOrder(['idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', 'incentive-leader-purchase'), 'number' => 'INCENTIVE-LEADER', 'user_id' => $leader->id, 'status' => 'delivered', 'total' => '30000.00', 'paid' => '30000.00']));
         // Claim the funded one-time incentive.
         $claim = $service->claimOneTimeRankIncentive($leader->id, 5000.00);
 
         $this->assertTrue($claim['success']);
         $this->assertEquals(5000.00, $claim['amount']);
 
-        // Wallet was credited ৳5,000!
-        $this->assertEquals(5000.00, (float) DB::table('wallets')->where('user_id', $leader->id)->value('available'));
+        // Wallet was credited ৳5,000 on top of his ৳1,500 cashback!
+        $this->assertEquals(6500.00, (float) DB::table('wallets')->where('user_id', $leader->id)->value('available'));
 
         // Double-entry journal posted
         $journal = DB::table('journal_entries')->where('event_key', 'commissions.settlement.'.CommissionAllocation::where('order_id', $funding->id)->where('category', 'rank_incentive_pool')->value('id').'.'.$leader->id.'.rank_mo')->first();
@@ -900,31 +903,30 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals($initialJournalsCount, DB::table('journal_entries')->count());
     }
 
-    public function test_paid_as_rank_demotes_inactive_leaders_after_grace_period_expires(): void
+    public function test_paid_as_rank_needs_the_monthly_target_and_has_no_grace_period(): void
     {
         $service = app(CommissionService::class);
 
         $leader = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
 
-        // Leader promoted to MO 10 days ago (within 30-day grace period), has low monthly purchases (৳1,000)
-        $rank = DealerRank::create([
+        // Leader promoted to MO only 10 days ago, with no purchases this month: the old 30-day grace no longer protects him.
+        DealerRank::create([
             'user_id' => $leader->id,
             'current_rank' => 'mo',
             'achieved_at' => now()->subDays(10),
-            'monthly_purchase_total' => 1000.00,
         ]);
 
-        // Within grace period: Paid-As rank is protected as MO!
-        $evalGrace = $service->evaluatePaidAsRank($leader->id);
-        $this->assertTrue($evalGrace['in_grace_period']);
-        $this->assertEquals('mo', $evalGrace['paid_as_rank']);
+        $evalShort = $service->evaluatePaidAsRank($leader->id);
+        $this->assertFalse($evalShort['in_grace_period']);
+        $this->assertEquals('dealer', $evalShort['paid_as_rank']);
+        $this->assertEquals('30000.00', $evalShort['required_volume']);
 
-        // Grace period expired (achieved 45 days ago) without meeting ৳5,000 monthly quota
-        $rank->update(['achieved_at' => now()->subDays(45)]);
+        // Once he buys his ৳30,000 target in the month he is paid as MO again.
+        $service->processOrder($this->commissionOrder(['idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', 'paid-as-target'), 'number' => 'PAIDAS-TARGET', 'user_id' => $leader->id, 'status' => 'delivered', 'total' => '30000.00', 'paid' => '30000.00']));
 
-        $evalExpired = $service->evaluatePaidAsRank($leader->id);
-        $this->assertFalse($evalExpired['in_grace_period']);
-        $this->assertEquals('dealer', $evalExpired['paid_as_rank']);
+        $evalMet = $service->evaluatePaidAsRank($leader->id);
+        $this->assertFalse($evalMet['in_grace_period']);
+        $this->assertEquals('mo', $evalMet['paid_as_rank']);
     }
 
     public function test_configured_payout_withholding_calculation_and_command_settlements(): void

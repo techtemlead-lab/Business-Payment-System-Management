@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
@@ -55,8 +56,17 @@ class CommissionSettlementTest extends TestCase
     }
 
     /**
-     * Two Rangpur-division dealers (in different districts) and one Dhaka-division dealer,
-     * each keyed to a place code.
+     * A union-level dealer in a fresh Rangpur-division tree (union target ৳30,000 a month).
+     */
+    private function unionDealer(?PlaceCode $upazila = null, string $name = 'Balia'): User
+    {
+        $upazila ??= PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Rangpur']))->create(['name' => 'Pirganj']);
+
+        return User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create(['name' => $name]))->create();
+    }
+
+    /**
+     * Two union dealers in Rangpur division (different unions) and one in Dhaka division.
      *
      * @return array{0: User, 1: User, 2: User}
      */
@@ -64,47 +74,64 @@ class CommissionSettlementTest extends TestCase
     {
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+        $rangpurUpazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create(['name' => 'Pirganj']);
+        $dhakaUpazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district($dhaka)->create(['name' => 'Gazipur']))->create(['name' => 'Kaliganj']);
 
         return [
-            User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create(),
-            User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Dinajpur']))->create(),
-            User::factory()->inPlace(PlaceCode::factory()->district($dhaka)->create(['name' => 'Gazipur']))->create(),
+            $this->unionDealer($rangpurUpazila, 'Balia'),
+            $this->unionDealer($rangpurUpazila, 'Chandan'),
+            $this->unionDealer($dhakaUpazila, 'Tumulia'),
         ];
     }
 
-    public function test_salary_pool_is_shared_within_each_division_and_unclaimed_division_money_becomes_company_profit(): void
+    /** The salary a partner was paid for the month, in paisa. */
+    private function salaryPaid(User $user): int
+    {
+        return (int) DB::table('commission_settlement_payouts')->where('user_id', $user->id)->where('kind', 'salary')
+            ->get()->sum(fn ($row) => Money::cents((string) $row->amount));
+    }
+
+    /** One ৳10,000 no-area target for dealers with no place, so a small purchase still qualifies them for royalty tests. */
+    private function lowerTheNoAreaTarget(string $amount = '10000.00'): void
+    {
+        app(CommissionPolicy::class)->update(User::factory()->create(['role' => 'super_admin']),
+            ['dealer_monthly_salary' => ['parameters' => ['min_monthly_volume' => $amount]]]);
+    }
+
+    public function test_salary_pool_is_one_nationwide_pool_shared_by_qualified_dealers_only(): void
     {
         [$rangpurA, $rangpurB, $dhaka] = $this->rangpurAndDhakaDealers();
-        $this->purchase($rangpurA, '10000.00', '20000.00');
-        $this->purchase($rangpurB, '10000.00', '20000.00');
-        $this->purchase($dhaka, '5000.00', '10000.00');
+        $this->purchase($rangpurA, '40000.00', '80000.00');
+        $this->purchase($rangpurB, '40000.00', '80000.00');
+        $this->purchase($dhaka, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
-        // Rangpur's 2% (৳400) goes to its two qualified dealers only; the Dhaka dealer is under the ৳10,000 target.
-        $paid = fn (User $user): string => Money::decimal((int) DB::table('commission_settlement_payouts')
-            ->where('user_id', $user->id)->where('kind', 'salary')->get()->sum(fn ($row) => Money::cents((string) $row->amount)));
-        $this->assertSame('200.00', $paid($rangpurA));
-        $this->assertSame('200.00', $paid($rangpurB));
-        $this->assertSame('0.00', $paid($dhaka));
-        // Dhaka's ৳100 had no qualifier in Dhaka, so it is company profit — not the owner's special benefit fund.
-        $this->assertSame('100.00', $result['total_to_company_profit']);
-        $this->assertSame('100.00', Money::decimal((int) DB::table('commission_allocations')->where('category', 'company_profit_fund')
-            ->where('metadata->settlement_kind', 'salary')->get()->sum(fn ($row) => Money::cents((string) $row->amount))));
+        // One fund for the whole country: 2% of every order (৳800 + ৳800 + ৳200) is split between the two dealers who
+        // met their ৳30,000 union target. The Dhaka dealer bought only ৳10,000, so he is paid nothing.
+        $this->assertSame(90000, $this->salaryPaid($rangpurA));
+        $this->assertSame(90000, $this->salaryPaid($rangpurB));
+        $this->assertSame(0, $this->salaryPaid($dhaka));
+        $this->assertSame('1800.00', $result['total_distributed']);
+        $this->assertSame('0.00', $result['total_to_company_profit']);
+        $this->assertSame('0.00', $result['total_to_commission_extra_fund']);
+        $this->assertSame(0, DB::table('commission_allocations')->where('category', 'company_profit_fund')
+            ->where('metadata->settlement_kind', 'salary')->count());
         $this->assertSame(0, DB::table('commission_allocations')->where('category', 'company_commission_benefits_fund')
             ->where('metadata->settlement_kind', 'salary')->count());
-        $divisions = collect($result['divisions'])->keyBy(fn (array $row): string => mb_strtolower($row['division']));
-        $this->assertSame(2, $divisions['rangpur']['qualifiers']);
-        $this->assertSame('100.00', $divisions['dhaka']['to_company_profit']);
+        $this->assertCount(1, $result['divisions']);
+        $this->assertSame(__('portal.report_area_nationwide'), $result['divisions'][0]['division']);
+        $this->assertSame(2, $result['divisions'][0]['qualifiers']);
     }
 
     public function test_settlement_credits_each_partner_once_however_many_source_orders(): void
     {
-        $dealers = User::factory()->count(3)->inPlace(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create();
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create())->create();
+        $dealers = collect(['Balia', 'Chandan', 'Tumulia'])->map(fn (string $union): User => $this->unionDealer($upazila, $union));
         foreach ($dealers as $dealer) {
             for ($order = 0; $order < 4; $order++) {
-                $this->purchase($dealer, '10000.00', '20000.00');
+                $this->purchase($dealer, '15000.00', '30000.00');
             }
         }
         $walletsBefore = DB::table('wallets')->whereIn('user_id', $dealers->pluck('id'))->pluck('available', 'user_id');
@@ -112,16 +139,14 @@ class CommissionSettlementTest extends TestCase
 
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
-        // 12 orders x 2% = ৳2,400, shared by the three qualified dealers.
-        $this->assertSame('2400.00', $result['total_distributed']);
+        // 12 orders x 2% = ৳3,600, shared by the three dealers who each reached the ৳30,000 union target.
+        $this->assertSame('3600.00', $result['total_distributed']);
         foreach ($dealers as $dealer) {
-            $paid = (int) DB::table('commission_settlement_payouts')->where('user_id', $dealer->id)->where('kind', 'salary')
-                ->get()->sum(fn ($row) => Money::cents((string) $row->amount));
-            $this->assertSame(80000, $paid);
+            $this->assertSame(120000, $this->salaryPaid($dealer));
             // Each source order keeps its own payout row, so a refund can recover from that order's pool.
             $this->assertSame(12, DB::table('commission_settlement_payouts')->where('user_id', $dealer->id)->where('kind', 'salary')->count());
             $this->assertSame(
-                Money::cents((string) $walletsBefore[$dealer->id]) + 80000,
+                Money::cents((string) $walletsBefore[$dealer->id]) + 120000,
                 Money::cents((string) DB::table('wallets')->where('user_id', $dealer->id)->value('available')),
             );
             $this->assertSame(1, DB::table('account_notices')->where('user_id', $dealer->id)->where('title', __('portal.notice_settle_title'))->count());
@@ -129,8 +154,8 @@ class CommissionSettlementTest extends TestCase
         $entries = DB::table('journal_entries')->where('event_key', 'like', 'commissions.settlement.salary.2026-09.%')->pluck('id');
         $this->assertCount(1, $entries);
         $lines = DB::table('journal_lines')->where('entry_id', $entries->first())->get();
-        $this->assertSame(240000, $lines->sum(fn ($line) => Money::cents((string) $line->debit)));
-        $this->assertSame(240000, $lines->sum(fn ($line) => Money::cents((string) $line->credit)));
+        $this->assertSame(360000, $lines->sum(fn ($line) => Money::cents((string) $line->debit)));
+        $this->assertSame(360000, $lines->sum(fn ($line) => Money::cents((string) $line->credit)));
         // The books still balance: journals, wallets and allocations agree (this helper marks orders paid without receipts).
         $failed = array_keys(array_filter(app(FinancialReadiness::class)->inspect()['checks'], fn (bool $passed): bool => ! $passed));
         $this->assertSame([], array_values(array_diff($failed, ['order_receipts'])));
@@ -139,19 +164,21 @@ class CommissionSettlementTest extends TestCase
     public function test_salary_preview_shows_exactly_what_settlement_then_pays(): void
     {
         [$rangpurA, $rangpurB, $dhaka] = $this->rangpurAndDhakaDealers();
-        $this->purchase($rangpurA, '10000.00', '20000.00');
-        $this->purchase($rangpurB, '10000.00', '20000.00');
-        $this->purchase($dhaka, '5000.00', '10000.00');
+        $this->purchase($rangpurA, '40000.00', '80000.00');
+        $this->purchase($rangpurB, '40000.00', '80000.00');
+        $this->purchase($dhaka, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         $plan = app(CommissionSettlement::class)->salaryPlan('2026-09');
-        $divisions = collect($plan['divisions'])->keyBy(fn (array $row): string => mb_strtolower($row['division']));
-        $this->assertSame(2, $divisions['rangpur']['qualifiers']);
-        $this->assertSame('200.00', $divisions['rangpur']['per_head']);
-        $this->assertSame('0.00', $divisions['rangpur']['to_company_profit']);
-        $this->assertSame(0, $divisions['dhaka']['qualifiers']);
-        $this->assertSame('100.00', $divisions['dhaka']['to_company_profit']);
-        $this->assertSame('100.00', $plan['to_company_profit']);
+        $this->assertCount(1, $plan['divisions']);
+        $nationwide = $plan['divisions'][0];
+        $this->assertTrue($nationwide['nationwide']);
+        $this->assertNull($nationwide['division_id']);
+        $this->assertSame(__('portal.report_area_nationwide'), $nationwide['division']);
+        $this->assertSame(2, $nationwide['qualifiers']);
+        $this->assertSame('900.00', $nationwide['per_head']);
+        $this->assertSame('0.00', $nationwide['to_company_profit']);
+        $this->assertSame('0.00', $plan['to_company_profit']);
         $planned = collect($plan['dealers'])->pluck('share', 'user_id')->all();
 
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
@@ -165,24 +192,32 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame($plan['to_company_profit'], $result['total_to_company_profit']);
     }
 
-    public function test_leftover_paisa_take_turns_instead_of_always_going_to_the_lowest_ids(): void
+    public function test_leftover_paisa_go_to_the_commission_extra_fund_not_to_any_dealer(): void
     {
-        $dealers = User::factory()->count(3)->inPlace(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create();
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create())->create();
+        $dealers = collect(['Balia', 'Chandan', 'Tumulia'])->map(fn (string $union): User => $this->unionDealer($upazila, $union));
         foreach ($dealers as $dealer) {
-            $this->purchase($dealer, '10000.00', '20000.00');
+            $this->purchase($dealer, '40000.00', '80000.00');
         }
         $this->travelTo(now()->setDate(2026, 10, 1));
 
-        // Each ৳200 pool split three ways leaves 2 paisa over; they must not all go to the same two dealers.
+        // Each ৳800 fund split three ways is ৳266.66 each with 2 paisa over: everybody gets the same, the paisa are kept apart.
         $plan = app(CommissionSettlement::class)->salaryPlan('2026-09');
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
         $paid = collect($result['distributed'])->pluck('amount', 'user_id')->all();
         foreach ($dealers as $dealer) {
-            $this->assertSame('200.00', $paid[$dealer->id]);
+            $this->assertSame('799.98', $paid[$dealer->id]);
         }
-        $this->assertSame('600.00', Money::decimal(array_sum(array_map(fn (string $amount): int => Money::cents($amount), $paid))));
+        $this->assertSame('2399.94', Money::decimal(array_sum(array_map(fn (string $amount): int => Money::cents($amount), $paid))));
         $this->assertSame('0.00', $result['total_to_company_profit']);
+        $this->assertSame('0.06', $result['total_to_commission_extra_fund']);
+        $this->assertSame('0.06', $plan['to_commission_extra_fund']);
+        $leftovers = DB::table('commission_allocations')->where('category', 'company_commission_benefits_fund')->where('metadata->source', 'split_remainder')->get();
+        $this->assertCount(3, $leftovers);
+        $this->assertSame(6, $leftovers->sum(fn ($row) => Money::cents((string) $row->amount)));
+        $this->assertNull($leftovers->first()->user_id);
+        $this->assertSame('reserved', $leftovers->first()->status);
         $planned = collect($plan['dealers'])->pluck('share', 'user_id')->all();
         ksort($paid);
         ksort($planned);
@@ -217,39 +252,43 @@ class CommissionSettlementTest extends TestCase
 
     public function test_closed_month_salary_uses_actual_period_volume_and_sub_dealer_receives_flat_three_percent_once(): void
     {
-        $division = PlaceCode::factory()->division()->create();
-        $dealer = User::factory()->inPlace($division)->create();
-        $sub = User::factory()->inPlace($division)->create(['role' => 'sub_dealer']);
-        $this->purchase($dealer, '10000.00', '20000.00');
-        $this->purchase($sub, '12000.00', '20000.00');
+        $dealer = $this->unionDealer();
+        $sub = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create(['role' => 'sub_dealer']);
+        $this->purchase($dealer, '30000.00', '60000.00');
+        $this->purchase($sub, '40000.00', '66000.00');
+        $walletBefore = fn (User $user): string => (string) DB::table('wallets')->where('user_id', $user->id)->value('available');
+        $dealerBefore = $walletBefore($dealer);
+        $subBefore = $walletBefore($sub);
         $this->travelTo(now()->setDate(2026, 10, 1));
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
+        // The dealer reached his ৳30,000 union target and takes the whole dealer salary fund: 2% of both orders.
+        // The sub-dealer's own ৳40,000 reached the top step, so he is paid the full 3% of it, once.
         $this->assertSame('settled', $result['status']);
-        $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '940.00']);
-        $this->assertDatabaseHas('wallets', ['user_id' => $sub->id, 'available' => '960.00']);
+        $this->assertSame(Money::cents($dealerBefore) + 140000, Money::cents($walletBefore($dealer)));
+        $this->assertSame(Money::cents($subBefore) + 120000, Money::cents($walletBefore($sub)));
         $this->assertSame('empty_pool', app(CommissionService::class)->settleMonthlySalaryPool('2026-09')['status']);
-        $this->assertDatabaseHas('wallets', ['user_id' => $sub->id, 'available' => '960.00']);
-        $this->assertDatabaseHas('commission_allocations', ['user_id' => $sub->id, 'category' => 'sub_dealer_tour', 'status' => 'reserved', 'amount' => '360.00']);
+        $this->assertSame(Money::cents($subBefore) + 120000, Money::cents($walletBefore($sub)));
+        $this->assertDatabaseHas('commission_allocations', ['user_id' => $sub->id, 'category' => 'sub_dealer_tour', 'status' => 'reserved', 'amount' => '1200.00']);
     }
 
     public function test_settlement_refunds_recover_both_direct_earnings_and_source_pool_payouts_without_repeating(): void
     {
-        $dealer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
-        $order = $this->purchase($dealer, '10000.00', '20000.00');
+        $dealer = $this->unionDealer();
+        $order = $this->purchase($dealer, '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $service = app(CommissionService::class);
         $service->settleMonthlySalaryPool('2026-09');
-        $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '700.00']);
-        $service->reverseOrderPartial($order, '5000.00', 'Verified return', 'RETURN-001');
-        $service->reverseOrderPartial($order, '5000.00', 'Verified return', 'RETURN-001');
+        $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '2100.00']);
+        $service->reverseOrderPartial($order, '15000.00', 'Verified return', 'RETURN-001');
+        $service->reverseOrderPartial($order, '15000.00', 'Verified return', 'RETURN-001');
 
-        $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '350.00']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '1050.00']);
         $this->assertDatabaseCount('commission_refunds', 1);
-        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'own_dealer_cashback', 'original_amount' => '500.00', 'amount' => '250.00']);
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'own_dealer_cashback', 'original_amount' => '1500.00', 'amount' => '750.00']);
         $service->reverseOrder($order, 'Remaining goods returned');
         $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '0.00']);
-        $this->assertDatabaseHas('commission_batches', ['order_id' => $order->id, 'refunded_amount' => '10000.00']);
+        $this->assertDatabaseHas('commission_batches', ['order_id' => $order->id, 'refunded_amount' => '30000.00']);
     }
 
     public function test_refund_cannot_exceed_remaining_value_or_reuse_a_reference_for_different_data(): void
@@ -269,9 +308,10 @@ class CommissionSettlementTest extends TestCase
 
     public function test_royalty_reconciles_pennies_across_rank_buckets_and_repeated_settlement_is_empty(): void
     {
+        $this->lowerTheNoAreaTarget('300.00');
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
-        $order = $this->purchase(User::factory()->create(), '333.33', '666.66');
+        $order = $this->purchase($leader, '333.33', '666.66');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $result = app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
         $tiers = $result['distributions'];
@@ -280,10 +320,13 @@ class CommissionSettlementTest extends TestCase
             $sum += Money::cents($tier['allocated']) + Money::cents($tier['rolled_to_reserve']);
         }
 
-        $this->assertSame(1333, $sum);
+        // The 4% fund is ৳13.33: four ৳3.33 rank funds, and the one paisa that does not divide goes to the Commission extra fund.
+        $this->assertSame(1332, $sum);
+        $this->assertSame('0.01', $result['total_to_commission_extra_fund']);
         $this->assertSame('empty_pool', app(CommissionService::class)->settleRankRoyaltyPool('2026-09')['status']);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'rank_royalty_pool', 'status' => 'settled']);
-        $this->assertSame('3.34', DB::table('wallets')->where('user_id', $leader->id)->value('available'));
+        $this->assertSame(333, Money::cents((string) DB::table('commission_settlement_payouts')->where('user_id', $leader->id)->where('kind', 'royalty')->sum('amount')));
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'company_commission_benefits_fund', 'status' => 'reserved', 'amount' => '0.01']);
         $this->assertDatabaseHas('commission_allocations', [
             'order_id' => $order->id,
             'category' => 'company_profit_fund',
@@ -322,8 +365,11 @@ class CommissionSettlementTest extends TestCase
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $service = app(CommissionService::class);
+        // The leader met his ৳30,000 monthly target, but the reserve (2% of his own sale, ৳600) cannot pay ৳5,000 yet.
+        $this->purchase($leader, '30000.00', '60000.00');
+        $walletBefore = Money::cents((string) DB::table('wallets')->where('user_id', $leader->id)->value('available'));
         $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
-        // A sub-dealer funds the reserve: sub-dealers never rank up, so no reward of their own uses it.
+        // A sub-dealer's ৳2,50,000 purchase (below his own MO target) funds the reserve.
         $this->purchase(User::factory()->create(['role' => 'sub_dealer']), '250000.00', '400000.00');
         $claim = $service->claimOneTimeRankIncentive($leader->id);
 
@@ -331,7 +377,7 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('5000.00', $claim['amount']);
         $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
         $this->assertDatabaseCount('rank_incentive_awards', 1);
-        $this->assertDatabaseHas('wallets', ['user_id' => $leader->id, 'available' => '5000.00']);
+        $this->assertSame($walletBefore + 500000, Money::cents((string) DB::table('wallets')->where('user_id', $leader->id)->value('available')));
     }
 
     public function test_a_leader_promoted_twice_before_the_reward_runs_still_gets_the_lower_rank_reward(): void
@@ -359,8 +405,8 @@ class CommissionSettlementTest extends TestCase
     {
         $dealer = User::factory()->create();
 
-        // ৳2,50,000 of own purchases reaches MO; this sale's 2% reward reserve (৳5,000) funds the MO reward.
-        $this->purchase($dealer, '250000.00', '500000.00');
+        // ৳5,00,000 of own purchases reaches MO; this sale's 2% reward reserve (৳10,000) funds the ৳5,000 MO reward.
+        $this->purchase($dealer, '500000.00', '1000000.00');
 
         $this->assertSame('mo', DealerRank::where('user_id', $dealer->id)->value('current_rank'));
         $this->assertDatabaseHas('rank_incentive_awards', ['user_id' => $dealer->id, 'rank' => 'mo', 'amount' => '5000.00']);
@@ -376,16 +422,17 @@ class CommissionSettlementTest extends TestCase
         $mo = User::factory()->create();
         DealerRank::create(['user_id' => $mo->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $this->purchase($leader, '3000000.00', '6000000.00');
+        $this->purchase($mo, '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
 
-        // 4% of ৳30 lakh = ৳1,20,000 in four ৳30,000 rank buckets: the AM bucket goes to the leader,
-        // the MO bucket to the MO dealer only. The leader is not paid as MO as well.
+        // 4% of ৳30.3 lakh = ৳1,21,200 in four ৳30,300 rank buckets: the AM bucket goes to the leader, the MO bucket
+        // to the MO dealer only (he met his ৳30,000 target). The leader is not paid as MO as well.
         $royalty = fn (User $user): int => (int) DB::table('commission_settlement_payouts')->where('user_id', $user->id)->where('kind', 'royalty')
             ->get()->sum(fn ($row) => Money::cents((string) $row->amount));
-        $this->assertSame(3000000, $royalty($leader));
-        $this->assertSame(3000000, $royalty($mo));
+        $this->assertSame(3030000, $royalty($leader));
+        $this->assertSame(3030000, $royalty($mo));
     }
 
     public function test_a_rank_never_reached_is_not_rewarded(): void
@@ -472,13 +519,14 @@ class CommissionSettlementTest extends TestCase
 
     public function test_monthly_salary_retains_the_qualification_rule_captured_by_its_source_order(): void
     {
-        $buyer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
-        $this->purchase($buyer, '10000.00', '20000.00');
+        // A dealer with no appointed place has the no-area target (৳30,000); the order keeps the target it was captured with.
+        $buyer = User::factory()->create();
+        $this->purchase($buyer, '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $this->actingAs(User::factory()->create(['role' => 'super_admin']))->patchJson('/api/v1/finance/policy',
-            ['rules' => ['dealer_monthly_salary' => ['parameters' => ['min_monthly_volume' => '20000.00']]]])->assertOk();
+            ['rules' => ['dealer_monthly_salary' => ['parameters' => ['min_monthly_volume' => '50000.00']]]])->assertOk();
         app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
-        $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '700.00']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '2100.00']);
     }
 
     public function test_a_rank_achieved_after_month_end_does_not_receive_retroactive_royalty(): void
@@ -498,13 +546,13 @@ class CommissionSettlementTest extends TestCase
         ]);
     }
 
-    public function test_mo_requires_two_point_five_lakh_in_qualifying_own_purchases(): void
+    public function test_mo_requires_five_lakh_in_qualifying_own_purchases(): void
     {
         $buyer = User::factory()->create();
-        $this->purchase($buyer, '240000.00', '480000.00');
+        $this->purchase($buyer, '490000.00', '980000.00');
         $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'dealer']);
         $this->purchase($buyer, '10000.00', '20000.00');
-        $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'mo', 'lifetime_purchase_total' => '250000.00']);
+        $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'mo', 'lifetime_purchase_total' => '500000.00']);
         // Owner rule: the MO reward is paid the moment MO is reached.
         $this->assertDatabaseHas('rank_incentive_awards', ['user_id' => $buyer->id, 'rank' => 'mo', 'amount' => '5000.00']);
     }

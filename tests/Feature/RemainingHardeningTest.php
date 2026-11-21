@@ -153,6 +153,14 @@ class RemainingHardeningTest extends TestCase
         ]);
         $order->update(['paid' => '500000.00', 'status' => 'delivered']);
         app(CommissionService::class)->processOrder($order);
+        // The leader met his ৳30,000 monthly target this month, which an MO needs to be paid as MO.
+        $ownProduct = Product::factory()->create(['mrp' => '60000.00', 'dealer_price' => '30000.00']);
+        $ownOrder = app(OrderService::class)->create($leader, [
+            'items' => [['product_id' => $ownProduct->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $ownOrder->update(['paid' => '30000.00', 'status' => 'delivered']);
+        app(CommissionService::class)->processOrder($ownOrder);
 
         $claimKey = (string) Str::uuid();
         $firstClaim = app(CommissionService::class)->claimOneTimeRankIncentive($leader->id, requestKey: $claimKey);

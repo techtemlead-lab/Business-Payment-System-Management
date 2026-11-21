@@ -11,6 +11,7 @@ use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Domain\Security\SelfApproval;
 use App\Models\CommissionAllocation;
+use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -335,9 +336,10 @@ final class ReserveService
         if ($month < self::AreaTargetRuleFirstMonth) {
             return ['status' => 'before_rule', 'period' => $month, 'forfeited_count' => 0, 'total_amount' => '0.00'];
         }
-        if (config('madina.auto_release_quota_holds')) {
-            $this->releaseQualifiedQuotaHolds($actorId);
-        }
+        // Owner's decision (2026-11-21): a share whose month met its target is always paid at the month close, whatever
+        // MADINA_AUTO_RELEASE_QUOTA_HOLDS says; it is never left held to be forfeited months later. The setting now only
+        // decides whether shares of older orders are also paid during the month, as soon as the target is met.
+        $this->releaseQualifiedQuotaHolds($actorId, $month);
 
         return DB::transaction(function () use ($month, $actorId): array {
             CommissionWallet::lockShared();
@@ -515,16 +517,103 @@ final class ReserveService
         }, 3);
     }
 
-    public function releaseQualifiedQuotaHolds(?int $actorId = null): array
+    /**
+     * An area share posted under the owner's rule of 2026-11-21 is decided once a month: it is not paid before its
+     * month has ended, even when the target is already met.
+     */
+    public static function waitsForMonthEnd(CommissionAllocation $fund): bool
+    {
+        return ($fund->metadata['monthly_close'] ?? false) === true
+            && (string) ($fund->metadata['period_month'] ?? '') >= CommissionQualification::currentMonth();
+    }
+
+    /**
+     * Month close of the one-time rank prize fund (owner's decision, 2026-11-21). The fund keeps enough for every prize
+     * already earned and still waiting (each reached rank of an active dealer or sub-dealer whose prize is unpaid, at
+     * today's prize amounts); what is above that, in rows of months that have ended, goes to the company profit fund.
+     * A row is moved only whole (it is then closed), so the fund never keeps a half-moved row; a few paisa above the
+     * waiting prizes may therefore stay until a later close. Running it again moves nothing twice.
+     *
+     * @return array{status: string, waiting_prizes: string, moved: string}
+     */
+    public function closeRankPrizeSurplus(?int $actorId = null): array
+    {
+        CommissionWallet::requireActive();
+        $current = CommissionQualification::currentMonth();
+
+        return DB::transaction(function () use ($actorId, $current): array {
+            CommissionWallet::lock();
+            $funds = CommissionAllocation::query()->where('category', 'rank_incentive_pool')->whereIn('status', ['pending', 'partially_settled'])
+                ->orderBy('id')->lockForUpdate()->get();
+            $waiting = $this->waitingRankPrizes();
+            $left = $funds->sum(fn (CommissionAllocation $fund): int => CommissionSettlement::incentiveLeft($fund));
+            $surplus = max(0, $left - $waiting);
+            $settlement = app(CommissionSettlement::class);
+            $moved = 0;
+            foreach ($funds as $fund) {
+                $month = (string) ($fund->metadata['period_month'] ?? '');
+                $amount = CommissionSettlement::incentiveLeft($fund);
+                if ($month === '' || $month >= $current || $amount <= 0 || $amount > $surplus - $moved) {
+                    continue;
+                }
+                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'rank_incentive', null, 'retained_reason_rank_prize_surplus');
+                $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'moved_to_profit' => Money::decimal($amount),
+                    'settled_at' => now()->toIso8601String(), 'settled_period' => $month, 'company_profit_allocation_id' => $profitId]]);
+                $moved += $amount;
+            }
+            if ($moved > 0) {
+                Audit::record($actorId, 'commission.rank_prize_surplus_closed', $current, ['moved' => Money::decimal($moved), 'waiting_prizes' => Money::decimal($waiting)]);
+            }
+
+            return ['status' => $moved > 0 ? 'moved' : 'nothing_to_move', 'waiting_prizes' => Money::decimal($waiting), 'moved' => Money::decimal($moved)];
+        }, 3);
+    }
+
+    /**
+     * The one-time rank prizes earned and not paid yet, in paisa: every rank an active dealer or sub-dealer reached
+     * (rank history up to the current rank) without a prize record, at today's prize amounts. A prize paid before the
+     * prize records existed (only a flag) is not waiting.
+     */
+    public function waitingRankPrizes(): int
+    {
+        $bonuses = app(CommissionPolicy::class)->snapshot(false)['rules']['rank_incentive']['parameters'];
+        $paid = DB::table('rank_incentive_awards')->get(['user_id', 'rank'])->groupBy('user_id')->map(fn ($rows) => $rows->pluck('rank')->all());
+        $ranks = DealerRank::query()->where('current_rank', '<>', 'dealer')
+            ->whereIn('user_id', User::query()->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select('id'))->get();
+        $total = 0;
+        foreach ($ranks as $rank) {
+            $paidRanks = $paid->get($rank->user_id, []);
+            if ($rank->one_time_incentive_paid && $paidRanks === []) {
+                continue;
+            }
+            $reached = collect($rank->qualification_history ?? [])->pluck('rank')->push($rank->current_rank)
+                ->filter(fn ($code): bool => is_string($code) && CommissionSettlement::rankAtLeast((string) $rank->current_rank, $code))->unique();
+            foreach ($reached as $code) {
+                if (! in_array($code, $paidRanks, true)) {
+                    $total += Money::cents((string) ($bonuses[$code.'_bonus'] ?? '0'));
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Pays every held area share whose month met its target ($month: only that month's shares).
+     *
+     * @return array{status: string, released_count: int, total_amount: string}
+     */
+    public function releaseQualifiedQuotaHolds(?int $actorId = null, ?string $month = null): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($actorId): array {
+        return DB::transaction(function () use ($actorId, $month): array {
             CommissionWallet::lockShared();
             $funds = CommissionAllocation::query()
                 ->where('status', 'held')
                 ->where('category', 'like', 'area_%')
                 ->whereNotNull('user_id')
+                ->when($month !== null, fn ($query) => $query->where('metadata->period_month', $month))
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
@@ -546,7 +635,8 @@ final class ReserveService
                 }
                 $quota = $fund->metadata['monthly_quota'] ?? null;
                 $period = $fund->metadata['period_month'] ?? null;
-                if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)) {
+                if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)
+                    || self::waitsForMonthEnd($fund)) {
                     continue;
                 }
                 $amount = $this->creditHeldAllocation($fund, $actorId, 'release_reason_quota_auto');
@@ -587,6 +677,9 @@ final class ReserveService
             $period = $fund->metadata['period_month'] ?? null;
             if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
                 throw ValidationException::withMessages(['hold' => __('portal.err_hold_quota')]);
+            }
+            if (self::waitsForMonthEnd($fund)) {
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_month_open')]);
             }
         }
         $held = ! empty($fund->metadata['maturation_due_at']) && CarbonImmutable::parse($fund->metadata['maturation_due_at'])->isFuture();

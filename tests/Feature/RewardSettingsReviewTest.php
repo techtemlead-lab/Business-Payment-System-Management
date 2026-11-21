@@ -10,6 +10,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
+use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
@@ -101,7 +102,7 @@ class RewardSettingsReviewTest extends TestCase
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('rules', $exception->errors());
         }
-        $this->assertSame('5000000.00', app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters']['bike_target']);
+        $this->assertSame('10000000.00', app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters']['bike_target']);
 
         $this->saveArea(['held_share_months' => '0']);
         $this->assertSame(0, CommissionPolicy::heldShareMonths());
@@ -111,19 +112,33 @@ class RewardSettingsReviewTest extends TestCase
     {
         $check = app(RewardFundCheck::class)->check();
 
-        $this->assertSame('5000000.00', $check['bike']['target']);
+        $this->assertSame('10000000.00', $check['bike']['target']);
         // The 2% reserve is split: 1% for the bike pool and 1% for the car pool.
         $this->assertSame('1.00', $check['bike']['rate']);
-        $this->assertSame('50000.00', $check['bike']['fund_at_target']);
+        $this->assertSame('100000.00', $check['bike']['fund_at_target']);
         $this->assertSame('300000.00', $check['bike']['award']);
         $this->assertSame(RewardFundCheck::Short, $check['bike']['status']);
-        $this->assertSame('250000.00', $check['bike']['shortfall']);
+        $this->assertSame('200000.00', $check['bike']['shortfall']);
         $this->assertSame('30000000.00', $check['bike']['break_even_sales']);
-        $this->assertSame('250000000.00', $check['car']['target']);
-        $this->assertSame('2500000.00', $check['car']['fund_at_target']);
+        $this->assertSame('500000000.00', $check['car']['target']);
+        $this->assertSame('5000000.00', $check['car']['fund_at_target']);
+        // The car prize is ৳25,00,000 by default and its fund (1% of ৳50,00,00,000) covers it.
+        $this->assertSame('2500000.00', $check['car']['award']);
+        $this->assertSame(RewardFundCheck::Covers, $check['car']['status']);
+        $this->assertNull($check['car']['shortfall']);
+    }
+
+    public function test_a_prize_with_no_amount_set_is_reported_as_not_set(): void
+    {
+        $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
+        unset($rules['car_bike_incentive']['parameters']['car_award_amount']);
+
+        $check = app(RewardFundCheck::class)->check($rules);
+
         $this->assertNull($check['car']['award']);
         $this->assertSame(RewardFundCheck::NotSet, $check['car']['status']);
         $this->assertNull($check['car']['shortfall']);
+        $this->assertSame(RewardFundCheck::Short, $check['bike']['status']);
     }
 
     public function test_the_fund_check_follows_the_settings_and_says_when_the_fund_covers(): void
@@ -135,7 +150,7 @@ class RewardSettingsReviewTest extends TestCase
 
         $this->assertSame(RewardFundCheck::Covers, $check['bike']['status']);
         $this->assertSame(RewardFundCheck::Short, $check['car']['status']);
-        $this->assertSame('3500000.00', $check['car']['shortfall']);
+        $this->assertSame('1000000.00', $check['car']['shortfall']);
     }
 
     public function test_the_commission_page_shows_the_fund_check(): void
@@ -143,8 +158,8 @@ class RewardSettingsReviewTest extends TestCase
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/commissions')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('data.reward_fund_check.bike.status', 'short')
-                ->where('data.reward_fund_check.bike.shortfall', '250000.00')
-                ->where('data.reward_fund_check.car.status', 'not_set'));
+                ->where('data.reward_fund_check.bike.shortfall', '200000.00')
+                ->where('data.reward_fund_check.car.status', 'covers'));
     }
 
     public function test_the_fund_check_words_exist_in_both_languages(): void
@@ -164,15 +179,22 @@ class RewardSettingsReviewTest extends TestCase
         $this->travelTo(now()->setDate(2026, 11, 10)->startOfDay());
         $division = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $dealer = User::factory()->inPlace($division)->create();
-        // A target of zero is never missed: the share is held only because the dealer is suspended.
+        // The target is the division dealer's one monthly target, not the seat's own quota. It is met by the dealer's own
+        // purchase below, so the share is held only because the dealer is suspended and is never "missed".
+        app(CommissionPolicy::class)->update($this->owner, ['dealer_monthly_salary' => ['parameters' => ['division_target' => '100.00']]]);
         AreaDealerAssignment::create(['user_id' => $dealer->id, 'level' => 'division', 'place_code_id' => $division->id,
             'division' => 'Rangpur', 'zone_name' => 'Rangpur', 'monthly_quota' => '0.00', 'is_active' => true]);
-        $dealer->forceFill(['status' => 'suspended'])->save();
-        $buyer = User::factory()->inPlace($division)->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
-        $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
-        $order->update(['status' => 'delivered', 'paid' => '100.00']);
-        app(CommissionPosting::class)->process($order->fresh());
+        $purchase = function (User $by) use ($product): Order {
+            $order = app(OrderService::class)->create($by, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
+            $order->update(['status' => 'delivered', 'paid' => '100.00']);
+            app(CommissionPosting::class)->process($order->fresh());
+
+            return $order;
+        };
+        $purchase($dealer);
+        $dealer->forceFill(['status' => 'suspended'])->save();
+        $order = $purchase(User::factory()->inPlace($division)->create());
 
         $share = CommissionAllocation::where('order_id', $order->id)->where('category', 'area_division')->sole();
         $this->assertSame('held', $share->status);
