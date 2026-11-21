@@ -144,7 +144,8 @@ final class PartnerAlerts
      */
     private function rankKeepAlert(User $user, array $rules, ?array $paidAs, int $daysLeft, string $month): array
     {
-        if ($daysLeft > self::RiskWindowDays || $paidAs === null
+        // A dealer holding no rank has no royalty to keep (his month target is the salary alert).
+        if ($daysLeft > self::RiskWindowDays || $paidAs === null || ($paidAs['lifetime_rank'] ?? 'dealer') === 'dealer'
             || ! in_array($paidAs['status'], ['grace_period', 'demoted'], true)
             || CommissionPolicy::rate($rules, 'rank_royalty')->basisPoints <= 0
             || ! DashboardManagement::partnerFeatureEnabled($user, 'ranks')) {

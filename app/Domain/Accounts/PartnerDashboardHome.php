@@ -89,7 +89,7 @@ final class PartnerDashboardHome
         $wallet = $this->walletSummary($user);
         $hasBenefits = $wallet['benefit_rows'] > 0;
         unset($wallet['benefit_rows']);
-        $rewardContext = $this->rewardContext($rules);
+        $rewardContext = [...$this->rewardContext($rules), 'kinds' => [(int) $user->id => DealerKinds::fromAppointmentKind($appointment['kind'] ?? null)]];
 
         return [
             'profile' => [

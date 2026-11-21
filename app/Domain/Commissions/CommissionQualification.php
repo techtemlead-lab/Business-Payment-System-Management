@@ -299,9 +299,9 @@ final class CommissionQualification
     }
 
     /** @return array<string, mixed> */
-    public function paidAs(int $userId, ?string $month = null, ?array $rules = null): array
+    public function paidAs(int $userId, ?string $month = null, ?array $rules = null, ?array $kinds = null): array
     {
-        return $this->paidAsFor([$userId], $month, $rules)[$userId];
+        return $this->paidAsFor([$userId], $month, $rules, $kinds)[$userId];
     }
 
     /**
@@ -311,7 +311,7 @@ final class CommissionQualification
      * @param  array<string, array<string, mixed>>|null  $rules
      * @return array<int, array<string, mixed>>
      */
-    public function paidAsFor(array $userIds, ?string $month = null, ?array $rules = null): array
+    public function paidAsFor(array $userIds, ?string $month = null, ?array $rules = null, ?array $kinds = null): array
     {
         $month ??= self::currentMonth();
         [, $end] = self::period($month);
@@ -328,7 +328,8 @@ final class CommissionQualification
         // Owner's rule of 2026-11-21: the royalty needs the month's target (a dealer's one target by kind, a
         // sub-dealer's own royalty target) and has no grace period. Older rules keep the per-rank minimums and grace.
         $monthlyTargets = MonthlyTargets::usesMonthlyTargets($rules);
-        $kinds = $monthlyTargets ? app(DealerKinds::class)->for($users->where('role', 'dealer')->keys()->map(fn ($id): int => (int) $id)->all()) : [];
+        // A page that already knows the dealer's kind passes it, so it is not read again.
+        $kinds = ! $monthlyTargets ? [] : ($kinds ?? app(DealerKinds::class)->for($users->where('role', 'dealer')->keys()->map(fn ($id): int => (int) $id)->all()));
         $asOf = $month === self::currentMonth() ? now() : $end->subSecond();
 
         $result = [];
