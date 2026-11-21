@@ -44,9 +44,7 @@ final class PartnerRewardsWaiting
             return $rules ??= $context['rules'] ?? $this->policies->snapshot(false)['rules'];
         };
         $milestones = $context['milestones'] ?? RewardMilestoneProgress::query()->where('user_id', $partner->id)->whereIn('milestone_type', ['bike', 'car'])->get()->keyBy('milestone_type');
-        if ($partner->role === 'sub_dealer') {
-            return [...$this->vehiclePrizes($partner, $milestones, $rulesOf), ...$this->tourFund($partner)];
-        }
+        // A sub-dealer may hold a rank too (owner's rule of 2026-11-21); one who holds none reads no rank lines.
         $rank = array_key_exists('rank', $context) ? $context['rank'] : DealerRank::query()->where('user_id', $partner->id)->first();
         $holdsRank = $rank !== null && in_array($rank->current_rank, CommissionSettlement::LeadershipRanks, true);
 
@@ -54,6 +52,7 @@ final class PartnerRewardsWaiting
             ...($holdsRank ? $this->rankPrizes($partner, $rank, $rulesOf) : []),
             ...$this->vehiclePrizes($partner, $milestones, $rulesOf),
             ...($holdsRank ? $this->royaltyNote($partner, $rulesOf) : []),
+            ...($partner->role === 'sub_dealer' ? $this->tourFund($partner) : []),
         ];
     }
 

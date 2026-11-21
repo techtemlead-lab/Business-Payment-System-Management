@@ -4,6 +4,8 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\DealerKinds;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Models\DealerRank;
 use App\Models\RewardMilestoneProgress;
 use App\Models\User;
@@ -53,11 +55,13 @@ final class PartnerMonthlyTargets
         $volume = $this->qualification->monthlyVolume((int) $user->id, $month);
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
         $currentRank = $rank->current_rank ?? 'dealer';
+        // One monthly target by kind of dealer (owner's rule of 2026-11-21) for the salary and the royalty.
+        $dealerTarget = MonthlyTargets::dealerTarget($rules, app(DealerKinds::class)->of((int) $user->id));
 
         return [
-            $this->salaryRow($rules, $volume, $overrides),
+            $this->salaryRow($dealerTarget, $volume, $overrides),
             $this->rankRow($user, $rules, $rank, $currentRank, $overrides),
-            $this->royaltyRow($rules, $volume, $currentRank, $overrides),
+            $this->royaltyRow($rules, $volume, $currentRank, $overrides, MonthlyTargets::usesMonthlyTargets($rules) ? $dealerTarget : null),
             $this->incentiveRow($user, $rules, $overrides),
         ];
     }
@@ -92,6 +96,7 @@ final class PartnerMonthlyTargets
                 'percent' => $this->percent($current, $target),
             ];
         }
+
         return $targets;
     }
 
@@ -173,14 +178,11 @@ final class PartnerMonthlyTargets
     }
 
     /**
-     * @param  array<string, array<string, mixed>>  $rules
      * @param  array<string, array{amount: string, note: ?string}>  $overrides
      * @return array<string, mixed>
      */
-    private function salaryRow(array $rules, int $volume, array $overrides): array
+    private function salaryRow(int $default, int $volume, array $overrides): array
     {
-        $default = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
-
         return $this->moneyRow(self::Salary, __('partner_file.target_salary'), __('partner_file.target_salary_hint'), $volume, $default, $overrides);
     }
 
@@ -205,11 +207,12 @@ final class PartnerMonthlyTargets
      * @param  array<string, array{amount: string, note: ?string}>  $overrides
      * @return array<string, mixed>
      */
-    private function royaltyRow(array $rules, int $volume, string $currentRank, array $overrides): array
+    private function royaltyRow(array $rules, int $volume, string $currentRank, array $overrides, ?int $monthlyTarget = null): array
     {
-        // Royalty is paid from MO upward, so a plain dealer is shown the first rank's monthly minimum.
+        // Royalty is paid from MO upward, so a plain dealer is shown the first rank's monthly minimum. Under the owner's
+        // rule of 2026-11-21 it is the dealer's one monthly target instead.
         $code = $currentRank === 'dealer' ? 'mo' : $currentRank;
-        $default = Money::cents((string) ($rules['rank_maintenance']['parameters'][$code.'_min_monthly_volume'] ?? '0'));
+        $default = $monthlyTarget ?? Money::cents((string) ($rules['rank_maintenance']['parameters'][$code.'_min_monthly_volume'] ?? '0'));
 
         return $this->moneyRow(self::Royalty, __('partner_file.target_royalty', ['rank' => strtoupper($code)]), __('partner_file.target_royalty_hint', ['rank' => strtoupper($code)]), $volume, $default, $overrides);
     }
@@ -223,7 +226,7 @@ final class PartnerMonthlyTargets
     {
         $parameters = $rules['rank_royalty']['parameters'];
         if ($currentRank === 'dealer') {
-            $default = Money::cents((string) ($parameters['mo_target'] ?? '250000.00'));
+            $default = Money::cents((string) ($parameters['mo_target'] ?? '500000.00'));
             $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
 
             return $this->moneyRow(self::Rank, __('partner_file.target_rank', ['rank' => 'MO']), __('partner_file.target_rank_mo_hint'), $lifetime, $default, $overrides);

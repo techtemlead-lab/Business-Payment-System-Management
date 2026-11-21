@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\DashboardManagement;
@@ -124,7 +125,10 @@ final class PartnerAlerts
             || ! DashboardManagement::partnerFeatureEnabled($user, 'salary')) {
             return [];
         }
-        $target = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
+        // Under the owner's rule of 2026-11-21 the dealer's one monthly target (by kind) is the paid-as target too.
+        $target = MonthlyTargets::usesMonthlyTargets($rules)
+            ? Money::cents((string) $paidAs['required_volume'])
+            : Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
         $volume = Money::cents((string) $paidAs['monthly_volume']);
         if ($volume >= $target) {
             return [];

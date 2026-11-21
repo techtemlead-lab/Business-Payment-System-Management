@@ -4,7 +4,10 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\DealerKinds;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Domain\Finance\FundSpendPartners;
+use App\Domain\Finance\Percentage;
 use App\Domain\Notifications\BirthdayGreetings;
 use App\Domain\Orders\DeliveredMoney;
 use App\Models\DealerRank;
@@ -79,7 +82,9 @@ final class PartnerDashboardHome
         $commissionMonth = $this->moneyBook->earnedTotal((int) $user->id, $monthStartUtc);
         $commissionToday = $this->moneyBook->earnedTotal((int) $user->id, $todayUtc);
 
-        $targets = $this->targets($user, $rules, $month);
+        // Read once: the card shows it, and its kind of dealer sets the dealer's monthly target.
+        $appointment = app(PartnerAppointment::class)->for($user);
+        $targets = $this->targets($user, $rules, $month, DealerKinds::fromAppointmentKind($appointment['kind'] ?? null));
         // One read says whether the partner has any company-spend lines at all; the lines themselves are read only when they have.
         $wallet = $this->walletSummary($user);
         $hasBenefits = $wallet['benefit_rows'] > 0;
@@ -110,7 +115,7 @@ final class PartnerDashboardHome
                 'commission_month' => Money::decimal($commissionMonth),
                 'commission_today' => Money::decimal($commissionToday),
             ],
-            'card' => $this->card($user, $profile) + $this->identityTop($user, $targets, $month),
+            'card' => $this->card($user, $profile, $appointment) + $this->identityTop($user, $targets, $month),
             'totals' => $this->totals($user),
             'targets' => $targets,
             'referral' => $user->refer_code && PartnerJoinLink::enabled() ? [
@@ -141,9 +146,10 @@ final class PartnerDashboardHome
      * The profile card on the left of the dashboard: who the partner is, where, when they joined, and how many people they brought.
      *
      * @param  array<string, mixed>  $profile
+     * @param  array<string, mixed>  $appointment  PartnerAppointment::for($user), already read
      * @return array<string, mixed>
      */
-    private function card(User $user, array $profile): array
+    private function card(User $user, array $profile, array $appointment): array
     {
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $counts = DB::table('referral_tree_paths AS p')
@@ -159,7 +165,7 @@ final class PartnerDashboardHome
             'initial' => mb_strtoupper(mb_substr((string) $user->name, 0, 1)),
             // The personal address (where the person lives); the appointed area is in 'appointment'.
             'area' => app(PartnerAreaLine::class)->for($user),
-            'appointment' => app(PartnerAppointment::class)->for($user),
+            'appointment' => $appointment,
             'phone' => $user->phone,
             'email' => $user->email,
             'joined_on' => $user->created_at?->timezone($tz)->format('d/m/Y'),
@@ -188,7 +194,7 @@ final class PartnerDashboardHome
 
         return [
             'code' => $user->dealer_code,
-            'rank' => $isDealer ? $this->targetsRank : null,
+            'rank' => $isDealer || $this->rankRowLoaded ? $this->targetsRank : null,
             'month_purchase' => Money::decimal($volume),
             'target_left' => $isDealer && is_array($salary) ? (string) $salary['remaining'] : null,
         ];
@@ -282,11 +288,11 @@ final class PartnerDashboardHome
      * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
      */
-    private function targets(User $user, array $rules, string $month): array
+    private function targets(User $user, array $rules, string $month, ?string $kind): array
     {
         $targets = $user->role === 'sub_dealer'
             ? $this->subDealerTargets($user, $rules, $month)
-            : $this->dealerTargets($user, $rules, $month);
+            : $this->dealerTargets($user, $rules, $month, $kind);
 
         if (DashboardManagement::partnerFeatureEnabled($user, 'rewards')) {
             // The bike and car rows are read together, so the prize lines can use the same read.
@@ -313,7 +319,8 @@ final class PartnerDashboardHome
                     target: $bikeTarget,
                     hint: __('portal.target_bike_incentive_hint'),
                 );
-            }        }
+            }
+        }
 
         // The owner's own target for this dealer this month is put into the rows by the targets class.
         $targets = $user->role === 'dealer'
@@ -324,16 +331,18 @@ final class PartnerDashboardHome
     }
 
     /**
-     * Sub-dealers have no purchase target and no rank: the card shows what they bought this month
-     * and the salary set aside for them (the tour fund only when ShowTourFund is on), which is a flat share of every paid and delivered purchase.
+     * A sub-dealer's card: what he bought this month, his salary step (owner's rule of 2026-11-21: 1%, 2% or 3% of his
+     * own month's purchase from ৳10,000, ৳20,000 and ৳40,000), his own target for the rank royalty and his next rank
+     * (the tour fund only when ShowTourFund is on).
      *
      * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
      */
     private function subDealerTargets(User $user, array $rules, string $month): array
     {
+        $ranks = MonthlyTargets::subDealersEarnRanks($rules) ? [$this->rankTarget($user, $rules)] : [];
         if (! DashboardManagement::partnerFeatureEnabled($user, 'salary')) {
-            return [];
+            return $ranks;
         }
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $this->targetsVolume = $monthlyVolume;
@@ -348,16 +357,28 @@ final class PartnerDashboardHome
                 'value' => Money::decimal($monthlyVolume),
                 'hint' => __('portal.target_subdealer_progress_hint'),
             ],
-            [
-                'key' => 'sub_dealer_salary',
-                'kind' => 'amount',
-                'label' => __('portal.target_subdealer_salary'),
-                'value' => Money::decimal($this->progress->subDealerSalarySetAside((int) $user->id, $month)),
-                'hint' => $isOn
-                    ? __('portal.target_subdealer_salary_hint', ['rate' => rtrim(rtrim((string) $rules['sub_dealer_salary']['percentage'], '0'), '.')])
-                    : __('portal.target_switched_off_hint'),
-            ],
+            MonthlyTargets::salaryTiers($rules) !== []
+                ? self::salaryTierRow($rules, $monthlyVolume, $isOn)
+                : [
+                    'key' => 'sub_dealer_salary',
+                    'kind' => 'amount',
+                    'label' => __('portal.target_subdealer_salary'),
+                    'value' => Money::decimal($this->progress->subDealerSalarySetAside((int) $user->id, $month)),
+                    'hint' => $isOn
+                        ? __('portal.target_subdealer_salary_hint', ['rate' => rtrim(rtrim((string) $rules['sub_dealer_salary']['percentage'], '0'), '.')])
+                        : __('portal.target_switched_off_hint'),
+                ],
         ];
+        if (MonthlyTargets::subDealersEarnRanks($rules)) {
+            $rows[] = $this->progress(
+                key: 'sub_dealer_royalty',
+                label: __('portal.target_subdealer_royalty'),
+                current: $monthlyVolume,
+                target: MonthlyTargets::subDealerRoyaltyTarget($rules),
+                hint: CommissionPolicy::rate($rules, 'rank_royalty')->basisPoints > 0 ? __('portal.target_subdealer_royalty_hint') : __('portal.target_switched_off_hint'),
+            );
+            array_push($rows, ...$ranks);
+        }
         // Hidden until the company decides to show the sub-dealer tour fund again (see PartnerProgress::ShowTourFund).
         if (PartnerProgress::ShowTourFund) {
             $isTourOn = CommissionPolicy::rate($rules, 'sub_dealer_tour')->basisPoints > 0;
@@ -398,24 +419,30 @@ final class PartnerDashboardHome
                 ...$row,
                 'state' => $state,
                 'value' => __('portal.target_salary_state_'.$state),
-                'hint' => __('portal.target_salary_state_'.$state.'_hint')
+                'hint' => __('portal.target_salary_state_'.$state.'_hint'),
             ];
         }
 
         return $targets;
     }
+
     /**
      * @param  array<string, array<string, mixed>>  $rules
      * @return list<array<string, mixed>>
      */
-    private function dealerTargets(User $user, array $rules, string $month): array
+    private function dealerTargets(User $user, array $rules, string $month, ?string $kind): array
     {
         $targets = [];
         $controls = PartnerBenefitControls::for($user);
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $this->targetsVolume = $monthlyVolume;
         $this->targetsVolumeLoaded = true;
-        $salaryTarget = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21): it unlocks the salary, the
+        // rank royalty and the area income of the month.
+        $salaryTarget = MonthlyTargets::dealerTarget($rules, $kind);
+        $monthHint = MonthlyTargets::usesMonthlyTargets($rules)
+            ? ($kind !== null ? __('portal.target_dealer_month_hint', ['kind' => __('portal.target_kind_'.$kind)]) : __('portal.target_dealer_month_no_area_hint'))
+            : __('portal.target_dealer_salary_hint');
         if ($controls['unconditional_salary']) {
             $targets[] = [
                 'key' => 'monthly_salary',
@@ -432,7 +459,7 @@ final class PartnerDashboardHome
                 label: __('portal.target_monthly_progress'),
                 current: $monthlyVolume,
                 target: $salaryTarget,
-                hint: __('portal.target_dealer_salary_hint'),
+                hint: $monthHint,
             );
         }
 
@@ -448,15 +475,64 @@ final class PartnerDashboardHome
             'value' => '',
             'hint' => '',
         ];
+        $targets[] = $this->rankTarget($user, $rules, $controls);
 
+        return $targets;
+    }
+
+    /**
+     * The sub-dealer's salary step as a progress row: his month's purchase toward the next step, with the percent he
+     * earns now in the hint (and as tier_pct).
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return array<string, mixed>
+     */
+    private function salaryTierRow(array $rules, int $volume, bool $isOn): array
+    {
+        $tiers = MonthlyTargets::salaryTiers($rules);
+        $earned = (int) MonthlyTargets::salaryBasisPoints($rules, $volume);
+        $next = collect($tiers)->first(fn (array $tier): bool => $tier['volume'] > $volume);
+        $pct = fn (int $basisPoints): string => rtrim(rtrim(Percentage::fromBasisPoints($basisPoints)->decimal(), '0'), '.');
+        // Whole takas read better without ".00"; the page turns the digits into Bangla.
+        $taka = fn (int $cents): string => (string) preg_replace('/\.00$/', '', Money::grouped(Money::decimal($cents)));
+        $hint = match (true) {
+            ! $isOn => __('portal.target_switched_off_hint'),
+            $next === null => __('portal.target_subdealer_tier_top_hint', ['pct' => $pct($earned)]),
+            $earned === 0 => __('portal.target_subdealer_tier_none_hint', ['next' => $taka($next['volume']), 'next_pct' => $pct($next['basis_points'])]),
+            default => __('portal.target_subdealer_tier_hint', ['pct' => $pct($earned), 'next' => $taka($next['volume']), 'next_pct' => $pct($next['basis_points'])]),
+        };
+
+        return [
+            ...$this->progress(
+                key: 'sub_dealer_salary',
+                label: __('portal.target_subdealer_salary_tiers'),
+                current: $volume,
+                target: $next['volume'] ?? $tiers[count($tiers) - 1]['volume'],
+                hint: $hint,
+            ),
+            'tier_pct' => Percentage::fromBasisPoints($isOn ? $earned : 0)->decimal(),
+        ];
+    }
+
+    /**
+     * The rank row of a dealer or sub-dealer: own purchases toward MO, then the direct-referral lines toward the next rank.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @param  array<string, bool>|null  $controls  PartnerBenefitControls::for($user) when already read
+     * @return array<string, mixed>
+     */
+    private function rankTarget(User $user, array $rules, ?array $controls = null): array
+    {
+        $controls ??= PartnerBenefitControls::for($user);
         // Read only: a page view never creates the rank row (posting creates it with the first purchase).
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
         $this->rankRow = $rank;
         $this->rankRowLoaded = true;
         $currentRank = $rank->current_rank ?? 'dealer';
         $this->targetsRank = $currentRank;
-        $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
+        $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '500000.00'));
         $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
+        $targets = [];
 
         if ($controls['unconditional_rank_royalty'] || $controls['unconditional_rank_incentive']) {
             $targets[] = [
@@ -494,7 +570,7 @@ final class PartnerDashboardHome
                     'target' => (string) $needed,
                     'remaining' => (string) max(0, $needed - $count),
                     'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
-                    'hint' => __('portal.target_rank_leaders_hint', [
+                    'hint' => __('portal.target_rank_lines_hint', [
                         'needed' => $needed,
                         'rank' => $requiredLabel,
                         'depth' => $depth,
@@ -513,7 +589,7 @@ final class PartnerDashboardHome
             }
         }
 
-        return $targets;
+        return $targets[0];
     }
 
     /** The team volume that counts toward the bike or the car, from the row already read or worked out when there is none yet. */
@@ -525,6 +601,7 @@ final class PartnerDashboardHome
             ? $this->qualification->milestone($user->id, $type)['qualifying_volume']
             : $row->qualifying_volume));
     }
+
     /**
      * @return array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}
      */
