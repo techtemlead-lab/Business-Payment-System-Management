@@ -41,6 +41,7 @@ final class TranslationBundle
         'order_delivery' => 'order_delivery',
         'office_withdrawal' => 'office_withdrawal',
         'owed_items' => 'owed_items',
+        'prize_advances' => 'prize_advances',
     ];
 
     /** @var array<string, string> */

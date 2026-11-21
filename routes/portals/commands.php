@@ -38,6 +38,7 @@ use App\Http\Controllers\PrescriptionLetterheadController;
 use App\Http\Controllers\PrescriptionSettingsController;
 use App\Http\Controllers\PrescriptionToolsController;
 use App\Http\Controllers\PrivacyRequestController;
+use App\Http\Controllers\PrizeAdvanceController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductConcernController;
 use App\Http\Controllers\ProductListPrintController;
@@ -167,6 +168,9 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/closed-balance/to-company', [ClosedAccountBalanceController::class, 'store'])->middleware('throttle:10,1');
     Route::post('/commands/accounts/{user}/clawback/write-off', [StaleHoldingsController::class, 'writeOff'])->middleware('throttle:10,1');
     Route::post('/commands/stale-holdings/days', [StaleHoldingsController::class, 'saveDays'])->middleware('throttle:20,1');
+    Route::post('/commands/prize-advances', [PrizeAdvanceController::class, 'store'])->middleware('throttle:10,1');
+    Route::post('/commands/prize-advances/{advance}/recover', [PrizeAdvanceController::class, 'recover'])->whereNumber('advance')->middleware('throttle:10,1');
+    Route::post('/commands/prize-advances/{advance}/write-off', [PrizeAdvanceController::class, 'writeOff'])->whereNumber('advance')->middleware('throttle:10,1');
     Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
     Route::post('/commands/accounts/{partner}/monthly-targets', [PartnerFileController::class, 'setTarget'])->whereNumber('partner')->middleware('throttle:30,1');
     Route::post('/commands/accounts/{partner}/monthly-targets/clear', [PartnerFileController::class, 'clearTarget'])->whereNumber('partner')->middleware('throttle:30,1');
