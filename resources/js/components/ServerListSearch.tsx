@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
-import { AutoSelect } from './SearchSelect';
+import FilterPicker, { wantsSearch } from './FilterChips';
 
 export type ServerListSelect = {
     name: string;
@@ -52,16 +52,16 @@ export default function ServerListSearch({ query, placeholder, selects = [], kee
                 <input type="search" value={text} placeholder={placeholder} maxLength={100} onChange={(event) => setText(event.target.value)} />
             </label>
             {selects.map((select) => (
-                <label key={select.name}>
-                    <span className="sr-only">{select.label}</span>
-                    <AutoSelect
-                        className="ss-filter"
-                        ariaLabel={select.label}
-                        value={select.value}
-                        onChange={(value) => apply({ q: text.trim(), [select.name]: value })}
-                        options={select.options.map((option) => ({ value: option.value, label: option.label }))}
-                    />
-                </label>
+                <FilterPicker
+                    key={select.name}
+                    maxChips={Infinity}
+                    search={wantsSearch(select.name, select.options.length)}
+                    label={select.label}
+                    allLabel={select.options.find((option) => option.value === '')?.label}
+                    value={select.value}
+                    onChange={(value) => apply({ q: text.trim(), [select.name]: value })}
+                    options={select.options.filter((option) => option.value !== '')}
+                />
             ))}
             <button type="submit" className="button small">{translate('portal', 'search')}</button>
         </form>

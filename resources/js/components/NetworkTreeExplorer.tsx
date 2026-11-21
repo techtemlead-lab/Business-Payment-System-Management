@@ -4,6 +4,7 @@ import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin
 import { money, date, Table, type TableColumn, number } from './UI';
 import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
+import { FilterChips } from './FilterChips';
 
 interface DealerNode {
     id: number;
@@ -396,19 +397,20 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
 
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
-                        <select
-                            aria-label={translate('portal','net_all_ranks')}
+                        <FilterChips
+                            label={translate('portal','net_all_ranks')}
                             value={rankFilter}
-                            onChange={e => setRankFilter(e.target.value)}
-                        >
-                            <option value="all">{translate('portal','net_all_ranks')}</option>
-                            <option value="dealer">{translate('portal','acct_role_dealer')}</option>
-                            <option value="sub_dealer">{translate('portal','acct_role_sub_dealer')}</option>
-                            <option value="mo">{translate('portal','net_rank_mo')}</option>
-                            <option value="am">{translate('portal','net_rank_am')}</option>
-                            <option value="sm">{translate('portal','net_rank_sm')}</option>
-                            <option value="me">{translate('portal','net_rank_me')}</option>
-                        </select>
+                            onChange={setRankFilter}
+                            options={[
+                                { value: 'all', label: translate('portal','net_all_ranks') },
+                                { value: 'dealer', label: translate('portal','acct_role_dealer') },
+                                { value: 'sub_dealer', label: translate('portal','acct_role_sub_dealer') },
+                                { value: 'mo', label: translate('portal','net_rank_mo') },
+                                { value: 'am', label: translate('portal','net_rank_am') },
+                                { value: 'sm', label: translate('portal','net_rank_sm') },
+                                { value: 'me', label: translate('portal','net_rank_me') },
+                            ]}
+                        />
                     </div>
 
                     {(focusedRootId || serverFocus?.rootId) && (

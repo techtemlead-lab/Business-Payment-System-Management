@@ -5,6 +5,7 @@ import { DateInput, Modal, date, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
 import { AutoSelect } from './SearchSelect';
+import FilterPicker, { wantsSearch } from './FilterChips';
 
 export type MoneyFilterOption = { value: string; label: string; count?: number };
 
@@ -30,8 +31,11 @@ export type VisitAddress = (changes: Record<string, string | null>) => void;
 
 const VIEW_KEYS = ['q', 'period', 'from', 'to', 'sort', 'dir'];
 
-/** Only a main drop-down sits on the toolbar. Everything else opens in the sheet. */
-export const isToolbarFilter = (filter: MoneyFilter): boolean => (filter.type ?? 'select') === 'select' && (filter.group ?? 'main') === 'main';
+/**
+ * Every choice filter sits in the header as chips (or, for a long list of people, places or products,
+ * a searchable drop-down). Only number ranges, date ranges and free text open in the "More filters" sheet.
+ */
+export const isToolbarFilter = (filter: MoneyFilter): boolean => (filter.type ?? 'select') === 'select';
 
 /** The address keys that belong to one filter. */
 export const filterKeys = (filter: MoneyFilter): string[] => (filter.type === 'range' || filter.type === 'date_range' ? [filter.from as string, filter.to as string] : [filter.key]);
@@ -139,7 +143,7 @@ function FilterSheet({ bar, sortOptions, sortState, onSort, visit, onClose }: {
     const translate = useT();
     const [draft, setDraft] = useState<Record<string, string>>(bar.active);
     const setField = (key: string, value: string) => setDraft((current) => ({ ...current, [key]: value }));
-    const allKeys = bar.fields.flatMap(filterKeys);
+    const allKeys = bar.fields.filter((filter) => !isToolbarFilter(filter)).flatMap(filterKeys);
 
     const apply = (event: React.FormEvent) => {
         event.preventDefault();
@@ -151,7 +155,7 @@ function FilterSheet({ bar, sortOptions, sortState, onSort, visit, onClose }: {
         <Modal title={translate('stock_lots', 'more_filters')} onClose={onClose}>
             <form className="mt-sheet sf-sheet" onSubmit={apply}>
                 <div className="sf-sheet-grid">
-                    {bar.fields.filter(isToolbarFilter).map((filter) => <div key={filter.key} className="sf-main-field"><FieldInput filter={filter} draft={draft} setDraft={setField} /></div>)}
+                    {bar.fields.filter(isToolbarFilter).map((filter) => <div key={filter.key} className="sf-main-field"><FilterPicker label={filter.label} maxChips={Infinity} search={wantsSearch(filter.key, filter.options?.length ?? 0)} value={bar.active[filter.key] ?? ''} onChange={(value) => visit({ [filter.key]: value || null })} options={(filter.options ?? []).map((option) => ({ value: option.value, label: localizeDigits(optionText(option)) }))} /></div>)}
                     {bar.fields.filter((filter) => !isToolbarFilter(filter)).map((filter) => <div key={filter.key} className={filter.type === 'range' || filter.type === 'date_range' ? 'sf-wide' : undefined}><FieldInput filter={filter} draft={draft} setDraft={setField} /></div>)}
                 </div>
                 {sortOptions.length > 0 && (

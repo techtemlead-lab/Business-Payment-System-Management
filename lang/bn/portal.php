@@ -6877,4 +6877,6 @@ return [
     'cs_param_held_share_months' => 'আটকে থাকা এরিয়া অংশ কত মাস পর কোম্পানির ফান্ডে যাবে (০ = কখনো নয়)',
     'event_finance_refund_owner_limit_changed' => 'টাকা ফেরতের জন্য মালিকের সীমা বদলানো হয়েছে',
     'event_finance_fund_spend_owner_limit_changed' => 'ফান্ড খরচের জন্য মালিকের সীমা বদলানো হয়েছে',
+    'filter_label_dates' => 'তারিখ',
+    'filter_label_partner' => 'পার্টনারের ধরন',
 ];

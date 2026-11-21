@@ -7,6 +7,7 @@ import {useT} from '../shared/i18n/t';
 import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
 import DateInput from './DateInput';
 import {AutoSelect} from './SearchSelect';
+import FilterPicker, {wantsSearch} from './FilterChips';
 
 export { default as DateInput } from './DateInput';
 export type Row=Record<string,any>;
@@ -706,28 +707,25 @@ export function Table<T extends Row = any>({
       />
      )}
      {tools && searchable && statuses.length > 1 && (
-      <select
-       aria-label={translate('portal', 'table_status')}
+      <FilterPicker
+       maxChips={Infinity}
+       label={translate('portal', 'table_status')}
        value={status}
-       onChange={e => { setStatus(e.target.value); setCurrentPage(1); }}
-      >
-       <option value="">{translate('portal', 'table_all')}</option>
-       {statuses.map(item => (
-        <option key={item} value={item}>{label(item, translate)}</option>
-       ))}
-      </select>
+       onChange={value => { setStatus(value); setCurrentPage(1); }}
+       options={statuses.map(item => ({ value: item, label: label(item, translate) }))}
+      />
      )}
      {tools && filters?.map(f => (
-      <AutoSelect
+      <FilterPicker
        key={f.key}
-       className="ss-filter"
-       ariaLabel={f.label}
+       maxChips={Infinity}
+       search={wantsSearch(f.key, f.options.length)}
+       label={f.label}
        value={customFilters[f.key] ?? ''}
        onChange={value => {
         setCustomFilters(prev => ({ ...prev, [f.key]: value }));
         setCurrentPage(1);
        }}
-       emptyLabel={f.label}
        options={f.options.map(opt => ({ value: opt.value, label: opt.label }))}
       />
      ))}

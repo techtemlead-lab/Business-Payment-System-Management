@@ -4,6 +4,7 @@ import OfficePage from '../OfficePage';
 import { settingsBack } from './SettingsForm';
 import { ActionForm, Pagination, dateTime, number, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
+import { FilterChips } from '../../FilterChips';
 
 type ErrorRow = {
     id: number;
@@ -91,16 +92,20 @@ export default function Errors({ data }: { data: ErrorsData }) {
                 <label>{t('search')}
                     <input type="search" value={q} maxLength={100} placeholder={t('search_placeholder')} onChange={(event) => setQ(event.target.value)} />
                 </label>
-                <label>{t('status_label')}
-                    <select value={status} onChange={(event) => setStatus(event.target.value)}>
-                        {['open', 'fixed', 'all'].map((value) => <option key={value} value={value}>{t(`status_${value}`)}</option>)}
-                    </select>
-                </label>
-                <label>{t('sort_label')}
-                    <select value={sort} onChange={(event) => setSort(event.target.value)}>
-                        {['last_seen', 'first_seen', 'count'].map((value) => <option key={value} value={value}>{t(`sort_${value}`)}</option>)}
-                    </select>
-                </label>
+                <FilterChips
+                    label={t('status_label')}
+                    showLabel
+                    value={status}
+                    onChange={(value) => { setStatus(value); open({ q, status: value, sort }); }}
+                    options={['open', 'fixed', 'all'].map((value) => ({ value, label: t(`status_${value}`) }))}
+                />
+                <FilterChips
+                    label={t('sort_label')}
+                    showLabel
+                    value={sort}
+                    onChange={(value) => { setSort(value); open({ q, status, sort: value }); }}
+                    options={['last_seen', 'first_seen', 'count'].map((value) => ({ value, label: t(`sort_${value}`) }))}
+                />
                 <button type="submit" className="button">{t('apply')}</button>
             </form>
 

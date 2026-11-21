@@ -236,7 +236,7 @@
         @if(request('lng'))<input type="hidden" name="lng" value="{{ request('lng') }}">@endif
         @foreach(\App\Domain\Geography\DirectoryAreaFilter::Levels as $areaLevel)
         <label>{{ $chrome('directory_'.$areaLevel) }}
-            <select name="{{ $areaLevel }}">
+            <select name="{{ $areaLevel }}" data-autosubmit>
                 <option value="">{{ $chrome('directory_all_'.$areaLevel.'s') }}</option>
                 @foreach($areaPickers['options'][$areaLevel] as $area)
                 <option value="{{ $area['id'] }}" @selected((string) ($areaPickers['chosen'][$areaLevel] ?? '') === (string) $area['id'])>{{ $area['name'] }}</option>
@@ -244,7 +244,7 @@
             </select>
         </label>
         @endforeach
-        <button class="ref-primary-button">{{ $chrome('directory_filter_btn', $siteCustomization['directory_filter_btn'] ?? null) }}</button>
+        <noscript><button class="ref-primary-button">{{ $chrome('directory_filter_btn', $siteCustomization['directory_filter_btn'] ?? null) }}</button></noscript>
         <a href="/dealers">{{ $chrome('directory_clear_btn', $siteCustomization['directory_clear_btn'] ?? null) }}</a>
     </form>
 </section>
