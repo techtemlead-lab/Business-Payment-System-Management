@@ -268,6 +268,13 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         $card = app(TreasuryFunds::class)->card('benefits', true);
         $this->assertSame(Money::cents($before['money_in']) + $leftover, Money::cents($card['money_in']));
         $this->assertSame($card['money_in'], app(TreasuryFunds::class)->moneyIn(Request::create('/x', 'GET', ['period' => '']), 'benefits')['totals']['sums']['amount']);
+        // The salary fund's money-out list shows the leftover as its own line, never as "moved to profit", and still adds up.
+        app()->setLocale('en');
+        $out = app(TreasuryFunds::class)->moneyOut(Request::create('/x', 'GET', ['period' => '']), 'salary_pool');
+        $lines = collect($out['rows']->items());
+        $this->assertSame(Money::decimal($leftover), Money::decimal(Money::cents((string) $lines->firstWhere('what', __('treasury.out_split_remainder'))['amount'])));
+        $this->assertNull($lines->firstWhere('what', __('treasury.out_moved_to_profit')), 'Someone qualified, so nothing moved to profit.');
+        $this->assertSame(Money::cents((string) app(TreasuryFunds::class)->card('salary_pool', true)['money_out']), Money::cents((string) $out['totals']['sums']['amount']));
     }
 
     public function test_the_owners_own_target_for_one_dealer_replaces_his_kind_target_for_that_month(): void

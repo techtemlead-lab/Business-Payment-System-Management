@@ -109,7 +109,7 @@ final class TreasuryFunds
             search: ['x.what_text', 'x.payee', 'x.reference'],
             filters: [new MoneyTableFilter('what', (string) __('treasury.filter_what'), 'x.line_kind', array_map(
                 fn (string $kind): array => ['value' => $kind, 'label' => (string) __('treasury.out_kind_'.$kind)],
-                ['spend', 'partners', 'moved'],
+                ['spend', 'partners', 'extra', 'moved'],
             ))],
             sorts: ['date' => 'x.date', 'amount' => 'x.amount'],
             defaultSort: 'date',
@@ -289,7 +289,7 @@ final class TreasuryFunds
         }
         $query = $this->spendLines($fund)->unionAll($this->payoutLines($fund));
         if (in_array($fund, FundCatalog::ClosedRowFunds, true)) {
-            $query->unionAll($this->closedMonthLines($fund, true))->unionAll($this->closedMonthLines($fund, false));
+            $query->unionAll($this->closedMonthLines($fund, 'partners'))->unionAll($this->closedMonthLines($fund, 'extra'))->unionAll($this->closedMonthLines($fund, 'moved'));
         }
 
         return $query;
@@ -331,17 +331,27 @@ final class TreasuryFunds
     }
 
     /**
-     * A closed month's two lines: what partners were paid and what moved to company profit. The
-     * second is the row's whole amount less the first, so the two add up by construction.
+     * A closed month's lines: what partners were paid, the paisa an equal split left for the Commission extra fund, and
+     * what moved to company profit. The last is the row's whole amount less the other two, so they add up by construction.
+     *
+     * @param  'partners'|'extra'|'moved'  $lineKind
      */
-    private function closedMonthLines(string $fund, bool $paidToPartners): Builder
+    private function closedMonthLines(string $fund, string $lineKind): Builder
     {
         $paidOut = 'COALESCE(paid.total, 0) + COALESCE(spent.total, 0)';
-        $amount = $paidToPartners ? "SUM({$paidOut})" : "SUM(funds.amount - ({$paidOut}))";
+        $leftover = 'COALESCE(leftover.total, 0)';
+        $amount = match ($lineKind) {
+            'partners' => "SUM({$paidOut})",
+            'extra' => "SUM({$leftover})",
+            default => "SUM(funds.amount - ({$paidOut}) - {$leftover})",
+        };
         $period = "COALESCE(funds.metadata->>'settled_period', funds.metadata->>'period_month')";
-        $lineKind = $paidToPartners ? 'partners' : 'moved';
+        $leftovers = DB::table('commission_allocations')->where('category', RetainedFundLedger::BenefitsCategory)->where('status', '!=', 'reversed')
+            ->where('metadata->source', CommissionSettlement::SplitRemainder)->whereRaw("metadata->>'source_allocation_id' IS NOT NULL")
+            ->groupByRaw("(metadata->>'source_allocation_id')::bigint")->selectRaw("(metadata->>'source_allocation_id')::bigint AS allocation_id, SUM(amount) AS total");
 
-        return $this->liveRows()->where('funds.status', 'settled')->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
+        return $this->liveRows()->leftJoinSub($leftovers, 'leftover', 'leftover.allocation_id', '=', 'funds.id')
+            ->where('funds.status', 'settled')->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
             ->groupByRaw($period)->havingRaw("{$amount} <> 0")
             ->selectRaw("('c-{$lineKind}-' || {$period}) AS id, MAX((funds.metadata->>'settled_at')::timestamptz AT TIME ZONE 'UTC') AS date, '{$lineKind}' AS line_kind, {$period} AS what_text, NULL AS what_en, NULL AS payee, NULL::bigint AS partners, {$amount} AS amount, NULL AS reference, NULL::bigint AS receipt_id, 'closed_month' AS kind");
     }
@@ -361,6 +371,9 @@ final class TreasuryFunds
     {
         if ($row->line_kind === 'moved') {
             return (string) __('treasury.out_moved_to_profit');
+        }
+        if ($row->line_kind === 'extra') {
+            return (string) __('treasury.out_split_remainder');
         }
         if ($row->kind === 'closed_month') {
             return (string) __('treasury.out_month_paid', ['month' => (string) $row->what_text]);
@@ -399,7 +412,11 @@ final class TreasuryFunds
             return (string) __('treasury.to_partners', ['count' => (string) $row->partners]);
         }
 
-        return $row->line_kind === 'moved' ? (string) __('treasury.fund_company_profit') : null;
+        return match ($row->line_kind) {
+            'moved' => (string) __('treasury.fund_company_profit'),
+            'extra' => (string) __('treasury.fund_benefits'),
+            default => null,
+        };
     }
 
     /** What can still be spent, for the spend form. */
