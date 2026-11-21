@@ -22,7 +22,7 @@ return [
     'fund_rank_bonus' => 'র‍্যাঙ্ক বোনাস ফান্ড',
     'fund_rank_reward' => 'সাব-ডিলার র‍্যাঙ্ক ফান্ড',
     'fund_clinic' => 'চেম্বারের ফান্ড',
-    'fund_benefits' => 'মালিক পক্ষের ফান্ড',
+    'fund_benefits' => 'কমিশন এক্সট্রা ফান্ড',
     'fund_salary_reserve' => 'পুরনো বেতনের টাকা',
     'fund_geographic_reserve' => 'পুরনো এলাকার টাকা',
     'fund_referral_reserve' => 'পুরনো স্টাফ কমিশনের টাকা',

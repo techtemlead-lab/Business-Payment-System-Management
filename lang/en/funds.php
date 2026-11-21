@@ -21,7 +21,7 @@ return [
     'fund_salary_reserve' => 'Old salary money',
     'fund_company_share' => 'Company 30% share (manufacturer)',
     'fund_clinic' => 'Clinic fund',
-    'fund_benefits' => 'Owner benefits fund',
+    'fund_benefits' => 'Commission extra fund',
     'col_fund' => 'Fund',
     'col_money_in' => 'Money in',
     'col_money_out' => 'Money out',

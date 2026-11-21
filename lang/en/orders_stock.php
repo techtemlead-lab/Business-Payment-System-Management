@@ -14,7 +14,7 @@ return [
     'method_account' => 'to the partner\'s account',
     'method_cash' => 'in cash by hand',
     'fund_company_share' => 'The company share fund',
-    'fund_benefits' => 'The owners\' benefits fund',
+    'fund_benefits' => 'Commission extra fund',
 
     // Errors
     'err_kind' => 'Choose what to do: cancel, return goods or refund money.',
