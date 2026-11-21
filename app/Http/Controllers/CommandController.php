@@ -157,6 +157,10 @@ class CommandController extends Controller
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
                 'place_code' => 'required|string|max:32',
+                // The kind of dealer chosen on the form; the place code must be a place of that level.
+                'dealer_level' => ['nullable', Rule::in(PlaceCode::AssignmentLevels)],
+                // The deepest place of the permanent (home) address: an upazila or a union.
+                'permanent_place_id' => 'nullable|integer',
                 'dealer_code' => 'nullable|string|max:40',
                 'reference_code' => 'nullable|string|max:40',
                 'phone' => 'required|string|max:30',
