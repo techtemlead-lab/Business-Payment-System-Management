@@ -6899,5 +6899,6 @@ return [
     'cs_param_tier2_pct' => 'Sub-dealer salary step 2 (%)',
     'cs_param_tier3_volume' => 'Sub-dealer salary step 3: own monthly purchase (৳)',
     'cs_param_tier3_pct' => 'Sub-dealer salary step 3 (%)',
+    'err_hold_month_open' => 'This area income is decided after the month ends. It cannot be released before that.',
     'retained_reason_sub_dealer_salary_tier' => 'The sub-dealer\'s own purchase that month reached a lower salary step (or none), so the rest of the salary went to company profit.',
 ];

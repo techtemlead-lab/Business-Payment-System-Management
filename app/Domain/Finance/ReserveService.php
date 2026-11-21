@@ -515,6 +515,16 @@ final class ReserveService
         }, 3);
     }
 
+    /**
+     * An area share posted under the owner's rule of 2026-11-21 is decided once a month: it is not paid before its
+     * month has ended, even when the target is already met.
+     */
+    public static function waitsForMonthEnd(CommissionAllocation $fund): bool
+    {
+        return ($fund->metadata['monthly_close'] ?? false) === true
+            && (string) ($fund->metadata['period_month'] ?? '') >= CommissionQualification::currentMonth();
+    }
+
     public function releaseQualifiedQuotaHolds(?int $actorId = null): array
     {
         CommissionWallet::requireActive();
@@ -546,7 +556,8 @@ final class ReserveService
                 }
                 $quota = $fund->metadata['monthly_quota'] ?? null;
                 $period = $fund->metadata['period_month'] ?? null;
-                if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)) {
+                if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)
+                    || self::waitsForMonthEnd($fund)) {
                     continue;
                 }
                 $amount = $this->creditHeldAllocation($fund, $actorId, 'release_reason_quota_auto');
@@ -587,6 +598,9 @@ final class ReserveService
             $period = $fund->metadata['period_month'] ?? null;
             if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
                 throw ValidationException::withMessages(['hold' => __('portal.err_hold_quota')]);
+            }
+            if (self::waitsForMonthEnd($fund)) {
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_month_open')]);
             }
         }
         $held = ! empty($fund->metadata['maturation_due_at']) && CarbonImmutable::parse($fund->metadata['maturation_due_at'])->isFuture();
