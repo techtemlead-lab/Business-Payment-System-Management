@@ -64,4 +64,11 @@ return [
     'hand_over_note' => 'Note (optional)',
     'hand_over_confirm' => 'Record the cash handover',
     'use_office_list' => 'Hand the cash over from the office list above',
+    // Proof of an online payout
+    'err_proof_first' => 'Attach the screenshot of the transfer first, then record the payout.',
+    'proof_label' => 'Screenshot of the transfer (jpg, png, webp or pdf, up to 5 MB)',
+    'proof_hint' => 'The partner sees this picture on the withdrawal page.',
+    'proof_title' => 'Proof of the transfer',
+    'proof_alt' => 'Screenshot of the transfer',
+    'proof_sent_on' => 'Money sent on :date',
 ];

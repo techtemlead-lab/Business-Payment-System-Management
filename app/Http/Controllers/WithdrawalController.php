@@ -36,6 +36,9 @@ class WithdrawalController extends Controller
     /** Amounts as typed: up to the size of the money column (12 digits of taka), with paisa. */
     public const AmountPattern = '/^\d{1,12}(\.\d{1,2})?$/D';
 
+    /** The transfer proof: a screenshot or photo (jpg, png, webp), or a bank's PDF advice. At most 5 MB. */
+    public const ProofTypes = 'pdf,jpg,jpeg,png,webp';
+
     public function store(Request $r, ManualPayoutService $service): JsonResponse|RedirectResponse
     {
         abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
@@ -88,7 +91,7 @@ class WithdrawalController extends Controller
             Audit::record($r->user()->id, 'withdrawal.destination_viewed', $id);
         }
 
-        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => $w->channel === WithdrawalMethods::Office ? $destination : str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), ...$this->timing($w)],
+        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => $w->channel === WithdrawalMethods::Office ? $destination : str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'proof_is_image' => (bool) $w->receipt_path && str_starts_with((string) $w->receipt_mime, 'image/'), 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), ...$this->timing($w)],
             'paymentAccounts' => $finance ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
             'facts' => $finance && in_array($w->status, ['requested', 'approved'], true) ? $service->reviewFacts($r->user(), $id) : null,
@@ -143,15 +146,19 @@ class WithdrawalController extends Controller
         }
         TransactionReference::tidy($r, 'payment_reference');
         // Owner decision: every manual payout records how it was paid, and a numbered receipt is issued.
-        // The proof may follow later ("paid, receipt later") so a payer without the file at hand is not stopped.
-        $d = $r->validate([...PayoutReceipts::rules(), 'payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt_later' => 'sometimes|boolean',
-            'receipt' => ['nullable', Rule::requiredIf(fn (): bool => $r->input('method') !== 'cash' && ! $r->boolean('receipt_later')), 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
+        // Owner, 2026-11-21: money sent to bKash, Nagad, Rocket or a bank is marked paid only with the transfer
+        // screenshot attached, because the partner is shown that picture as proof; "receipt later" is no longer taken.
+        if ($r->boolean('receipt_later')) {
+            throw ValidationException::withMessages(['receipt' => __('office_withdrawal.err_proof_first')]);
+        }
+        $d = $r->validate([...PayoutReceipts::rules(), 'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
+            'receipt' => ['nullable', Rule::requiredIf(fn (): bool => $r->input('method') !== 'cash'), 'file', 'mimes:'.self::ProofTypes, 'max:5120'], 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
                 if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
                     $fail(__('portal.err_wd_paid_at_future'));
                 }
             }], 'note' => ReasonFields::rule('money.withdrawal_settle', 1000)], TransactionReference::messages('payment_reference'));
         $reference = isset($d['payment_reference']) ? strtoupper(trim($d['payment_reference'])) : null;
-        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), ReasonFields::text($d['note'] ?? null), isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null, $r->boolean('receipt_later'));
+        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), ReasonFields::text($d['note'] ?? null), isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
         $this->notifyPartnerWithdrawal($id, 'paid');
 
         return back()->with('success', __('portal.flash_withdrawal_paid_receipt', ['number' => $number]));
@@ -188,7 +195,7 @@ class WithdrawalController extends Controller
     public function attachReceipt(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
-        $d = $r->validate(['receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120']);
+        $d = $r->validate(['receipt' => 'required|file|mimes:'.self::ProofTypes.'|max:5120']);
         $s->attachReceipt($r->user(), $id, $d['receipt']);
 
         return back()->with('success', __('payouts.flash_receipt_attached'));
@@ -315,11 +322,18 @@ class WithdrawalController extends Controller
         $w = DB::table('withdrawals')->where('id', $id)->first();
         abort_unless($w && ($w->user_id === $r->user()->id || $r->user()->allows('finance')), 404);
         abort_unless($w->receipt_path && Storage::disk('local')->exists($w->receipt_path), 404);
-        Audit::record($r->user()->id, 'receipt.downloaded', $id);
         $ext = match ($w->receipt_mime) {
-            'application/pdf' => 'pdf','image/png' => 'png',default => 'jpg'
+            'application/pdf' => 'pdf','image/png' => 'png','image/webp' => 'webp',default => 'jpg'
         };
+        $headers = ['Content-Type' => $w->receipt_mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'];
+        // ?view=1 shows a screenshot inside the withdrawal page (pictures only); everything else downloads.
+        if ($r->boolean('view') && str_starts_with((string) $w->receipt_mime, 'image/')) {
+            Audit::record($r->user()->id, 'receipt.viewed', $id);
 
-        return Storage::disk('local')->download($w->receipt_path, 'payment-receipt-'.$id.'.'.$ext, ['Content-Type' => $w->receipt_mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+            return Storage::disk('local')->response($w->receipt_path, 'payment-receipt-'.$id.'.'.$ext, [...$headers, 'Content-Security-Policy' => "default-src 'none'"], 'inline');
+        }
+        Audit::record($r->user()->id, 'receipt.downloaded', $id);
+
+        return Storage::disk('local')->download($w->receipt_path, 'payment-receipt-'.$id.'.'.$ext, $headers);
     }
 }

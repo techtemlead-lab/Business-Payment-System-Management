@@ -359,8 +359,8 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     const { auth, financeActive, staffActions, portalBase: base, paymentAccounts = [] } = usePage<any>().props;
     const isPartnerDesk = ['dealer', 'sub_dealer'].includes(auth?.user?.role) && auth?.user?.workspace_mode !== 'staff';
     const finance = financeActive && auth.capabilities.includes('finance') && (staffActions?.finance?.approve ?? true);
-    const form = useForm<{ payment_account_id: string; receipt: File | null; receipt_later: boolean; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
-        payment_account_id: '', receipt: null, receipt_later: false, payment_reference: '', paid_at: '', note: '',
+    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
+        payment_account_id: '', receipt: null, payment_reference: '', paid_at: '', note: '',
         // The number the partner asked to be paid to; the server refuses any other (F-verify-01).
         method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: String(w.destination_for_payment ?? ''), wallet_number: String(w.destination_for_payment ?? ''), received_by: '',
     });
@@ -430,6 +430,14 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <div><dt>{translate('portal', 'wd_payment_ref')}</dt><dd>{w.payment_reference ?? translate('portal', 'wd_not_recorded')}</dd></div>
                     <div><dt>{translate('portal', 'wd_payment_date')}</dt><dd>{w.paid_at ? date(w.paid_at) : translate('portal', 'wd_not_recorded')}</dd></div>
                 </dl>
+                {w.proof_is_image && (
+                    <figure className="wd-proof">
+                        <figcaption><b>{translate('office_withdrawal', 'proof_title')}</b>{w.paid_at && <> · {translate('office_withdrawal', 'proof_sent_on', { date: date(w.paid_at) })}</>}</figcaption>
+                        <a href={`${base}/withdrawals/${w.id}/receipt?view=1`} target="_blank" rel="noopener">
+                            <img src={`${base}/withdrawals/${w.id}/receipt?view=1`} alt={translate('office_withdrawal', 'proof_alt')} loading="lazy" style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 8, border: '1px solid var(--ds-line, #e2e8f0)' }} />
+                        </a>
+                    </figure>
+                )}
                 {w.has_receipt
                     ? <a className="button" href={`${base}/withdrawals/${w.id}/receipt`}><Download size={17} />{translate('portal', 'wd_download_receipt')}</a>
                     : <p className="muted">{translate('portal', 'wd_receipt_pending')}</p>}
@@ -514,9 +522,9 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                         {isCash && <label>{translate('portal', 'pay_fld_received_by')}<input required maxLength={100} placeholder={translate('portal', 'pay_ph_received_by')} value={form.data.received_by} onChange={e => form.setData('received_by', e.target.value)} /></label>}
                         <label>{translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref')}<input required={!isCash} maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
                         <label>{translate('portal', 'wd_paid_at')}<input required type="datetime-local" value={form.data.paid_at} onChange={e => form.setData('paid_at', e.target.value)} /></label>
-                        <ReceiptPicker id="wd-receipt" label={translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')} required={!isCash && !form.data.receipt_later} file={form.data.receipt} onChange={file => form.setData('receipt', file)} />
-                        {!isCash && !form.data.receipt && <label className="hub-choice"><input type="checkbox" checked={form.data.receipt_later} onChange={e => form.setData('receipt_later', e.target.checked)} />{translate('payouts', 'receipt_later')}</label>}
-                        {form.data.receipt_later && <small className="hub-hint">{translate('payouts', 'receipt_later_hint')}</small>}
+                        {/* Owner, 2026-11-21: the screenshot comes first; the partner is shown it as proof. */}
+                        <ReceiptPicker id="wd-receipt" label={isCash ? translate('portal', 'pay_fld_receipt_cash') : translate('office_withdrawal', 'proof_label')} required={!isCash} webp file={form.data.receipt} onChange={file => form.setData('receipt', file)} />
+                        {!isCash && <small className="hub-hint">{translate('office_withdrawal', 'proof_hint')}</small>}
                         {paymentNote.shown && <label>{paymentNote.label(translate('portal', 'wd_payment_note'))}<textarea required={paymentNote.required} maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>}
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
                         <FormErrors errors={form.errors}/>

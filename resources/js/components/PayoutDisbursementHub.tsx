@@ -142,7 +142,6 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     const [paymentAccountId, setPaymentAccountId] = useState('');
     const isCash = payoutMethod === 'cash';
     const [payerId, setPayerId] = useState('');
-    const [receiptLater, setReceiptLater] = useState(false);
     const [attachRecord, setAttachRecord] = useState<WithdrawalRecord | null>(null);
     const [attachFile, setAttachFile] = useState<File | null>(null);
     useEscape(attachRecord !== null, () => setAttachRecord(null));
@@ -188,7 +187,6 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         setPaidAt(new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
         setSettleNote('');
         setReceiptFile(null);
-        setReceiptLater(false);
         setPayoutMethod(methodForChannel(record.channel));
         setBankName('');
         setAccountNumber('');
@@ -199,11 +197,10 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
     const handleSubmitSettle = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!settleModalRecord || (!isCash && !receiptFile && !receiptLater)) return;
+        if (!settleModalRecord || (!isCash && !receiptFile)) return;
 
         const formData = new FormData();
         if (receiptFile) formData.append('receipt', receiptFile);
-        if (!isCash && !receiptFile && receiptLater) formData.append('receipt_later', '1');
         formData.append('method', payoutMethod);
         if (!isCash && paymentAccountId) formData.append('payment_account_id', paymentAccountId);
         formData.append('payment_reference', paymentReference);
@@ -521,10 +518,10 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                         {settle.facts && <p className="hub-hint">{translate('payouts', 'fact_destination')}: <b>{settle.facts.destination}</b></p>}
 
                         <form onSubmit={handleSubmitSettle} onPaste={(e) => {
-                            const pasted = Array.from(e.clipboardData.files).find((item) => ['image/png', 'image/jpeg', 'application/pdf'].includes(item.type));
+                            const pasted = Array.from(e.clipboardData.files).find((item) => ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'].includes(item.type));
                             if (pasted && !isCash) {
                                 e.preventDefault();
-                                setReceiptFile(new File([pasted], `receipt-${Date.now()}.${pasted.type === 'application/pdf' ? 'pdf' : pasted.type === 'image/png' ? 'png' : 'jpg'}`, { type: pasted.type }));
+                                setReceiptFile(new File([pasted], `receipt-${Date.now()}.${pasted.type === 'application/pdf' ? 'pdf' : pasted.type === 'image/png' ? 'png' : pasted.type === 'image/webp' ? 'webp' : 'jpg'}`, { type: pasted.type }));
                             }
                         }}>
                             <div className="hub-field">
@@ -602,23 +599,16 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 />
                             </div>
 
+                            {/* Owner, 2026-11-21: the transfer screenshot comes first; the partner is shown it as proof. */}
                             <ReceiptPicker
                                 id="payout-receipt"
-                                label={translate('portal', isCash ? 'pay_fld_receipt_cash' : 'pay_fld_receipt')}
-                                required={!isCash && !receiptLater}
+                                label={isCash ? translate('portal', 'pay_fld_receipt_cash') : translate('office_withdrawal', 'proof_label')}
+                                required={!isCash}
+                                webp
                                 file={receiptFile}
                                 onChange={setReceiptFile}
                             />
-
-                            {!isCash && !receiptFile && (
-                                <div className="hub-field">
-                                    <label className="hub-choice">
-                                        <input type="checkbox" checked={receiptLater} onChange={(e) => setReceiptLater(e.target.checked)} />
-                                        {translate('payouts', 'receipt_later')}
-                                    </label>
-                                    {receiptLater && <small className="hub-hint">{translate('payouts', 'receipt_later_hint')}</small>}
-                                </div>
-                            )}
+                            {!isCash && <small className="hub-hint">{translate('office_withdrawal', 'proof_hint')}</small>}
 
                             {paymentNote.shown && <div className="hub-field is-last">
                                 <label>
@@ -664,7 +654,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                         <h3 className="hub-title is-lg">{translate('payouts', 'attach_receipt')}</h3>
                         <p className="hub-sub is-lead">{attachRecord.user_name} · {money(attachRecord.net_amount ?? attachRecord.amount)} · {attachRecord.payment_reference}</p>
                         <form onSubmit={handleAttach}>
-                            <ReceiptPicker id="attach-receipt" label={translate('portal', 'pay_fld_receipt')} required file={attachFile} onChange={setAttachFile} />
+                            <ReceiptPicker id="attach-receipt" label={translate('portal', 'pay_fld_receipt')} required webp file={attachFile} onChange={setAttachFile} />
                             <FormErrors errors={modalErrors} />
                             <div className="hub-row is-end">
                                 <button type="button" onClick={() => setAttachRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
