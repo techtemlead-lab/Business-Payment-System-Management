@@ -30,6 +30,7 @@ use App\Support\Money;
 use App\Support\ReasonFields;
 use App\Support\TakaText;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -747,7 +748,7 @@ class OrderService
                 throw ValidationException::withMessages(['courier_provider' => __('order_delivery.err_pickup_no_courier')]);
             }
             $items = $locked->lines()->whereRaw(OrderLines::unsentSql())->orderBy('id')->get()
-                ->map(fn (OrderLine $line): array => ['line_id' => (int) $line->getKey(),
+                ->map(fn (Model $line): array => ['line_id' => (int) $line->getKey(),
                     'quantity' => (int) $line->getAttribute('quantity') - (int) $line->getAttribute('dispatched') - (int) $line->getAttribute('closed')])
                 ->all();
             if ($items === []) {

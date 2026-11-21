@@ -26,7 +26,7 @@ final class CourierOptions
         'ecourier' => 'https://ecourier.com.bd/tracking?tracking_no=:tracking',
     ];
 
-    /** @var list<array{key: string, label: string}>|null */
+    /** @var list<array{key: string, label: string, manual?: bool, tracking_url?: string, api_ready?: bool}>|null */
     private ?array $enabled = null;
 
     public function __construct(private readonly IntegrationSettings $settings) {}
@@ -34,7 +34,7 @@ final class CourierOptions
     /**
      * Couriers switched on by the owner, read once per request.
      *
-     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}>
+     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string, api_ready?: bool}>
      */
     public function enabled(): array
     {
