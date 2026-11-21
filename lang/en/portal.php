@@ -6876,4 +6876,6 @@ return [
     'cs_param_held_share_months' => 'Months a held area share waits before it goes to the company fund (0 = never)',
     'event_finance_refund_owner_limit_changed' => 'Owner limit for refunds changed',
     'event_finance_fund_spend_owner_limit_changed' => 'Owner limit for fund spending changed',
+    'filter_label_dates' => 'Dates',
+    'filter_label_partner' => 'Partner type',
 ];

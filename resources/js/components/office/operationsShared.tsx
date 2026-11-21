@@ -9,6 +9,7 @@ import {usePlacedFields,type ReasonPlace} from '../../shared/reasonFields';
 import {randomUuid} from '../../shared/randomUuid';
 import {payoutMethods} from '../../shared/payoutMethods';
 import {AutoSelect} from '../SearchSelect';
+import FilterPicker from '../FilterChips';
 
 export type TranslateFn = (group:string,key:string,replace?:Record<string,string>)=>string;
 export type Option = {value:string;label:string};
@@ -36,7 +37,7 @@ export function TableSearch({tableKey,filter}:{tableKey:string;filter?:TableFilt
     const filtered=Boolean(filter?.q||filter?.status);
     return <form className="filter-bar order-filters" onSubmit={e=>{e.preventDefault();apply({q});}}>
         {filter?.searchable&&<div className="order-search"><div className="search-input"><input aria-label={translate('portal','table_search')} placeholder={translate('portal','table_search')} value={q} onChange={e=>setQ(e.target.value)}/></div><button className="button small dark" type="submit">{translate('portal','search')}</button></div>}
-        {statuses.length>0&&<select className="order-status-select" aria-label={translate('portal','table_status')} value={filter?.status??''} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','table_all')}</option>{statuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
+        {statuses.length>0&&<FilterPicker label={translate('portal','table_status')} value={filter?.status??''} onChange={value=>apply({status:value})} options={statuses.map(item=>({value:item,label:label(item,translate)}))}/>}
         {filtered&&<div className="order-filter-actions"><button type="button" className="text-link" onClick={()=>{setQ('');apply({q:'',status:''});}}>{translate('portal','clear')}</button></div>}
     </form>;
 }

@@ -67,7 +67,7 @@ export default function FilterPicker({ options, value, onChange, label, allLabel
     showLabel?: boolean;
 }) {
     const translate = useT();
-    const everything = allLabel ?? translate('portal', 'table_all');
+    const everything = allLabel ?? translate('portal', 'all');
 
     if (search || options.length > ChipsUpTo) {
         return (

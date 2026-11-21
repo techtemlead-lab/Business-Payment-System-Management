@@ -10,6 +10,7 @@
 .fc .fc-chip:focus-visible{outline:none;border-color:var(--ds-brand,#006a4e);box-shadow:var(--ds-focus-ring,0 0 0 3px rgba(0,106,78,.18))}
 .fc .fc-chip[aria-pressed="true"]{border-color:var(--ds-brand,#006a4e);background:var(--ds-brand-soft,#e6f4ef);color:var(--ds-brand-text,#00503b);font-weight:600}
 .fc .fc-count{color:var(--ds-text-muted,#64748b);font-size:var(--ds-fs-xs,12px);font-weight:500}
+.mt-sheet-field{display:grid;gap:6px;min-width:0}
 @media (max-width:640px){
   .fc{display:flex;width:100%}
   .fc .fc-chip{min-height:40px;padding:8px 14px}

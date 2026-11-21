@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
 import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
-import { AutoSelect } from './SearchSelect';
+import FilterPicker from './FilterChips';
 
 export type MoneyColumn<T> = {
     key: string;
@@ -281,13 +281,12 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
         return href ? () => router.visit(href) : null;
     };
 
-    const filterSelect = (filter: MoneyFilter) => (
-        <AutoSelect
-            className="ss-filter"
-            ariaLabel={filter.label}
+    const filterSelect = (filter: MoneyFilter, showLabel = true) => (
+        <FilterPicker
+            label={filter.label}
+            showLabel={showLabel}
             value={state.filters[filter.key] ?? ''}
             onChange={(value) => visit({ [filter.key]: value || null })}
-            emptyLabel={filter.label}
             options={(filter.options ?? []).map((option) => ({ value: option.value, label: optionText(option) }))}
         />
     );
@@ -503,7 +502,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
             {sheetOpen && (
                 <Modal title={translate('portal', 'mt_filters')} onClose={() => setSheetOpen(false)}>
                     <div className="mt-sheet">
-                        {filters.map((filter) => <label key={filter.key}>{filter.label}{filterSelect(filter)}</label>)}
+                        {filters.map((filter) => <div key={filter.key} className="mt-sheet-field">{filterSelect(filter, true)}</div>)}
                         {sortableColumns.length > 0 && (
                             <div className="mt-sheet-sort" role="group" aria-label={translate('portal', 'mt_sort')}>
                                 <span>{translate('portal', 'mt_sort')}</span>
