@@ -453,7 +453,7 @@ final class CommissionQualification
         $parameters = $this->rewardParameters();
         $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
 
-        return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()));
+        return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()), $this->legVolumes([$userId], false)[$userId] ?? 0);
     }
 
     /** @return array<string, mixed> */
@@ -487,11 +487,12 @@ final class CommissionQualification
         $parameters = $this->rewardParameters();
         $legs = User::query()->whereIn('sponsor_id', $leaderIds)->orderBy('id')->get(['id', 'name', 'sponsor_id']);
         $volumes = $this->legVolumes($legs->pluck('id')->all());
+        $own = $this->legVolumes($leaderIds, false);
         $legsByLeader = $legs->groupBy(fn (User $leg): int => (int) $leg->sponsor_id);
         foreach ($leaderIds as $leaderId) {
             $leaderLegs = $legsByLeader->get($leaderId, collect());
             foreach (['bike', 'car'] as $type) {
-                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $parameters, $leaderLegs, $volumes));
+                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $parameters, $leaderLegs, $volumes, $own[$leaderId] ?? 0));
             }
         }
     }
@@ -506,21 +507,25 @@ final class CommissionQualification
      * Paid, delivered, net-of-refund purchases of each leg's whole team (the leg and everyone under it).
      * A partly delivered order counts for the part commission was posted on, as monthly volume does.
      *
+     * With $withTeam false it is each person's own purchases only (the owner's rule of 2026-11-21 counts them toward
+     * the bike and the car too, outside any line's limit).
+     *
      * @param  array<int, int|string>  $legIds
      * @return array<int, int> leg user id => cents
      */
-    private function legVolumes(array $legIds): array
+    private function legVolumes(array $legIds, bool $withTeam = true): array
     {
         $legIds = array_values(array_unique(array_map('intval', $legIds)));
         if ($legIds === []) {
             return [];
         }
         $placeholders = implode(',', array_fill(0, count($legIds), '?'));
+        $team = $withTeam ? 'TRUE' : 'FALSE';
         $rows = DB::select(<<<SQL
             WITH members AS (
                 SELECT ancestor_id AS leg_id, descendant_id AS user_id
                 FROM referral_tree_paths
-                WHERE ancestor_id IN ({$placeholders})
+                WHERE {$team} AND ancestor_id IN ({$placeholders})
                 UNION
                 SELECT id AS leg_id, id AS user_id
                 FROM users
@@ -579,28 +584,15 @@ final class CommissionQualification
      * @param  array<string, mixed>  $parameters
      * @param  Collection<int, User>  $directLegs
      * @param  array<int, int>  $legVolumes
+     * @param  int  $own  the person's own purchases: counted in full, outside any line's limit (owner's rule of 2026-11-21)
      * @return array<string, mixed>
      */
-    private function milestoneFromLegs(string $type, array $parameters, Collection $directLegs, array $legVolumes): array
+    private function milestoneFromLegs(string $type, array $parameters, Collection $directLegs, array $legVolumes, int $own = 0): array
     {
         $target = Money::cents((string) $parameters[$type.'_target']);
         $cap = Money::cents((string) $parameters[$type.'_leg_cap']);
-        if ($directLegs->isEmpty()) {
-            return [
-                'milestone_type' => $type,
-                'target_amount' => Money::decimal($target),
-                'leg_cap_amount' => Money::decimal($cap),
-                'raw_team_volume' => '0.00',
-                'qualifying_volume' => '0.00',
-                'achieved' => false,
-                'progress_percentage' => 0.0,
-                'percentage' => 0.0,
-                'legs' => [],
-            ];
-        }
-
-        $raw = 0;
-        $qualified = 0;
+        $raw = $own;
+        $qualified = $own;
         $legs = [];
         foreach ($directLegs as $leg) {
             $cents = $legVolumes[(int) $leg->id] ?? 0;
@@ -623,9 +615,10 @@ final class CommissionQualification
             'leg_cap_amount' => Money::decimal($cap),
             'raw_team_volume' => Money::decimal($raw),
             'qualifying_volume' => Money::decimal($qualified),
-            'achieved' => $qualified >= $target,
-            'progress_percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
-            'percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
+            'own_volume' => Money::decimal($own),
+            'achieved' => $target > 0 && $qualified >= $target,
+            'progress_percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0.0,
+            'percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0.0,
             'legs' => $legs,
         ];
     }

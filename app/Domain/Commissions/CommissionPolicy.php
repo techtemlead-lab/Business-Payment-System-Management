@@ -80,7 +80,9 @@ final class CommissionPolicy
                 'sub_dealer_royalty_target' => '30000.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
-            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => null, 'bike_pool_share_pct' => '50.00']],
+            // Owner's rule of 2026-11-21: bike at ৳1.20 crore of team sales (at most ৳15 lakh from one direct line),
+            // prize ৳3 lakh; car at ৳50 crore (at most ৳8 crore from one direct line), prize ৳25 lakh.
+            'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '12000000.00', 'bike_leg_cap' => '1500000.00', 'car_target' => '500000000.00', 'car_leg_cap' => '80000000.00', 'bike_award_amount' => '300000.00', 'car_award_amount' => '2500000.00', 'bike_pool_share_pct' => '50.00']],
             'additional_rank' => ['sub_dealer', 'Sub-dealer extra', '4.00', ['destination' => self::ExtraDestinationDefault]],
             // The salary is set aside at the full percent; at month end the sub-dealer is paid the tier his own month's
             // purchase reached and the rest goes to the company profit fund (owner, 2026-11-21).
@@ -416,21 +418,18 @@ final class CommissionPolicy
     }
 
     /**
-     * The monthly target a newly seated area dealer starts with. Under the owner's rule of 2026-11-21 it is the dealer's
-     * one monthly target for that kind of seat (MonthlyTargets); older rules used the area rule's seat targets (the
-     * seat itself can still be changed by hand). An unknown level has none.
+     * The monthly target a newly seated area dealer starts with, from the area rule (the seat itself
+     * can still be changed by hand). An unknown level has none. Orders captured under the owner's rule of
+     * 2026-11-21 gate area income with the dealer's one monthly target (MonthlyTargets) instead.
      */
     public static function standardAreaQuota(?string $level): string
     {
         if (! in_array($level, ['division', 'district', 'upazila', 'union'], true)) {
             return '0.00';
         }
-        $rules = app(self::class)->snapshot(false)['rules'];
-        if (MonthlyTargets::usesMonthlyTargets($rules)) {
-            return Money::decimal(MonthlyTargets::dealerTarget($rules, $level));
-        }
+        $parameters = app(self::class)->snapshot(false)['rules']['area_dealer_pool']['parameters'];
 
-        return Money::decimal(Money::cents((string) $rules['area_dealer_pool']['parameters'][$level.'_monthly_quota']));
+        return Money::decimal(Money::cents((string) $parameters[$level.'_monthly_quota']));
     }
 
     /** Months a held area share may wait before it goes to the company fund; 0 means it never does. */
