@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerProfileCard;
+use App\Domain\Accounts\PartnerRegistrationForm;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -29,6 +32,7 @@ class PartnerBusinessAreaAndHomeAddressTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutVite();
         Notification::fake();
         $this->seedClassicPlaceCodes();
 
@@ -215,6 +219,71 @@ class PartnerBusinessAreaAndHomeAddressTest extends TestCase
         $profile = $this->created()->profile;
         $this->assertArrayNotHasKey('permanent_division', $profile);
         $this->assertArrayNotHasKey('permanent_place_id', $profile);
+    }
+
+    public function test_the_office_partner_page_shows_the_permanent_address_apart_from_the_business_area(): void
+    {
+        $dealer = $this->dealerWithHome();
+
+        $this->asOwner()->onPortal('sadmin')->get('/accounts/'.$dealer->id)->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('PartnerProfile')
+            ->where('sheet.permanent_address.division', 'Dhaka')
+            ->where('sheet.permanent_address.district', 'Gazipur')
+            ->where('sheet.permanent_address.upazila', 'Kaliakair')
+            ->where('sheet.permanent_address.union', 'Chapair')
+            ->where('sheet.permanent_address.village', 'Ratanpur, House 12')
+            ->where('sheet.permanent_address.post_office', 'Kaliakair-1750')
+            ->where('sheet.place.division', 'Rangpur')
+            ->where('sheet.place.upazila', 'Pirganj')
+            ->where('sheet.place.place_code', 'MNHC402')
+            ->missing('sheet.contact.village'));
+    }
+
+    public function test_the_partners_own_profile_shows_both_places_and_the_home_as_the_full_address(): void
+    {
+        $dealer = $this->dealerWithHome();
+
+        app()->setLocale('en');
+        $card = app(PartnerProfileCard::class)->for($dealer);
+
+        $this->assertSame(['division' => 'Dhaka', 'district' => 'Gazipur', 'upazila' => 'Kaliakair', 'union' => 'Chapair', 'village' => 'Ratanpur, House 12', 'post_office' => 'Kaliakair-1750'], $card['permanent_address']);
+        $this->assertSame('Pirganj', $card['address']['upazila']);
+        $this->assertSame('Ratanpur, House 12, Kaliakair-1750, Chapair, Kaliakair, Gazipur, Dhaka', $card['biodata']['full_address']);
+    }
+
+    public function test_the_registration_form_prints_the_permanent_address_and_the_business_area_apart(): void
+    {
+        $sections = collect(app(PartnerRegistrationForm::class)->sections($this->dealerWithHome(), 'bn', true))->keyBy('title');
+
+        $home = collect($sections['স্থায়ী ঠিকানা']['rows'])->pluck('value')->all();
+        $business = collect($sections['ব্যবসার এলাকা']['rows'])->pluck('value')->all();
+        $this->assertSame(['Dhaka', 'Gazipur', 'Kaliakair', 'Chapair', 'Ratanpur, House 12', 'Kaliakair-1750'], $home);
+        // An upazila dealer's union stays empty: the upazila here has no base union.
+        $this->assertSame(['Rangpur', 'Rangpur District', 'Pirganj', '', 'MNHC402'], $business);
+    }
+
+    public function test_an_older_partner_without_a_permanent_place_still_shows_the_village(): void
+    {
+        $older = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'profile' => ['village' => 'Nayabari', 'upazila' => 'Pirganj']]);
+
+        $card = app(PartnerProfileCard::class)->for($older);
+
+        $this->assertSame('Nayabari', $card['permanent_address']['village']);
+        $this->assertNull($card['permanent_address']['upazila']);
+        $this->assertSame('Nayabari', $card['biodata']['full_address']);
+    }
+
+    private function dealerWithHome(): User
+    {
+        $this->asOwner()->post('/commands/accounts', $this->payload([
+            'dealer_level' => 'upazila',
+            'place_code' => $this->business['upazila']->code,
+            'permanent_place_id' => $this->home['union']->id,
+            'village' => 'Ratanpur, House 12',
+            'post_office' => 'Kaliakair-1750',
+        ]))->assertSessionHasNoErrors();
+
+        return $this->created();
     }
 
     private function asOwner(): static

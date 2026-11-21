@@ -52,8 +52,9 @@ final class PartnerProfileCard
             'place_code' => $this->clean($profile['place_code'] ?? $profile['area_code'] ?? null),
             'address' => $address,
             'address_missing' => $missing,
+            'permanent_address' => self::permanentAddress($profile),
             'appointment' => app(PartnerAppointment::class)->for($user),
-            'biodata' => $this->biodata($user, $profile, $address),
+            'biodata' => $this->biodata($user, $profile),
             'referred_by' => $this->referredBy($user, $profile),
             'refer_code' => $user->refer_code,
             'refer_url' => $user->refer_code && PartnerJoinLink::enabled() ? PortalHost::url('public', '/join/'.$user->refer_code) : null,
@@ -64,20 +65,45 @@ final class PartnerProfileCard
     }
 
     /**
-     * The person's own details for the read-only profile. The ID number is always masked to its last four digits.
+     * Where the person lives permanently, kept apart from the business area that sets the code.
+     * Accounts added before 2026-11-21 have only the village and post office here.
      *
      * @param  array<string, mixed>  $profile
-     * @param  array<string, string|null>  $address
+     * @return array{division: ?string, district: ?string, upazila: ?string, union: ?string, village: ?string, post_office: ?string}
+     */
+    public static function permanentAddress(array $profile): array
+    {
+        $clean = static function (mixed $value): ?string {
+            $text = trim((string) $value);
+
+            return $text === '' ? null : $text;
+        };
+
+        return [
+            'division' => $clean($profile['permanent_division'] ?? null),
+            'district' => $clean($profile['permanent_district'] ?? null),
+            'upazila' => $clean($profile['permanent_upazila'] ?? null),
+            'union' => $clean($profile['permanent_union'] ?? null),
+            'village' => $clean($profile['village'] ?? null),
+            'post_office' => $clean($profile['post_office'] ?? null),
+        ];
+    }
+
+    /**
+     * The person's own details for the read-only profile. The ID number is always masked to its last four digits.
+     * The full address is the permanent (home) address, not the business area.
+     *
+     * @param  array<string, mixed>  $profile
      * @return array<string, string|null>
      */
-    private function biodata(User $user, array $profile, array $address): array
+    private function biodata(User $user, array $profile): array
     {
-        $names = app()->getLocale() === 'bn'
-            ? BanglaPlaceNames::translate(['division' => $address['division'], 'district' => $address['district'], 'upazila' => $address['upazila'], 'union' => $address['union']])
-            : ['division' => $address['division'], 'district' => $address['district'], 'upazila' => $address['upazila'], 'union' => $address['union']];
+        $home = self::permanentAddress($profile);
+        $places = ['division' => $home['division'], 'district' => $home['district'], 'upazila' => $home['upazila'], 'union' => $home['union']];
+        $names = app()->getLocale() === 'bn' ? BanglaPlaceNames::translate($places) : $places;
         $full = array_filter([
-            $this->clean($address['village']),
-            $this->clean($profile['post_office'] ?? null),
+            $home['village'],
+            $home['post_office'],
             $this->clean($names['union']),
             $this->clean($names['upazila']),
             $this->clean($names['district']),
