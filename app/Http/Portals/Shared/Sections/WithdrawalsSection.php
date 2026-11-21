@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\OfficePayouts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\WithdrawalMethods;
 use App\Support\Money;
@@ -28,9 +29,14 @@ final class WithdrawalsSection implements WorkspaceSection
             return [];
         }
 
+        $officePayouts = app(OfficePayouts::class)->list($context->request->user(), $context->branchScope);
+
         return [
             'payment_accounts' => $context->request->user()->allows('finance') ? app(PaymentAccounts::class)->listing($context->request->user(), false, false) : [],
             ...$this->payoutsHub($context->request, $context->branchScope),
+            // Office withdrawals (cash at the office): the payout-day list staff hand the money over from.
+            'office_payouts' => $officePayouts,
+            'office_cash_total' => Money::decimal(OfficePayouts::cashToHandOver($officePayouts)),
         ];
     }
 

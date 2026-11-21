@@ -7,6 +7,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\OfficePayouts;
 use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
@@ -25,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -135,6 +137,10 @@ class WithdrawalController extends Controller
     public function settle(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
+        // An office withdrawal is handed over in cash at the office, never sent to an account.
+        if ($r->input('method') !== 'cash' && DB::table('withdrawals')->where('id', $id)->value('channel') === WithdrawalMethods::Office) {
+            throw ValidationException::withMessages(['method' => __('office_withdrawal.err_office_is_cash')]);
+        }
         TransactionReference::tidy($r, 'payment_reference');
         // Owner decision: every manual payout records how it was paid, and a numbered receipt is issued.
         // The proof may follow later ("paid, receipt later") so a payer without the file at hand is not stopped.
@@ -149,6 +155,33 @@ class WithdrawalController extends Controller
         $this->notifyPartnerWithdrawal($id, 'paid');
 
         return back()->with('success', __('portal.flash_withdrawal_paid_receipt', ['number' => $number]));
+    }
+
+    /**
+     * Marks an office withdrawal as handed over in cash at the office: when, by whom (the signed-in staff
+     * member), who took the money (the partner unless typed otherwise) and an optional note.
+     */
+    public function handOver(Request $r, string $id, OfficePayouts $office): JsonResponse|RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        $d = $r->validate([
+            'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
+                if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
+                    $fail(__('portal.err_wd_paid_at_future'));
+                }
+            }],
+            'received_by' => 'nullable|string|max:100',
+            'note' => ReasonFields::rule('money.withdrawal_settle', 1000),
+        ]);
+        $result = $office->handOver($r->user(), $id, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), ReasonFields::text($d['note'] ?? null), $d['received_by'] ?? null);
+        if (! $result['replayed']) {
+            $this->notifyPartnerWithdrawal($id, 'paid');
+        }
+        if ($r->expectsJson()) {
+            return response()->json(['data' => ['id' => $id, 'status' => 'paid', 'receipt' => $result['number']]]);
+        }
+
+        return back()->with('success', __('office_withdrawal.flash_handed_over', ['number' => $result['number']]));
     }
 
     /** Attaches the transfer proof to a payout recorded as "paid, receipt later". */

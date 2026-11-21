@@ -9,6 +9,7 @@ import { useEscape } from '../shared/useEscape';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 import WithdrawalFacts, { AmountWords, useWithdrawalFacts } from './payouts/WithdrawalFacts';
 import ReceiptPicker from './payouts/ReceiptPicker';
+import OfficePayoutList from './payouts/OfficePayoutList';
 import { PartnerTypeCell } from './office/portalShared';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled';
@@ -268,7 +269,12 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 <small className="muted">{translate('self_approval', 'wait_second_person')}</small>
             )}
 
-            {w.status === 'approved' && w.payer_state !== 'second_person' && canProcess && (
+            {/* Office withdrawals are handed over in cash from the office list, not sent to an account. */}
+            {w.status === 'approved' && w.channel === 'Office' && w.payer_state !== 'second_person' && canProcess && (
+                <small className="muted">{translate('office_withdrawal', 'use_office_list')}</small>
+            )}
+
+            {w.status === 'approved' && w.channel !== 'Office' && w.payer_state !== 'second_person' && canProcess && (
                 <button
                     type="button"
                     onClick={() => handleOpenSettle(w)}
@@ -386,6 +392,8 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                     </a>
                 </div>
             )}
+
+            <OfficePayoutList rows={pageData?.office_payouts ?? []} total={pageData?.office_cash_total} canProcess={canProcess} />
 
             <PayoutsTable data={data} rowActions={rowActions} />
 

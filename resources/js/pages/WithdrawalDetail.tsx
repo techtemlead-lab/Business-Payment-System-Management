@@ -9,6 +9,7 @@ import { useReasonField } from '../shared/reasonFields';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 import WithdrawalFacts, { AmountWords, type WithdrawalFactsData } from '../components/payouts/WithdrawalFacts';
 import ReceiptPicker from '../components/payouts/ReceiptPicker';
+import { HandOverDialog } from '../components/payouts/OfficePayoutList';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
@@ -364,6 +365,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
         method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: String(w.destination_for_payment ?? ''), wallet_number: String(w.destination_for_payment ?? ''), received_by: '',
     });
     const isCash = form.data.method === 'cash';
+    const [handingOver, setHandingOver] = React.useState(false);
     const paymentNote = useReasonField('money.withdrawal_settle');
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
@@ -471,7 +473,16 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <p className="muted" role="status">{translate('self_approval', 'wait_second_person')}</p>
                 </section>
             )}
-            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && (
+            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel === 'Office' && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('office_withdrawal', 'hand_over_title')}</h2>
+                    <p className="muted">{translate('office_withdrawal', 'list_body')}</p>
+                    {facts?.blocker && <p className="notice" role="alert"><b>{translate('payouts', 'blocked_title')}</b> {facts.blocker}</p>}
+                    <button type="button" className="button dark" disabled={Boolean(facts?.blocker)} onClick={() => setHandingOver(true)}><Banknote size={17} />{translate('office_withdrawal', 'hand_over')}</button>
+                    {handingOver && <HandOverDialog record={{ id: String(w.id), user_name: String(facts?.partner.name ?? ''), dealer_code: facts?.partner.code ?? null, net_amount: String(w.net_amount ?? w.amount) }} onClose={() => setHandingOver(false)} />}
+                </section>
+            )}
+            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel !== 'Office' && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_record_title')}</h2>
                     <div className="notice">
