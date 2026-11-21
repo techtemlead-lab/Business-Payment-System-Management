@@ -88,6 +88,19 @@ class DealerRepeatOrderTest extends TestCase
                 ->where('data.repeat_orders.0.items.0.price_changed', false));
     }
 
+    public function test_order_date_on_the_card_is_the_dhaka_day_not_the_utc_day(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $product = Product::factory()->create(['active' => true, 'stock' => 50]);
+        $order = $this->pastOrder($dealer, 'delivered', [[$product, 1, '10.00']]);
+        // 20:30 UTC on 21 Nov is 02:30 on 22 Nov in Dhaka.
+        $order->forceFill(['created_at' => '2026-11-21 20:30:00'])->save();
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/purchase')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.repeat_orders.0.ordered_on', '2026-11-22'));
+    }
+
     /**
      * @param  list<array{0: Product, 1: int, 2: string}>  $lines
      */
