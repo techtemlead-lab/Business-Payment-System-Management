@@ -311,8 +311,8 @@ final class DefaultPlaceCatalog
     }
 
     /**
-     * Upazila headquarters unions found in public sources (database/data/bangladesh-upazila-headquarters.json),
-     * only the entries an authoritative source states outright (confidence high).
+     * Upazila headquarters unions of database/data/bangladesh-upazila-headquarters.json: every entry that names one,
+     * whatever its confidence (low ones are marked in the file, and chosen by rule when no source was found).
      *
      * @return array<string, string> Upazila code => union as the source writes it
      */
@@ -326,7 +326,7 @@ final class DefaultPlaceCatalog
         $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
         $map = [];
         foreach ($data['upazilas'] ?? [] as $row) {
-            if ($row['confidence'] === 'high' && is_string($row['hq_union']) && $row['hq_union'] !== '') {
+            if (is_string($row['hq_union']) && $row['hq_union'] !== '') {
                 $map[$row['code']] = $row['hq_union'];
             }
         }

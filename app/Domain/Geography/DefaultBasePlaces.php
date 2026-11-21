@@ -201,12 +201,8 @@ final class DefaultBasePlaces
         if (count($pourashavas) === 1) {
             return [$pourashavas[0], self::NoteOnlyPourashava];
         }
-        if (count($pourashavas) > 1) {
-            return [null, self::ReasonSeveralPourashavas];
-        }
-
-        // No municipality: the union that hosts the upazila headquarters, when a source names it
-        // and it matches exactly one union of ours.
+        // The union or municipality that hosts the upazila headquarters, when the headquarters file names it
+        // (also for two municipalities) and it matches exactly one of ours.
         $headquarters = $this->headquarters[(string) $upazila['code']] ?? null;
         if ($headquarters !== null) {
             $names = array_map(fn (array $u): string => (string) $u['name'], $unions);
@@ -219,6 +215,10 @@ final class DefaultBasePlaces
                     return [$union, self::NoteHeadquarters];
                 }
             }
+        }
+
+        if (count($pourashavas) > 1) {
+            return [null, self::ReasonSeveralPourashavas];
         }
 
         // Last resort, after the only child, the only municipality and a source-named headquarters: the union that

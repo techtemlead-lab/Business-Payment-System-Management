@@ -40,7 +40,7 @@ final class PlaceDataFixes
         }
         /** @var array{places: list<array{code: string, level: string, name: string, kind?: string}>} $list */
         $list = json_decode((string) file_get_contents($placeFile), true, 512, JSON_THROW_ON_ERROR);
-        /** @var array{moves?: list<array{code: string, name: string, to_parent_code: string}>, duplicates?: list<array{code: string, name: string, keep_code: string}>} $fixes */
+        /** @var array{moves?: list<array{code: string, name: string, to_parent_code: string}>, duplicates?: list<array{code: string, name: string, keep_code: string}>, legacy_unions?: list<array{name: string, parent_code: string, replaced_by: list<string>}>} $fixes */
         $fixes = json_decode((string) file_get_contents($fixFile), true, 512, JSON_THROW_ON_ERROR);
 
         foreach ($list['places'] as $place) {
@@ -53,6 +53,11 @@ final class PlaceDataFixes
         }
         foreach ($fixes['duplicates'] ?? [] as $duplicate) {
             $rows[] = $this->switchOffDuplicate($duplicate);
+        }
+        foreach ($fixes['legacy_unions'] ?? [] as $legacy) {
+            foreach ($this->switchOffLegacyUnion($legacy) as $row) {
+                $rows[] = $row;
+            }
         }
 
         return $rows;
@@ -121,12 +126,54 @@ final class PlaceDataFixes
         if ($keep === null) {
             return $this->row('switch_off_duplicate', $duplicate, 'skipped', 'The copy to keep ('.$duplicate['keep_code'].') is not in this database; left alone.');
         }
-        if ($this->isReferenced((int) $row->id, (string) $row->code)) {
-            return $this->row('switch_off_duplicate', $duplicate, 'referenced', 'Used by a dealer seat, branch, partner or base place: left on. Move those to '.$keep->name.' ('.$duplicate['keep_code'].') by hand first.');
+        $refs = $this->referencedBy((int) $row->id, (string) $row->code);
+        if ($refs !== []) {
+            return $this->row('switch_off_duplicate', $duplicate, 'referenced', 'Place id '.$row->id.' is used by '.implode(', ', $refs).': left on. Re-point those to '.$keep->name.' ('.$duplicate['keep_code'].') by hand first.');
         }
         DB::table('place_codes')->where('id', $row->id)->update(['is_active' => false, 'updated_at' => now()]);
 
         return $this->row('switch_off_duplicate', $duplicate, 'done', 'Switched off; the copy to keep is '.$keep->name.' ('.$duplicate['keep_code'].').');
+    }
+
+    /**
+     * An old union that the list replaced by two or more (Natai became Natai Dakshin and Natai Uttar): the
+     * plain row is switched off when nothing refers to it, otherwise it stays on and the report names the
+     * exact ids so they can be re-pointed by hand.
+     *
+     * @param  array{name: string, parent_code: string, replaced_by: list<string>}  $legacy
+     * @return list<FixRow>
+     */
+    private function switchOffLegacyUnion(array $legacy): array
+    {
+        $parent = $this->find($legacy['parent_code']);
+        $place = ['code' => '', 'name' => $legacy['name']];
+        if ($parent === null) {
+            return [$this->row('switch_off_legacy_union', $place, 'missing', 'The upazila '.$legacy['parent_code'].' is not in this database.')];
+        }
+        $rows = [];
+        $found = DB::table('place_codes')->where('level', PlaceCode::LevelUnion)->where('parent_id', $parent->id)->get(['id', 'code', 'name', 'is_active'])
+            ->filter(fn (object $r): bool => $this->nameKey((string) $r->name) === $this->nameKey($legacy['name']));
+        if ($found->isEmpty()) {
+            return [$this->row('switch_off_legacy_union', $place, 'already', 'No plain '.$legacy['name'].' row under '.$parent->name.'.')];
+        }
+        foreach ($found as $row) {
+            $place = ['code' => (string) ($row->code ?? ''), 'name' => (string) $row->name];
+            if (! $row->is_active) {
+                $rows[] = $this->row('switch_off_legacy_union', $place, 'already', 'Place id '.$row->id.' is already switched off.');
+
+                continue;
+            }
+            $refs = $this->referencedBy((int) $row->id, (string) ($row->code ?? ''));
+            if ($refs !== []) {
+                $rows[] = $this->row('switch_off_legacy_union', $place, 'referenced', 'Place id '.$row->id.' is used by '.implode(', ', $refs).': left on. Re-point those to '.implode(' or ', $legacy['replaced_by']).' by hand.');
+
+                continue;
+            }
+            DB::table('place_codes')->where('id', $row->id)->update(['is_active' => false, 'updated_at' => now()]);
+            $rows[] = $this->row('switch_off_legacy_union', $place, 'done', 'Place id '.$row->id.' switched off; the list has '.implode(' and ', $legacy['replaced_by']).'.');
+        }
+
+        return $rows;
     }
 
     private function find(string $code): ?object
@@ -136,28 +183,44 @@ final class PlaceDataFixes
         return $normalized === null ? null : DB::table('place_codes')->where('code', $normalized)->first(['id', 'code', 'name', 'parent_id', 'base_place_id', 'is_active']);
     }
 
-    /** Same references as the older clean-up migrations: dealer seats, branches, base places, partner profiles. */
-    private function isReferenced(int $placeId, string $code): bool
+    /**
+     * Everything that points at a place, so a referenced place is never switched off and the report can
+     * name the exact rows: dealer seats, branches, base places, child places and partner profiles.
+     *
+     * @return list<string>
+     */
+    private function referencedBy(int $placeId, string $code): array
     {
-        if (Schema::hasTable('area_dealer_assignments') && DB::table('area_dealer_assignments')->where('place_code_id', $placeId)->exists()) {
-            return true;
+        $found = [];
+        if (Schema::hasTable('area_dealer_assignments')) {
+            foreach (DB::table('area_dealer_assignments')->where('place_code_id', $placeId)->pluck('id') as $id) {
+                $found[] = 'area_dealer_assignments#'.$id;
+            }
         }
-        if (Schema::hasTable('company_branches') && DB::table('company_branches')->where('place_code_id', $placeId)->exists()) {
-            return true;
+        if (Schema::hasTable('company_branches')) {
+            foreach (DB::table('company_branches')->where('place_code_id', $placeId)->pluck('id') as $id) {
+                $found[] = 'company_branches#'.$id;
+            }
         }
-        if (DB::table('place_codes')->where('base_place_id', $placeId)->orWhere('parent_id', $placeId)->exists()) {
-            return true;
+        foreach (DB::table('place_codes')->where('base_place_id', $placeId)->pluck('id') as $id) {
+            $found[] = 'place_codes#'.$id.' (base place)';
         }
-        if (! Schema::hasTable('users')) {
-            return false;
+        foreach (DB::table('place_codes')->where('parent_id', $placeId)->pluck('id') as $id) {
+            $found[] = 'place_codes#'.$id.' (child)';
+        }
+        if (Schema::hasTable('users')) {
+            $users = DB::table('users')->where(function ($query) use ($placeId, $code): void {
+                $query->whereRaw("COALESCE(profile->>'place_code_id', '') = ?", [(string) $placeId]);
+                if ($code !== '') {
+                    $query->orWhereRaw("COALESCE(profile->>'place_code', '') = ?", [$code]);
+                }
+            })->pluck('id');
+            foreach ($users as $id) {
+                $found[] = 'users#'.$id.' (partner profile)';
+            }
         }
 
-        return DB::table('users')
-            ->where(function ($query) use ($placeId, $code): void {
-                $query->whereRaw("COALESCE(profile->>'place_code_id', '') = ?", [(string) $placeId])
-                    ->orWhereRaw("COALESCE(profile->>'place_code', '') = ?", [$code]);
-            })
-            ->exists();
+        return $found;
     }
 
     /**
