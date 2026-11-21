@@ -22,11 +22,12 @@ use Illuminate\Validation\ValidationException;
 final class FinancialReadiness
 {
     /**
-     * Checks that ask a person to act (an order whose commission was never posted, money held too long) rather
-     * than saying the books disagree. They are listed with the others, but they do not make the books "not
-     * reconciled": the opening check and its fingerprint, which a slow day could otherwise change, leave them out.
+     * Checks that ask a person to act (an order whose commission was never posted, money held too long, paid
+     * money still to give back on a closed order) rather than saying the books disagree. They are listed with
+     * the others, but they do not make the books "not reconciled": the opening check and its fingerprint, which
+     * a slow day could otherwise change, leave them out.
      */
-    public const AttentionChecks = ['missed_order_batches', 'stale_holdings'];
+    public const AttentionChecks = ['missed_order_batches', 'stale_holdings', 'paid_left_on_closed_orders'];
 
     /**
      * Do the money records agree with each other right now? Each check is a single read of
