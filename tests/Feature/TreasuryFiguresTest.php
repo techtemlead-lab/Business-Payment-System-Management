@@ -11,6 +11,7 @@ use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -44,17 +45,18 @@ class TreasuryFiguresTest extends TestCase
             ->etc());
     }
 
-    public function test_a_partial_refund_takes_only_the_refunded_part_off_the_total_and_its_channel(): void
+    public function test_a_part_refund_is_refused_and_the_paid_money_stays_on_its_channel(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin']);
         $order = $this->paidOrder('100.00', 'bKash');
 
-        app(OrderRefund::class)->refund($owner, $order, '30.00', 'Part of the order could not be sent');
+        // No credit buying (2026-11-21): money for goods not kept goes back whole, never a part of it.
+        $this->assertThrows(fn () => app(OrderRefund::class)->refund($owner, $order, '30.00', 'Part of the order could not be sent'), ValidationException::class);
         $this->everyOrderDelivered();
 
         $this->orderReport($owner, '?method=bKash')->assertInertia(fn (Assert $page) => $page
-            ->where('table.totals.sums.paid', '70.00')
-            ->where('table.rows.data.0.paid', '70.00')
+            ->where('table.totals.sums.paid', '100.00')
+            ->where('table.rows.data.0.paid', '100.00')
             ->etc());
         $this->orderReport($owner, '?method=Bank')->assertInertia(fn (Assert $page) => $page
             ->where('table.totals.count', 0)
