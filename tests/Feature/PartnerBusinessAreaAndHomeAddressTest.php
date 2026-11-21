@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerProfileCard;
 use App\Domain\Accounts\PartnerRegistrationForm;
 use App\Models\AreaDealerAssignment;
@@ -210,13 +211,28 @@ class PartnerBusinessAreaAndHomeAddressTest extends TestCase
         $this->assertNull(User::query()->where('email', 'new.partner@example.test')->first());
     }
 
-    public function test_an_account_without_a_permanent_address_is_still_added_as_before(): void
+    public function test_the_add_partner_form_refuses_a_partner_without_a_permanent_address(): void
     {
-        $this->asOwner()->post('/commands/accounts', $this->payload([
-            'place_code' => $this->business['district']->code,
-        ]))->assertSessionHasNoErrors();
+        foreach (['dealer' => $this->business['district']->code, 'sub_dealer' => $this->business['union']->code] as $role => $code) {
+            $this->asOwner()->post('/commands/accounts', $this->payload([
+                'role' => $role,
+                'place_code' => $code,
+                'permanent_place_id' => '',
+            ]))->assertSessionHasErrors(['permanent_place_id' => __('portal.acct_val_home_place_level')]);
+        }
 
-        $profile = $this->created()->profile;
+        $this->assertNull(User::query()->where('email', 'new.partner@example.test')->first());
+        $this->assertSame(0, AreaDealerAssignment::query()->count());
+    }
+
+    public function test_other_ways_of_adding_a_partner_still_work_without_a_permanent_address(): void
+    {
+        // Imports and approved applications call the same service without a permanent address.
+        $created = app(PartnerAccountProvisioning::class)->create(User::factory()->create(['role' => 'super_admin']), $this->payload([
+            'place_code' => $this->business['district']->code,
+        ]));
+
+        $profile = $created['user']->profile;
         $this->assertArrayNotHasKey('permanent_division', $profile);
         $this->assertArrayNotHasKey('permanent_place_id', $profile);
     }

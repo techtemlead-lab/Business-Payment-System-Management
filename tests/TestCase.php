@@ -117,8 +117,44 @@ abstract class TestCase extends BaseTestCase
         }
         url()->forceRootUrl($root);
         $parameters = $this->solveLoginCaptcha($method, $uri, $parameters);
+        $parameters = $this->givePartnerAPermanentAddress($method, $uri, $parameters);
 
         return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
+    }
+
+    /**
+     * Adding a dealer or sub-dealer requires a permanent address (client, 2026-11-21). Posts that
+     * do not mention it get a test home place, so tests about other rules stay short. Tests about
+     * the permanent address pass their own "permanent_place_id" (even an empty one) and are left alone.
+     *
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    private function givePartnerAPermanentAddress(string $method, string $uri, array $parameters): array
+    {
+        $path = parse_url($uri, PHP_URL_PATH);
+        if (strtoupper($method) !== 'POST' || ! is_string($path) || ! preg_match('#/commands/accounts$#', $path)
+            || ! in_array($parameters['role'] ?? null, ['dealer', 'sub_dealer'], true) || array_key_exists('permanent_place_id', $parameters)) {
+            return $parameters;
+        }
+
+        return [...$parameters, 'permanent_place_id' => $this->permanentHomeUpazila()->id];
+    }
+
+    /**
+     * An upazila with its district and division, made once per test, for a partner's permanent
+     * address. The places have no code, so they never show in place lists or take part in any area.
+     */
+    protected function permanentHomeUpazila(): PlaceCode
+    {
+        $upazila = PlaceCode::query()->where('level', PlaceCode::LevelUpazila)->where('name', 'Test Home Upazila')->whereNull('code')->first();
+        if ($upazila instanceof PlaceCode) {
+            return $upazila;
+        }
+        $division = PlaceCode::query()->create(['level' => PlaceCode::LevelDivision, 'code' => null, 'name' => 'Test Home Division', 'parent_id' => null, 'sort_order' => 999, 'is_active' => true]);
+        $district = PlaceCode::query()->create(['level' => PlaceCode::LevelDistrict, 'code' => null, 'name' => 'Test Home District', 'parent_id' => $division->id, 'sort_order' => 999, 'is_active' => true]);
+
+        return PlaceCode::query()->create(['level' => PlaceCode::LevelUpazila, 'code' => null, 'name' => 'Test Home Upazila', 'parent_id' => $district->id, 'sort_order' => 999, 'is_active' => true]);
     }
 
     /**

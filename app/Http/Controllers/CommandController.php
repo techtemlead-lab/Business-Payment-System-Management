@@ -159,8 +159,9 @@ class CommandController extends Controller
                 'place_code' => 'required|string|max:32',
                 // The kind of dealer chosen on the form; the place code must be a place of that level.
                 'dealer_level' => ['nullable', Rule::in(PlaceCode::AssignmentLevels)],
-                // The deepest place of the permanent (home) address: an upazila or a union.
-                'permanent_place_id' => 'nullable|integer',
+                // The deepest place of the permanent (home) address: an upazila or a union. Required here
+                // (client, 2026-11-21); imports and approved applications may still add a partner without it.
+                'permanent_place_id' => 'required|integer',
                 'dealer_code' => 'nullable|string|max:40',
                 'reference_code' => 'nullable|string|max:40',
                 'phone' => 'required|string|max:30',
@@ -173,7 +174,7 @@ class CommandController extends Controller
                 // The first password, typed by the office. Empty: one is made and shown once.
                 'password' => 'nullable|string|min:8|max:64',
                 'reason' => ReasonFields::rule('partner.account_create', 1000),
-            ]);
+            ], ['permanent_place_id.required' => __('portal.acct_val_home_place_level')]);
             $media = [];
             foreach (PartnerKycDocuments::Kinds as $kind) {
                 if ($r->hasFile('kyc_'.$kind)) {
