@@ -19,6 +19,7 @@ use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\WithdrawalMethods;
+use App\Domain\Payouts\WithdrawalWeek;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
@@ -184,6 +185,7 @@ class OperationsController extends Controller
             $data['withdrawalSecurityWait'] = [...app(WithdrawalSecurityWait::class)->settings(), 'default' => WithdrawalSecurityWait::DefaultHours, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['payoutLimits'] = [...app(PayoutLimits::class)->settings(), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['withdrawalMethods'] = [...app(WithdrawalMethods::class)->settings(), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
+            $data['withdrawalWeek'] = [...app(WithdrawalWeek::class)->settings(), 'day_names' => array_map(fn (int $day): string => app(WithdrawalWeek::class)->dayName($day), array_combine(range(1, 7), range(1, 7))), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];

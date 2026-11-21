@@ -388,6 +388,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             <AmountWords amount={w.amount} />
             {w.on_hold && <div className="notice" role="status"><p>{translate('payouts', isPartnerDesk ? 'partner_on_hold' : 'on_hold_badge')}</p></div>}
             {w.status === 'approved' && w.pay_by && <p className="muted">{isPartnerDesk ? translate('payouts', 'partner_pay_by', { date: date(w.pay_by) }) : translate('payouts', 'pay_by', { date: date(w.pay_by) })}{!isPartnerDesk && ` · ${w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}`}</p>}
+            {w.payout_line && <div className="notice" role="status"><Clock size={20} /><p>{w.payout_line}</p></div>}
             {isPartnerDesk && w.can_cancel && (
                 <button type="button" className="button small" onClick={() => {
                     if (window.confirm(translate('payouts', 'cancel_confirm'))) {

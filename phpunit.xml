@@ -53,6 +53,8 @@
         <env name="MADINA_FULL_PAYMENT_WHEN_ORDERING" value="false" force="true"/>
         <!-- Older withdrawal tests ask for bKash or bank money. Real installs start with only "Office withdrawal" on; WithdrawalMethodsTest checks that. -->
         <env name="MADINA_WITHDRAWAL_METHODS" value="Office,Bank,bKash,Nagad,Rocket" force="true"/>
+        <!-- Older withdrawal tests ask for money on any day. Real installs take requests on Wednesday only; WithdrawalWeekTest checks that. -->
+        <env name="MADINA_WITHDRAWAL_WEEKLY_WINDOW" value="false" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

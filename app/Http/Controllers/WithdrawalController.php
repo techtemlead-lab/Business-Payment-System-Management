@@ -11,6 +11,7 @@ use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Domain\Payouts\WithdrawalMethods;
+use App\Domain\Payouts\WithdrawalWeek;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
@@ -63,11 +64,15 @@ class WithdrawalController extends Controller
                 ]),
             );
         }
+        // With the weekly rule on, the partner reads the day the money comes ("Thursday, 26 November 2026").
+        $requestedAt = CarbonImmutable::parse((string) DB::table('withdrawals')->where('id', $id)->value('created_at'));
+        $week = app(WithdrawalWeek::class);
+        $payoutLine = $week->payoutLine((string) $data['channel'], $requestedAt);
         if ($r->expectsJson()) {
-            return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);
+            return response()->json(['data' => ['id' => $id, 'status' => 'requested', 'payout_on' => $week->settings()['enabled'] ? $week->payoutDateFor($requestedAt)->toDateString() : null, 'payout_line' => $payoutLine]], 201);
         }
 
-        return redirect('/withdrawals/'.$id)->with('success', __('portal.flash_withdrawal_requested'));
+        return redirect('/withdrawals/'.$id)->with('success', $payoutLine === null ? __('portal.flash_withdrawal_requested') : __('portal.flash_withdrawal_requested').' '.$payoutLine);
     }
 
     public function show(Request $r, string $id, ManualPayoutService $service): Response
@@ -186,6 +191,21 @@ class WithdrawalController extends Controller
         return $r->expectsJson() ? response()->json(['data' => $limits->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
     }
 
+    /** Owners only: the weekly application day and payout day, and whether the weekly rule applies at all. */
+    public function week(Request $r, WithdrawalWeek $week): JsonResponse|RedirectResponse
+    {
+        $d = $r->validate([
+            'enabled' => 'required|boolean',
+            'request_day' => 'required|integer|between:1,7',
+            'payout_day' => 'required|integer|between:1,7',
+            'version' => 'required|integer|min:0',
+            'reason' => ReasonFields::rule('money.withdrawal_minimum', 1000, 5),
+        ]);
+        $week->save($r->user(), (bool) $d['enabled'], (int) $d['request_day'], (int) $d['payout_day'], (int) $d['version'], ReasonFields::text($d['reason'] ?? null));
+
+        return $r->expectsJson() ? response()->json(['data' => $week->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
+    }
+
     /** Owners only: which ways of taking money out partners may choose (office cash, bKash, Nagad, Rocket, bank). */
     public function methods(Request $r, WithdrawalMethods $methods): JsonResponse|RedirectResponse
     {
@@ -218,6 +238,7 @@ class WithdrawalController extends Controller
             'payer_name' => $w->payer_id ? User::whereKey($w->payer_id)->value('name') : null,
             'on_hold' => $w->on_hold_at !== null,
             'can_cancel' => $w->status === 'requested',
+            'payout_line' => in_array($w->status, ['requested', 'approved'], true) ? app(WithdrawalWeek::class)->payoutLine((string) $w->channel, CarbonImmutable::parse($w->created_at)) : null,
         ];
     }
 
