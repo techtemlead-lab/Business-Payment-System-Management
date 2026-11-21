@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\PayoutBatchFiles;
 use App\Domain\Payouts\PayoutLimits;
 use App\Support\Money;
 use App\Support\MoneyTable;
@@ -21,14 +22,19 @@ use Illuminate\Support\Facades\DB;
  */
 final class WithdrawalsSection implements WorkspaceSection
 {
+    /** Whether an approved withdrawal is in a file sent to the bank and still waiting for it. */
+    private const BankFileSql = "(CASE WHEN withdrawals.status = 'approved' AND withdrawals.exported_at IS NOT NULL THEN 'in_file' ELSE 'not_in_file' END)";
+
     public function data(SectionContext $context, array $data): array
     {
         if ($context->section !== 'payouts-hub') {
             return [];
         }
+        $finance = $context->request->user()->allows('finance');
 
         return [
-            'payment_accounts' => $context->request->user()->allows('finance') ? app(PaymentAccounts::class)->listing($context->request->user(), false, false) : [],
+            'payment_accounts' => $finance ? app(PaymentAccounts::class)->listing($context->request->user(), false, false) : [],
+            'payout_batches' => $finance ? app(PayoutBatchFiles::class)->recent() : [],
             ...$this->payoutsHub($context->request, $context->branchScope),
         ];
     }
@@ -48,6 +54,10 @@ final class WithdrawalsSection implements WorkspaceSection
         $followUp = self::followUpSql($dueDays);
         $otherFilters = [
             new MoneyTableFilter('follow_up', (string) __('payouts.filter_follow_up'), $followUp, array_map(fn (string $state): array => ['value' => $state, 'label' => (string) __('payouts.follow_up_'.$state)], ['overdue', 'on_hold', 'receipt_due'])),
+            new MoneyTableFilter('bank_file', (string) __('payouts.filter_bank_file'), self::BankFileSql, [
+                ['value' => 'in_file', 'label' => (string) __('payouts.bank_file_in')],
+                ['value' => 'not_in_file', 'label' => (string) __('payouts.bank_file_not_in')],
+            ]),
             new MoneyTableFilter('channel', (string) __('portal.pay_col_method'), 'withdrawals.channel', array_map(fn (string $channel): array => ['value' => $channel, 'label' => (string) __('portal.pay_channel_'.strtolower($channel))], PaymentAccounts::channels())),
             new MoneyTableFilter('buyer_role', (string) __('treasury.filter_buyer_role'), 'users.role', [
                 ['value' => 'dealer', 'label' => (string) __('portal.acct_role_dealer')],
@@ -114,6 +124,8 @@ final class WithdrawalsSection implements WorkspaceSection
                 'withdrawals.approved_at',
                 'withdrawals.payer_id',
                 'withdrawals.receipt_due',
+                'withdrawals.payout_batch_id',
+                'withdrawals.exported_at',
                 'payers.name as payer_name',
                 'users.status as partner_status',
                 'users.name as user_name',
@@ -156,6 +168,8 @@ final class WithdrawalsSection implements WorkspaceSection
             'payer_id' => $row->payer_id,
             'payer_name' => $row->payer_name,
             'receipt_due' => (bool) $row->receipt_due,
+            'in_bank_file' => $row->status === 'approved' && $row->exported_at !== null,
+            'bank_file' => $row->payout_batch_id !== null ? PayoutBatchFiles::shortId((string) $row->payout_batch_id) : null,
             'waiting_days' => in_array($row->status, ['requested', 'approved'], true)
                 ? (int) CarbonImmutable::parse($row->status === 'approved' && $row->approved_at ? $row->approved_at : $row->created_at)->diffInDays(now())
                 : null,

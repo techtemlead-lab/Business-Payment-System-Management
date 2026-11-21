@@ -365,6 +365,12 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     });
     const isCash = form.data.method === 'cash';
     const paymentNote = useReasonField('money.withdrawal_settle');
+    // Bank-file and money-came-back steps are named in the payouts words; the rest as before.
+    const eventLabel = (event: string): string => {
+        const key = `event_label_${event}`;
+        const named = translate('payouts', key);
+        return named !== key ? named : label(event, translate);
+    };
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
     const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'], headers: backgroundRefreshHeaders }, { autoStart: inFlight });
@@ -439,11 +445,24 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
-                        <i /><div><b>{label(String(e.event), translate)} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
+                        <i /><div><b>{eventLabel(String(e.event))} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
                     </div>
                 ))}
             </section>
-            {finance && w.status === 'approved' && (
+            {/* In a file sent to the bank the money may already be on its way: no rejecting until the bank answers. */}
+            {finance && w.status === 'approved' && w.exported_at && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('payouts', 'not_sent_title')}</h2>
+                    <p className="notice" role="status">{translate('payouts', 'in_bank_file_badge', { batch: String(w.payout_batch_id ?? '').slice(0, 8).toUpperCase() })}</p>
+                    <p className="muted">{translate('payouts', 'not_sent_body')}</p>
+                    <ActionForm
+                        action={`/commands/withdrawals/${w.id}/not-sent`}
+                        fields={[{ name: 'note', label: translate('payouts', 'not_sent_note'), type: 'textarea', required: true }]}
+                        submit={translate('payouts', 'not_sent_save')}
+                    />
+                </section>
+            )}
+            {finance && w.status === 'approved' && !w.exported_at && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_review_title')}</h2>
                     <ActionForm

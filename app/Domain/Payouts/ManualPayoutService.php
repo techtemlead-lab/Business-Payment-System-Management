@@ -178,6 +178,11 @@ class ManualPayoutService
             if ((int) $actor->id === (int) $w->user_id) {
                 throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_self_review')]);
             }
+            // In a file sent to the bank, the money may already have left: it is recorded as paid,
+            // or marked as not sent by the bank, before anyone may give it back to the wallet.
+            if ($decision === 'rejected' && $w->exported_at !== null) {
+                throw ValidationException::withMessages(['withdrawal' => __('payouts.err_reject_in_bank_file')]);
+            }
             if ($decision === 'approved') {
                 $this->refuseUnpayable($w, $partner);
                 if (CommissionWallet::hasDebt($w->user_id)) {
@@ -328,9 +333,14 @@ class ManualPayoutService
                 if ($w->status !== 'approved') {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_not_approved')]);
                 }
-                $this->refuseUnpayable($w, $partner);
+                // A withdrawal in a file sent to the bank is recorded as it happened: the money has
+                // already left, so a hold, a suspension or a debt that came later cannot stop the record.
+                $inBankFile = $w->exported_at !== null;
+                if (! $inBankFile) {
+                    $this->refuseUnpayable($w, $partner);
+                }
                 PayoutReceiptCheck::refuseOtherDestination($payout, (string) $w->channel, (string) decrypt($w->destination));
-                if (CommissionWallet::hasDebt($w->user_id)) {
+                if (! $inBankFile && CommissionWallet::hasDebt($w->user_id)) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_clawback_before_pay')]);
                 }
                 if ((int) $actor->id === (int) $w->user_id) {
@@ -372,6 +382,7 @@ class ManualPayoutService
                     'receipt_sha256' => $proofHash,
                     ...($receiptDue ? ['receipt_due' => true] : []),
                     ...($selfApproved ? ['self_approved' => true] : []),
+                    ...($inBankFile ? ['payout_batch_id' => $w->payout_batch_id] : []),
                 ]);
                 Audit::notice(
                     $w->user_id,
@@ -470,7 +481,7 @@ class ManualPayoutService
             'destination' => decrypt($w->destination),
             'channel_limit' => $limit === null ? null : Money::decimal($limit),
             'over_channel_limit' => $limit !== null && Money::cents($w->amount) > $limit,
-            'blocker' => $w->status === 'requested' || $w->status === 'approved' ? $this->unpayableReason($w, $partner) : null,
+            'blocker' => $w->status === 'requested' || ($w->status === 'approved' && $w->exported_at === null) ? $this->unpayableReason($w, $partner) : null,
             'history' => DB::table('withdrawals')->where('user_id', $w->user_id)->where('id', '<>', $id)->orderByDesc('created_at')->limit(5)
                 ->get(['id', 'amount', 'status', 'channel', 'created_at', 'paid_at'])->all(),
             'payers' => $this->eligiblePayers($viewer, $w->status === 'approved' ? (int) $w->reviewed_by : null),

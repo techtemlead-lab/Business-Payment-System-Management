@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Domain\Finance\AccountingStatements;
 use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\StatementImports;
-use App\Domain\Payouts\PayoutBatch;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PdfFonts;
@@ -111,27 +110,6 @@ class AccountingController extends Controller
         return response()->download($path, 'Madina-'.$type.'-'.$from.'-'.$to.'.'.$format, ['Cache-Control' => 'private, no-store'])->deleteFileAfterSend();
     }
 
-    /** The approved withdrawals as a CSV for the bank or wallet. Changes nothing. */
-    public function exportPayoutBatch(Request $request, PayoutBatch $payouts): Response
-    {
-        $this->authorizeAccounting($request->user());
-        [$month, $channel] = $this->payoutFilters($request);
-        $file = $payouts->fileRows($month, $channel);
-        Audit::record($request->user()->id, 'report.exported', 'payout-batch', [
-            'month' => $month, 'channel' => $channel, 'count' => count($file['rows']), 'total_net' => $file['total_net'], 'withdrawal_ids' => $file['ids'],
-        ]);
-
-        return response()->streamDownload(function () use ($file): void {
-            $output = fopen('php://output', 'wb');
-            fwrite($output, "\xEF\xBB\xBF");
-            fputcsv($output, PayoutBatch::FileColumns, ',', '"', '');
-            foreach ($file['rows'] as $row) {
-                fputcsv($output, $row, ',', '"', '');
-            }
-            fclose($output);
-        }, 'Madina-payout-batch-'.$month.'-'.($channel ?? 'all').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
-    }
-
     public function uploadStatement(Request $request, StatementImports $imports): Response
     {
         $this->authorizeAccounting($request->user());
@@ -186,14 +164,6 @@ class AccountingController extends Controller
         $imports->dismiss($request->user(), $id, $reason !== '' ? $reason : (string) __('accounting.dismiss_reason'));
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_line_dismissed'));
-    }
-
-    /** @return array{string, ?string} */
-    private function payoutFilters(Request $request): array
-    {
-        $data = $request->validate(['month' => 'nullable|date_format:Y-m', 'channel' => ['nullable', Rule::in(PayoutBatch::Channels)]]);
-
-        return [$data['month'] ?? now()->timezone('Asia/Dhaka')->format('Y-m'), $data['channel'] ?? null];
     }
 
     /** Spends from the owners' own fund are named by head only on the owner panel. */

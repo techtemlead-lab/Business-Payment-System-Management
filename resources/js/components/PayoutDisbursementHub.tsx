@@ -10,6 +10,7 @@ import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from 
 import WithdrawalFacts, { AmountWords, useWithdrawalFacts } from './payouts/WithdrawalFacts';
 import ReceiptPicker from './payouts/ReceiptPicker';
 import { PartnerTypeCell } from './office/portalShared';
+import { randomUuid } from '../shared/randomUuid';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled';
 
@@ -46,6 +47,92 @@ interface WithdrawalRecord {
     receipt_due?: boolean;
     waiting_days?: number | null;
     overdue?: boolean;
+    /** Approved and listed in a file sent to the bank; it may not be rejected until it is paid or marked as not sent. */
+    in_bank_file?: boolean;
+    bank_file?: string | null;
+}
+
+/** A file of approved withdrawals sent to the bank (PayoutBatchFiles::recent). */
+interface PayoutBatchRow {
+    id: string;
+    short_id: string;
+    month: string;
+    channel: string | null;
+    row_count: number;
+    total_net: string | number;
+    waiting: number;
+    created_at: string;
+    created_by: string | null;
+}
+
+function csrfToken(): string {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+}
+
+/**
+ * The new bank file and the files already sent. A new file marks its rows "in bank file", so the
+ * form sends a one-time batch id: pressing twice gives the same file, never a second one.
+ */
+function BankFiles({ batches }: { batches: PayoutBatchRow[] }) {
+    const translate = useT();
+    const [batchId, setBatchId] = useState(() => randomUuid());
+
+    const handleSubmit = (e: React.FormEvent) => {
+        if (!window.confirm(translate('payouts', 'payout_file_confirm'))) {
+            e.preventDefault();
+            return;
+        }
+        // The download does not leave the page: show the rows as "in bank file" and ready a new id for the next file.
+        window.setTimeout(() => {
+            setBatchId(randomUuid());
+            router.reload();
+        }, 4000);
+    };
+
+    return (
+        <div className="panel">
+            <div className="hub-row is-between">
+                <div>
+                    <h3 className="hub-title">{translate('payouts', 'batches_title')}</h3>
+                    <p className="hub-hint">{translate('payouts', 'batches_hint')}</p>
+                </div>
+                <form method="post" action="/commands/operations/accounting/payout-batch/export" onSubmit={handleSubmit}>
+                    <input type="hidden" name="_token" value={csrfToken()} />
+                    <input type="hidden" name="batch_id" value={batchId} />
+                    <button type="submit" className="button small">
+                        <Download size={14} aria-hidden="true" /> {translate('treasury', 'payout_file')}
+                    </button>
+                </form>
+            </div>
+            {batches.length > 0 && (
+                <div className="hub-ledger">
+                    {batches.map((batch) => (
+                        <div key={batch.id} className="hub-ledger-row">
+                            <span>
+                                {translate('payouts', 'batch_line', {
+                                    batch: batch.short_id,
+                                    month: batch.month,
+                                    channel: batch.channel ? channelName(batch.channel, translate) : translate('payouts', 'batch_all_channels'),
+                                    count: String(batch.row_count),
+                                    amount: money(batch.total_net),
+                                })}
+                                <small className="cell-sub">{date(batch.created_at)}{batch.created_by ? ` · ${batch.created_by}` : ''} · {translate('payouts', 'batch_waiting', { count: String(batch.waiting) })}</small>
+                            </span>
+                            {batch.waiting > 0 && (
+                                <a
+                                    className="text-link"
+                                    href={`/commands/operations/accounting/payout-batches/${batch.id}/file`}
+                                    onClick={(e) => { if (!window.confirm(translate('payouts', 'batch_download_again_confirm'))) e.preventDefault(); }}
+                                >
+                                    {translate('payouts', 'batch_download_again')}
+                                </a>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 
 /** Totals over every request that matches the search, not only the visible page. */
@@ -98,6 +185,7 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
             {w.on_hold && <span className="badge rejected">{translate('payouts', 'on_hold_badge')}</span>}
             {w.overdue && <span className="badge rejected">{translate('payouts', 'overdue_badge')}</span>}
             {w.receipt_due && <span className="badge requested">{translate('payouts', 'receipt_due_badge')}</span>}
+            {w.in_bank_file && <span className="badge requested">{translate('payouts', 'in_bank_file_badge', { batch: w.bank_file ?? '' })}</span>}
             {w.waiting_days != null && <small className="cell-sub">{w.waiting_days > 0 ? translate('payouts', 'waiting_days', { days: String(w.waiting_days) }) : translate('payouts', 'waiting_today')}</small>}
             {w.status === 'approved' && <small className="cell-sub">{w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}</small>}
         </> },
@@ -236,6 +324,23 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
     const takeOver = (w: WithdrawalRecord) => router.post(`/commands/withdrawals/${w.id}/payer`, { payer_id: myId }, { preserveScroll: true });
 
+    // "The bank did not send it": the only way, besides recording the payment, out of a bank file.
+    const [notSentRecord, setNotSentRecord] = useState<WithdrawalRecord | null>(null);
+    const [notSentNote, setNotSentNote] = useState('');
+    const [processingNotSent, setProcessingNotSent] = useState(false);
+    useEscape(notSentRecord !== null, () => setNotSentRecord(null));
+    const handleNotSent = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!notSentRecord) return;
+        setProcessingNotSent(true);
+        router.post(`/commands/withdrawals/${notSentRecord.id}/not-sent`, { note: notSentNote }, {
+            preserveScroll: true,
+            onSuccess: () => setNotSentRecord(null),
+            onError: (errors) => setModalErrors(errors),
+            onFinish: () => setProcessingNotSent(false),
+        });
+    };
+
     const rowActions = (w: WithdrawalRecord) => (
         <div className="hub-row is-end">
             {w.status === 'approved' && canProcess && w.payer_id !== myId && w.payer_state !== 'second_person' && (
@@ -275,6 +380,12 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                     className="button small dark"
                 >
                     {translate('portal', 'pay_record_payout')}
+                </button>
+            )}
+
+            {w.status === 'approved' && w.in_bank_file && canProcess && (
+                <button type="button" onClick={() => { setModalErrors({}); setNotSentNote(''); setNotSentRecord(w); }} className="button small">
+                    {translate('payouts', 'not_sent_button')}
                 </button>
             )}
 
@@ -379,13 +490,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
             {!canProcess && <div className="notice" role="status"><p>{translate('portal', 'pay_view_only_notice')}</p></div>}
 
-            {canProcess && (
-                <div className="toolbar-end">
-                    <a className="button small" href="/commands/operations/accounting/payout-batch/export">
-                        <Download size={14} aria-hidden="true" /> {translate('treasury', 'payout_file')}
-                    </a>
-                </div>
-            )}
+            {canProcess && <BankFiles batches={pageData?.payout_batches ?? []} />}
 
             <PayoutsTable data={data} rowActions={rowActions} />
 
@@ -643,6 +748,27 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 >
                                     {processingSettle ? translate('portal', 'pay_recording') : translate('portal', 'pay_record_ledger')}
                                 </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {notSentRecord && (
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">{translate('payouts', 'not_sent_title')}</h3>
+                        <p className="hub-sub is-lead">{notSentRecord.user_name} · {money(notSentRecord.net_amount ?? notSentRecord.amount)} · {translate('payouts', 'in_bank_file_badge', { batch: notSentRecord.bank_file ?? '' })}</p>
+                        <div className="notice" role="note"><p>{translate('payouts', 'not_sent_body')}</p></div>
+                        <form onSubmit={handleNotSent}>
+                            <div className="hub-field is-last">
+                                <label htmlFor="not-sent-note">{translate('payouts', 'not_sent_note')}</label>
+                                <textarea id="not-sent-note" required minLength={5} maxLength={1000} rows={3} value={notSentNote} onChange={(e) => setNotSentNote(e.target.value)} />
+                            </div>
+                            <FormErrors errors={modalErrors} />
+                            <div className="hub-row is-end">
+                                <button type="button" onClick={() => setNotSentRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
+                                <button type="submit" disabled={processingNotSent || notSentNote.trim().length < 5} className="button danger">{translate('payouts', 'not_sent_save')}</button>
                             </div>
                         </form>
                     </div>

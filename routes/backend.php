@@ -18,6 +18,7 @@ use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\OperationsController;
+use App\Http\Controllers\PayoutBatchController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductSubcategoryController;
@@ -154,7 +155,8 @@ $operations = function (): void {
     Route::get('/views/{section}', [OperationsController::class, 'index']);
     Route::get('/accounting/export', [AccountingController::class, 'export'])->middleware('throttle:15,1,accounting-export');
     Route::post('/accounting/approval-limit', [AccountingController::class, 'saveApprovalLimit']);
-    Route::get('/accounting/payout-batch/export', [AccountingController::class, 'exportPayoutBatch'])->middleware('throttle:15,1,accounting-export');
+    Route::post('/accounting/payout-batch/export', [PayoutBatchController::class, 'export'])->middleware('throttle:15,1,accounting-export');
+    Route::get('/accounting/payout-batches/{id}/file', [PayoutBatchController::class, 'downloadAgain'])->whereUuid('id')->middleware('throttle:15,1,accounting-export');
     Route::post('/accounting/statements', [AccountingController::class, 'uploadStatement']);
     Route::post('/accounting/statements/{id}/map', [AccountingController::class, 'mapStatement'])->whereUuid('id');
     Route::post('/accounting/statement-lines/{id}/confirm', [AccountingController::class, 'confirmStatementLine'])->whereNumber('id');
