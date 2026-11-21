@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Catalog\ProductFacts;
 use App\Domain\Catalog\ProductSizeGroups;
 use App\Domain\Content\PublicTrustContent;
 use App\Domain\Content\TestimonialLabels;
@@ -2293,6 +2294,7 @@ class SiteCustomization
             'category' => $p->category ?: 'General',
             'category_slug' => Str::slug($p->category ?: 'general'),
             'description' => $p->description,
+            'group' => ProductFacts::groupForVisitor($p),
             'unit' => $p->unit ?: 'pack',
             'stock_status' => $stockStatus,
             'stock_badge' => $stockBadge,

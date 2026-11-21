@@ -57,6 +57,9 @@
         </div>
 
         <h3 class="ref-card-title"><a href="{{ $item['url'] }}">{{ $item['name'] }}</a></h3>
+        @if(! empty($item['group']))
+            <p class="ref-card-group">{{ $item['group'] }}</p>
+        @endif
 
         @if($sizes !== [])
             <div class="ref-card-sizes" role="group" aria-label="{{ __('size_groups.choose_size') }}">
