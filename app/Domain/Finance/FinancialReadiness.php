@@ -150,7 +150,8 @@ final class FinancialReadiness
             }
         }
 
-        return ! DB::table('reserve_disbursements as r')->where('r.program', FundSpending::Program)->where('r.status', 'paid')
+        // A prize paid in advance draws on its prize fund's rows the same way (PrizeAdvances).
+        return ! DB::table('reserve_disbursements as r')->whereIn('r.program', [FundSpending::Program, PrizeAdvances::Program])->where('r.status', 'paid')
             ->whereIn('r.fund_key', CompanyFunds::AllocationFunds)
             ->whereRaw('r.amount <> COALESCE((SELECT SUM(s.amount) FROM reserve_expense_sources s WHERE s.disbursement_id = r.id),0)')->exists();
     }

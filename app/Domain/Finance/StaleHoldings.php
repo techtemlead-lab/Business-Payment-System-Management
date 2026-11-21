@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Models\PrizeAdvance;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -16,7 +17,8 @@ use Illuminate\Validation\ValidationException;
  *
  * Kinds: commission held or pending for a partner who is not active; money left in a closed account; withdrawals
  * approved but not paid; withdrawals still waiting for a decision (or on hold); company fund spends not finished;
- * payment claims not checked; and money a closed or suspended partner still owes from a refund (clawback).
+ * payment claims not checked; money a closed or suspended partner still owes from a refund (clawback); and a bike or
+ * car prize paid in advance to a partner who is no longer active.
  */
 final class StaleHoldings
 {
@@ -27,7 +29,7 @@ final class StaleHoldings
     public const MaximumDays = 365;
 
     /** Every kind, in the order the list and the notice show them. */
-    public const Kinds = ['held_commission', 'closed_balance', 'withdrawal_approved_unpaid', 'withdrawal_waiting', 'fund_spend_waiting', 'payment_claim_waiting', 'clawback_unrecovered'];
+    public const Kinds = ['held_commission', 'closed_balance', 'withdrawal_approved_unpaid', 'withdrawal_waiting', 'fund_spend_waiting', 'payment_claim_waiting', 'clawback_unrecovered', 'prize_advance_open'];
 
     /** @return array{days: int, version: int} */
     public function settings(): array
@@ -95,6 +97,7 @@ final class StaleHoldings
             'fund_spend_waiting' => $this->fundSpends($cutoff),
             'payment_claim_waiting' => $this->paymentClaims($cutoff),
             'clawback_unrecovered' => $this->clawbacks($cutoff),
+            'prize_advance_open' => $this->prizeAdvances($cutoff),
         ] as $kind => $rows) {
             foreach ($rows as $row) {
                 $since = CarbonImmutable::parse((string) $row->since, 'UTC');
@@ -180,6 +183,19 @@ final class StaleHoldings
         return DB::table('withdrawals as w')->join('users as u', 'u.id', '=', 'w.user_id')
             ->where('w.status', $status)->whereRaw("{$since} <= ?", [$cutoff])->orderByRaw($since)
             ->selectRaw("w.id::text AS ref, u.id AS user_id, u.name, u.dealer_code AS code, w.amount, {$since} AS since, '/withdrawals/' || w.id::text AS href")
+            ->get();
+    }
+
+    /**
+     * Bike or car prizes paid in advance to a partner who is no longer active: the prize can no longer settle them, so
+     * the owner has to mark the money recovered or written off. An active partner's advance waits for his prize.
+     */
+    private function prizeAdvances(CarbonImmutable $cutoff): iterable
+    {
+        return DB::table('prize_advances as a')->join('users as u', 'u.id', '=', 'a.partner_id')
+            ->where('a.status', PrizeAdvance::StatusOpen)->where('u.status', '<>', 'active')->where('a.given_on', '<=', $cutoff->toDateString())
+            ->orderBy('a.given_on')->orderBy('a.id')
+            ->selectRaw("a.id::text AS ref, u.id AS user_id, u.name, u.dealer_code AS code, a.amount - a.settled_amount AS amount, a.given_on::timestamp AS since, '/treasury/prize-advances' AS href")
             ->get();
     }
 

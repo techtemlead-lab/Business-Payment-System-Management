@@ -11,6 +11,7 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Finance\PrizeAdvances;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\StaleHoldings;
@@ -147,7 +148,7 @@ class OperationsController extends Controller
             $data['special'] = app(SpecialRateModel::class)->build($actor, $person);
         }
         if ($section === 'reserve-payouts') {
-            $tables['reserve_requests'] = DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id')->leftJoin('payout_receipts as pr', 'pr.reserve_disbursement_id', '=', 'r.id')
+            $tables['reserve_requests'] = DB::table('reserve_disbursements as r')->whereNotIn('r.program', [FundSpending::Program, PrizeAdvances::Program])->leftJoin('users as u', 'u.id', '=', 'r.user_id')->leftJoin('payout_receipts as pr', 'pr.reserve_disbursement_id', '=', 'r.id')
                 ->select(['r.id', 'r.program', 'u.name', 'r.user_id', 'r.payee_name', 'r.amount', 'r.status', 'r.created_by', 'r.approved_by', 'r.payment_reference', 'r.reason', 'pr.id as payout_receipt_id', 'pr.number as payout_receipt_number', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])->orderByDesc('r.id');
             $tables['reserve_clawbacks'] = DB::table('reserve_expense_clawbacks')->orderByDesc('id');
             $tables['clawback_recoveries'] = DB::table('reserve_recoveries')->select(['id', 'clawback_id', 'amount', 'payment_reference', 'paid_at', DB::raw('true AS has_receipt')])->orderByDesc('id');

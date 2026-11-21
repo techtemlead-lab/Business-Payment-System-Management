@@ -143,7 +143,7 @@ final class ReportData
             'ledger' => [DB::table('journal_lines as l')->join('journal_entries as j', 'j.id', '=', 'l.entry_id')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->leftJoin('users as actor', 'actor.id', '=', 'j.actor_id')
                 ->when(! ($actor->owner() && PortalHost::current() === 'sadmin'), fn ($q) => CompanyFunds::withoutOwnerOnlySpends($q, 'j.event_key')),
                 ['j.event_key', 'j.description', 'u.name', 'l.account', 'l.debit', 'l.credit', 'actor.name as done_by', 'j.created_at'], ['debit', 'credit'], 'j.created_at', 'l.user_id'],
-            'rewards' => [DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
+            'rewards' => [DB::table('reserve_disbursements as r')->whereNotIn('r.program', [FundSpending::Program, PrizeAdvances::Program])->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
                 ['r.id', 'u.dealer_code', 'u.name', 'r.payee_name', 'r.program', 'r.amount', 'r.status', 'r.payment_reference', 'r.created_at'], ['amount'], 'r.created_at', 'r.user_id'],
             // Every payment a partner sent with its TrxID, who checked it and when: the daily collection sheet.
             // A partner's own account paying for an order is not money coming in, so it stays off this sheet.

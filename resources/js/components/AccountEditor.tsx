@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { router, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { PRIZE_ADVANCES_PAGE } from './treasury/PrizeAdvances';
 import { Row, label, FormErrors } from './UI';
 import PartnerCommissionOverride from './PartnerCommissionOverride';
 import PartnerBenefitControls from './PartnerBenefitControls';
@@ -13,6 +14,17 @@ import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
 import PlacePickers, { loadPlaceList, placeLevels, usePlaceChain, type PlaceField, type PlaceLevel, type PlaceOption } from './PlacePickers';
+
+/** The Super Admin's way to pay this active dealer's or sub-dealer's bike or car prize in advance, in an emergency. */
+function PrizeAdvanceLink({ account }: { account: Row }) {
+    const translate = useT();
+    const { auth } = usePage<any>().props;
+    if (String(auth?.user?.role) !== 'super_admin' || !['dealer', 'sub_dealer'].includes(String(account.role)) || String(account.status) !== 'active') {
+        return null;
+    }
+
+    return <p><Link className="button small" href={`${PRIZE_ADVANCES_PAGE}?partner=${account.id}`}>{translate('prize_advances', 'give_button')}</Link></p>;
+}
 
 /** One list of the permanent address, in the editor's plain label style. */
 const EditorField: PlaceField = ({ text, error, hint, children }) => (
@@ -336,6 +348,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         <PartnerBenefitControls account={account} />
         <PartnerProfileLock account={account} />
         <PartnerPrescriberControls account={account} />
+        <PrizeAdvanceLink account={account} />
         <ClosedAccountBalanceMove account={account} />
         <PartnerAccountDelete account={account} onDone={onDone} />
     </>;
