@@ -124,6 +124,11 @@ class BasePlacesRemainingRulesTest extends TestCase
         $this->assertSame(0, $again['linked']);
         $rules = array_column($first['base_set_list'], 'rule');
         $this->assertContains('upazila_only_pourashava', $rules);
+        $this->assertContains('upazila_union_named_like_upazila_other_spelling', $rules);
+
+        // Every upazila the loader leaves without a base place has a researched line in the review file.
+        $left = array_column(array_filter($first['base_empty'], fn (array $e): bool => $e['level'] === 'upazila'), 'code');
+        $this->assertSame([], array_values(array_diff($left, array_keys($review))), 'Upazilas without a base place and without a researched line');
     }
 
     public function test_the_review_csv_lists_the_upazilas_left_without_a_base(): void
