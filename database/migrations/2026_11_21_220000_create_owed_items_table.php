@@ -27,6 +27,7 @@ return new class extends Migration
             $table->foreignUuid('shipped_in_order_id')->nullable()->constrained('orders');
             $table->foreignId('shipped_line_id')->nullable()->constrained('order_lines')->nullOnDelete();
             $table->foreignId('closed_by')->nullable()->constrained('users');
+            $table->foreignId('refund_request_id')->nullable()->constrained('order_return_requests')->nullOnDelete();
             $table->timestamps();
             $table->index(['partner_id', 'status']);
         });

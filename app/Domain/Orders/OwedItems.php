@@ -27,6 +27,9 @@ final class OwedItems
 
     public const StatusCancelled = 'cancelled';
 
+    /** A refund instead was asked for and waits for the second person; turned down, the goods are owed again. */
+    public const StatusRefunding = 'refunding';
+
     /** Next-order statuses that can still take an extra line before goods leave. */
     public const ReceivingStatuses = ['submitted', 'held', 'approved'];
 
@@ -143,9 +146,10 @@ final class OwedItems
             }
             $order = Order::query()->findOrFail($item->source_order_id);
             $amount = Money::decimal(Money::cents((string) $item->unit_price) * (int) $item->quantity);
-            app(OrderRefund::class)->refund($actor, $order, $amount, $reason);
-            DB::table('owed_items')->where('id', $owedId)->update(['status' => self::StatusCancelled, 'closed_by' => $actor->id, 'updated_at' => now()]);
-            $meta = ['owed_item_id' => $owedId, 'amount' => $amount, 'reason' => $reason];
+            $refund = app(OrderRefund::class)->refund($actor, $order, $amount, $reason);
+            DB::table('owed_items')->where('id', $owedId)->update(['status' => $refund['done'] ? self::StatusCancelled : self::StatusRefunding,
+                'closed_by' => $actor->id, 'refund_request_id' => $refund['id'], 'updated_at' => now()]);
+            $meta = ['owed_item_id' => $owedId, 'amount' => $amount, 'reason' => $reason, 'refund_request_id' => $refund['id'], 'refund_done' => $refund['done']];
             $this->event($order->id, $actor->id, 'order.owed_refunded', $meta);
             Audit::record($actor->id, 'order.owed_refunded', $order->id, $meta);
         }, 3);
@@ -180,8 +184,9 @@ final class OwedItems
     }
 
     /**
-     * Owed items still owed (alias `o`): open ones, and ones added to a next order that was then
-     * cancelled or turned down before its free line left the warehouse, so nothing owed is lost.
+     * Owed items still owed (alias `o`): open ones, ones added to a next order that was then
+     * cancelled or turned down before its free line left the warehouse, and ones whose refund was
+     * turned down by the second person, so nothing owed is lost.
      */
     public static function openQuery(): QueryBuilder
     {
@@ -189,7 +194,10 @@ final class OwedItems
             ->orWhere(fn (QueryBuilder $stale) => $stale->where('o.status', self::StatusShipped)->whereExists(fn (QueryBuilder $dead) => $dead->selectRaw('1')
                 ->from('orders as next_order')->join('order_lines as owed_line', 'owed_line.order_id', '=', 'next_order.id')
                 ->whereColumn('next_order.id', 'o.shipped_in_order_id')->whereColumn('owed_line.id', 'o.shipped_line_id')
-                ->whereIn('next_order.status', ['cancelled', 'rejected'])->where('owed_line.dispatched', 0))));
+                ->whereIn('next_order.status', ['cancelled', 'rejected'])->where('owed_line.dispatched', 0)))
+            ->orWhere(fn (QueryBuilder $refused) => $refused->where('o.status', self::StatusRefunding)->whereExists(fn (QueryBuilder $request) => $request->selectRaw('1')
+                ->from('order_return_requests as refund_request')->whereColumn('refund_request.id', 'o.refund_request_id')
+                ->whereIn('refund_request.status', [OrderReturns::StatusRejected, OrderReturns::StatusWithdrawn]))));
     }
 
     private function assertStaff(User $actor, Order $order): void

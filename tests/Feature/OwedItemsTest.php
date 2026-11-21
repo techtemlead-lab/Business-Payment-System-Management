@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Inventory\StockService;
 use App\Domain\Orders\OrderInvoice;
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\OwedItems;
 use App\Domain\Orders\StaffDashboardSummary;
@@ -161,6 +162,26 @@ class OwedItemsTest extends TestCase
         $this->assertDatabaseHas('owed_items', ['id' => $owedId, 'status' => 'cancelled', 'closed_by' => $this->owner->id]);
         $this->assertTrue(DB::table('order_return_requests')->where('order_id', $order->id)->exists() || DB::table('order_refunds')->where('order_id', $order->id)->exists());
         $this->assertSame([], app(OwedItems::class)->open($this->dealer->id));
+    }
+
+    public function test_a_refund_waiting_for_the_second_person_and_then_turned_down_owes_the_goods_again(): void
+    {
+        $order = $this->owedOrder();
+        $owedId = (int) DB::table('owed_items')->value('id');
+        $finance = User::factory()->staff('finance')->create();
+
+        app(OwedItems::class)->cancelWithRefund($finance, $owedId, 'Partner wants money back');
+        app(OwedItems::class)->cancelWithRefund($finance, $owedId, 'Clicked twice');
+
+        $requestId = (int) DB::table('owed_items')->where('id', $owedId)->value('refund_request_id');
+        $this->assertSame(1, DB::table('order_return_requests')->where('order_id', $order->id)->count());
+        $this->assertSame('awaiting_second', DB::table('order_return_requests')->where('id', $requestId)->value('status'));
+        $this->assertSame('refunding', DB::table('owed_items')->where('id', $owedId)->value('status'));
+        $this->assertSame([], app(OwedItems::class)->open($this->dealer->id));
+
+        app(OrderReturns::class)->reject(User::factory()->staff('finance')->create(), $requestId, 'Send the goods instead');
+
+        $this->assertCount(1, app(OwedItems::class)->open($this->dealer->id));
     }
 
     private function owedOrder(): Order
