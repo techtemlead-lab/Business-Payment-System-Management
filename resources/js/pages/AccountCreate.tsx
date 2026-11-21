@@ -21,6 +21,13 @@ type PlacePreview = {
     next_sub_dealer_code?: string | null;
 };
 type Section = { key: string; title: string; hint?: string; required: string[]; boxes: string[] };
+type PlaceLevel = 'division' | 'district' | 'upazila' | 'union';
+type ChildLevel = Exclude<PlaceLevel, 'division'>;
+type PlaceIds = Record<PlaceLevel, string>;
+
+/** From the top of the country down; a dealer of a level picks only down to that level. */
+const placeLevels: PlaceLevel[] = ['division', 'district', 'upazila', 'union'];
+const noPlaces: PlaceIds = { division: '', district: '', upazila: '', union: '' };
 
 const availablePermissionKeys = [
     'field_sales', 'sr_orders', 'sr_onboarding', 'staff_admin', 'payroll',
@@ -48,6 +55,126 @@ async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
         throw new Error(body?.message || body?.errors?.place_code?.[0] || failedMessage);
     }
     return response.json();
+}
+
+/**
+ * One Division > District > Upazila > Union chain of lists. Each list is filled from the server
+ * once the place above it is chosen; it is emptied first and "loading" shows until the answer
+ * arrives, and an answer for a place that is no longer chosen is dropped, so a slow reply can
+ * never fill the list with another upazila's unions. The form uses one chain for the business
+ * area and another for the permanent address.
+ */
+function usePlaceChain(divisions: PlaceOption[], load: (level: ChildLevel, parentId: string) => Promise<PlaceOption[]>) {
+    const [ids, setIds] = useState<PlaceIds>(noPlaces);
+    const [lists, setLists] = useState<Record<ChildLevel, PlaceOption[]>>({ district: [], upazila: [], union: [] });
+    const [loading, setLoading] = useState<Record<ChildLevel, boolean>>({ district: false, upazila: false, union: false });
+
+    const fill = (level: ChildLevel, parentId: string): (() => void) | undefined => {
+        setLists((prev) => ({ ...prev, [level]: [] }));
+        if (!parentId) {
+            setLoading((prev) => ({ ...prev, [level]: false }));
+            return undefined;
+        }
+        let current = true;
+        setLoading((prev) => ({ ...prev, [level]: true }));
+        load(level, parentId)
+            .then((list) => { if (current) setLists((prev) => ({ ...prev, [level]: list })); })
+            .catch(() => { if (current) setLists((prev) => ({ ...prev, [level]: [] })); })
+            .finally(() => { if (current) setLoading((prev) => ({ ...prev, [level]: false })); });
+        return () => { current = false; };
+    };
+
+    useEffect(() => fill('district', ids.division), [ids.division]);
+    useEffect(() => fill('upazila', ids.district), [ids.district]);
+    useEffect(() => fill('union', ids.upazila), [ids.upazila]);
+
+    /** Chooses a place on one level; every level below it is emptied. Gives back the new choice. */
+    const choose = (level: PlaceLevel, value: string): PlaceIds => {
+        const depth = placeLevels.indexOf(level);
+        const next = { ...ids };
+        placeLevels.forEach((each, index) => {
+            if (index === depth) {
+                next[each] = value;
+            } else if (index > depth) {
+                next[each] = '';
+            }
+        });
+        setIds(next);
+        return next;
+    };
+    const find = (level: PlaceLevel, id: string): PlaceOption | undefined => (level === 'division' ? divisions : lists[level]).find((item) => String(item.id) === id);
+
+    return { divisions, ids, lists, loading, choose, find, clear: () => setIds(noPlaces) };
+}
+
+type PlaceChain = ReturnType<typeof usePlaceChain>;
+
+/** The searchable lists of one chain, only down to the deepest level asked for. */
+function PlacePickers({ chain, levels, onPick, errors, hints }: {
+    chain: PlaceChain;
+    levels: PlaceLevel[];
+    onPick: (level: PlaceLevel, value: string) => void;
+    errors?: Partial<Record<PlaceLevel, string | undefined>>;
+    hints?: Partial<Record<PlaceLevel, string>>;
+}) {
+    const translate = useT();
+    const optionsOf = (list: PlaceOption[]) => list.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }));
+    const loadingLabel = translate('leftovers_office', 'place_loading');
+    const shown = (level: PlaceLevel) => levels.includes(level);
+
+    return (
+        <>
+            {shown('division') && (
+                <Box text={translate('portal', 'acct_division')} error={errors?.division} hint={hints?.division}>
+                    <SearchSelect
+                        value={chain.ids.division}
+                        onChange={(value) => onPick('division', value)}
+                        emptyLabel={translate('portal', 'acct_select_division')}
+                        options={optionsOf(chain.divisions)}
+                    />
+                </Box>
+            )}
+            {shown('district') && (
+                <Box text={translate('portal', 'acct_district')} error={errors?.district} hint={hints?.district}>
+                    <SearchSelect
+                        value={chain.ids.district}
+                        onChange={(value) => onPick('district', value)}
+                        disabled={!chain.ids.division}
+                        loading={chain.loading.district}
+                        loadingLabel={loadingLabel}
+                        emptyLabel={translate('portal', 'acct_select_district')}
+                        options={optionsOf(chain.lists.district)}
+                    />
+                </Box>
+            )}
+            {shown('upazila') && (
+                <Box text={translate('portal', 'acct_upazila')} error={errors?.upazila} hint={hints?.upazila}>
+                    <SearchSelect
+                        value={chain.ids.upazila}
+                        onChange={(value) => onPick('upazila', value)}
+                        disabled={!chain.ids.district}
+                        loading={chain.loading.upazila}
+                        loadingLabel={loadingLabel}
+                        emptyLabel={translate('portal', 'acct_select_upazila')}
+                        options={optionsOf(chain.lists.upazila)}
+                    />
+                </Box>
+            )}
+            {shown('union') && (
+                <Box text={translate('portal', 'acct_union')} error={errors?.union} hint={hints?.union}>
+                    <SearchSelect
+                        value={chain.ids.union}
+                        onChange={(value) => onPick('union', value)}
+                        disabled={!chain.ids.upazila}
+                        loading={chain.loading.union}
+                        loadingLabel={loadingLabel}
+                        emptyLabel={translate('portal', 'acct_select_union')}
+                        options={optionsOf(chain.lists.union)}
+                    />
+                </Box>
+            )}
+        </>
+    );
 }
 
 /** One box with its label, and its own error directly underneath. */
@@ -111,6 +238,12 @@ export default function AccountCreate({
         union: '',
         village: '',
         post_office: '',
+        // The permanent (home) address: the ids of the places picked, apart from the business area.
+        permanent_division: '',
+        permanent_district: '',
+        permanent_upazila: '',
+        permanent_union: '',
+        dealer_level: '' as '' | PlaceLevel,
         place_code: '',
         dealer_code: '',
         reference_code: '',
@@ -157,30 +290,21 @@ export default function AccountCreate({
     const [placeChecking, setPlaceChecking] = useState(false);
     const placeLastChecked = useRef('');
     const placeLatestTyped = useRef('');
+    const [dealerKindNote, setDealerKindNote] = useState('');
     const [ownCodeWarning, setOwnCodeWarning] = useState('');
     const [referenceWarnings, setReferenceWarnings] = useState<string[]>([]);
     const [referPreviewError, setReferPreviewError] = useState<string | null>(null);
     const [directReferrer, setDirectReferrer] = useState<Consumer>(null);
     const referRequest = useRef(0);
 
-    const [divisionId, setDivisionId] = useState('');
-    const [districtId, setDistrictId] = useState('');
-    const [upazilaId, setUpazilaId] = useState('');
-    const [unionId, setUnionId] = useState('');
-    const [districts, setDistricts] = useState<PlaceOption[]>([]);
-    const [upazilas, setUpazilas] = useState<PlaceOption[]>([]);
-    const [unions, setUnions] = useState<PlaceOption[]>([]);
-    const [addressSearch, setAddressSearch] = useState('');
     const [papersOpen, setPapersOpen] = useState(false);
 
     const formRef = useRef<HTMLFormElement>(null);
     const pageRef = useRef<HTMLDivElement>(null);
     const focusFirstErrorNext = useRef(false);
 
-    const loadChildren = async (level: string, parentId: string, q = '') => {
-        const params = new URLSearchParams({ level });
-        if (parentId) params.set('parent_id', parentId);
-        if (q) params.set('q', q);
+    const loadChildren = async (level: ChildLevel, parentId: string) => {
+        const params = new URLSearchParams({ level, parent_id: parentId });
         const json = await fetchJson<{ data: PlaceOption[] }>(
             `/commands/place-codes/children?${params}`,
             translate('portal', 'acct_request_failed'),
@@ -188,47 +312,14 @@ export default function AccountCreate({
         return json.data;
     };
 
-    const [placeLoading, setPlaceLoading] = useState({ district: false, upazila: false, union: false });
-
-    /**
-     * Fills one list from the server. The list is emptied first and "loading" shows until the answer
-     * arrives; an answer for a place that is no longer chosen is dropped, so a slow reply can never
-     * fill the list with another upazila's unions.
-     */
-    const fillList = (level: 'district' | 'upazila' | 'union', parentId: string, setList: (list: PlaceOption[]) => void, clearChoice: () => void): (() => void) | undefined => {
-        if (!parentId) {
-            setList([]);
-            clearChoice();
-            setPlaceLoading((prev) => ({ ...prev, [level]: false }));
-            return undefined;
-        }
-        let current = true;
-        setList([]);
-        setPlaceLoading((prev) => ({ ...prev, [level]: true }));
-        loadChildren(level, parentId, addressSearch)
-            .then((list) => { if (current) setList(list); })
-            .catch(() => { if (current) setList([]); })
-            .finally(() => { if (current) setPlaceLoading((prev) => ({ ...prev, [level]: false })); });
-        return () => { current = false; };
-    };
-
-    useEffect(() => fillList('district', divisionId, setDistricts, () => setDistrictId('')), [divisionId, addressSearch]);
-    useEffect(() => fillList('upazila', districtId, setUpazilas, () => setUpazilaId('')), [districtId, addressSearch]);
-    useEffect(() => fillList('union', upazilaId, setUnions, () => setUnionId('')), [upazilaId, addressSearch]);
-
-    useEffect(() => {
-        const division = place_divisions.find((item) => String(item.id) === divisionId);
-        const district = districts.find((item) => String(item.id) === districtId);
-        const upazila = upazilas.find((item) => String(item.id) === upazilaId);
-        const union = unions.find((item) => String(item.id) === unionId);
-        form.setData((prev) => ({
-            ...prev,
-            division: division?.name || prev.division,
-            district: district?.name || prev.district,
-            upazila: upazila?.name || prev.upazila,
-            union: union?.name || prev.union,
-        }));
-    }, [divisionId, districtId, upazilaId, unionId, districts, upazilas, unions, place_divisions]);
+    /** Where the partner does business: this place sets the code. */
+    const business = usePlaceChain(place_divisions, loadChildren);
+    /** Where the person lives permanently: kept apart, it never touches the code or the area. */
+    const home = usePlaceChain(place_divisions, loadChildren);
+    const dealerLevel = form.data.dealer_level;
+    // A sub-dealer always works in one union; a dealer's lists stop at the level of his kind of dealer.
+    const codeLevel: PlaceLevel | '' = isSubDealer ? 'union' : dealerLevel;
+    const businessLevels = codeLevel === '' ? [] : placeLevels.slice(0, placeLevels.indexOf(codeLevel) + 1);
 
     /** The progress stays in view just under the top bar, whose height changes with the screen. */
     useEffect(() => {
@@ -325,8 +416,16 @@ export default function AccountCreate({
             }
             setPlacePreview(json.data);
             const path = json.data.path;
+            // A code typed by someone who knows it tells the kind of dealer by itself.
+            const codeKind = placeLevels.find((level) => level === path?.origin_level);
+            const kindChanged = role === 'dealer' && codeKind !== undefined && codeKind !== form.data.dealer_level;
+            setDealerKindNote(kindChanged ? translate('portal', 'acct_dealer_kind_switched', { kind: translate('portal', `acct_dealer_kind_${codeKind}`) }) : '');
+            if (kindChanged) {
+                form.clearErrors('dealer_level');
+            }
             form.setData((prev) => ({
                 ...prev,
+                dealer_level: role === 'dealer' && codeKind !== undefined ? codeKind : prev.dealer_level,
                 dealer_code: role === 'sub_dealer'
                     ? String(json.data.next_sub_dealer_code ?? '').toUpperCase()
                     : (dealerCodeTouched && prev.dealer_code.trim() ? prev.dealer_code.trim().toUpperCase() : String(path?.origin_place_code || code).trim().toUpperCase()),
@@ -354,26 +453,24 @@ export default function AccountCreate({
 
     /**
      * Picking a place from the lists fills the place code and checks it at once, so nobody has to
-     * type a code (a hand-typed wrong union sent area money to the wrong place). A sub-dealer's
-     * code is a union, so it is filled only when the union is picked; a dealer takes the
-     * deepest place picked.
+     * type a code (a hand-typed wrong union sent area money to the wrong place). The code is filled
+     * only when the place of the partner's own level is picked: the union for a sub-dealer, and the
+     * level of the kind of dealer for a dealer (a division dealer's code is the division's code).
      */
-    const pickPlace = (picked: { division?: string; district?: string; upazila?: string; union?: string }) => {
-        const division = place_divisions.find((item) => String(item.id) === picked.division);
-        const district = districts.find((item) => String(item.id) === picked.district);
-        const upazila = upazilas.find((item) => String(item.id) === picked.upazila);
-        const union = unions.find((item) => String(item.id) === picked.union);
-        const deepest = isSubDealer ? union : (union ?? upazila ?? district ?? division);
-        const code = deepest?.code ?? '';
+    const pickBusinessPlace = (level: PlaceLevel, value: string) => {
+        const ids = business.choose(level, value);
+        const nameOf = (each: PlaceLevel) => business.find(each, ids[each])?.name ?? '';
+        const code = codeLevel === '' ? '' : (business.find(codeLevel, ids[codeLevel])?.code ?? '');
         // Only the places chosen now stay: moving to another upazila drops the old union's name, so a
         // union the person did not choose can never be saved.
         form.setData((prev) => ({
             ...prev,
-            division: division?.name ?? '',
-            district: district?.name ?? '',
-            upazila: upazila?.name ?? '',
-            union: union?.name ?? '',
+            division: nameOf('division'),
+            district: nameOf('district'),
+            upazila: nameOf('upazila'),
+            union: nameOf('union'),
         }));
+        setDealerKindNote('');
         changePlaceCode(code);
         if (code) {
             void previewPlace(true, code);
@@ -382,11 +479,30 @@ export default function AccountCreate({
 
     /** A code typed by someone who knows it replaces whatever was picked from the lists. */
     const typePlaceCode = (typed: string) => {
-        setDivisionId('');
-        setDistrictId('');
-        setUpazilaId('');
-        setUnionId('');
+        business.clear();
         changePlaceCode(typed);
+    };
+
+    /** A new kind of dealer starts the business area again: the lists stop at another level now. */
+    const chooseDealerLevel = (level: PlaceLevel) => {
+        business.clear();
+        setDealerKindNote('');
+        form.setData((prev) => ({ ...prev, dealer_level: level, division: '', district: '', upazila: '', union: '' }));
+        form.clearErrors('dealer_level');
+        changePlaceCode('');
+    };
+
+    /** The permanent address keeps the ids of the places picked; the server reads the names itself. */
+    const pickHomePlace = (level: PlaceLevel, value: string) => {
+        const ids = home.choose(level, value);
+        form.setData((prev) => ({
+            ...prev,
+            permanent_division: ids.division,
+            permanent_district: ids.district,
+            permanent_upazila: ids.upazila,
+            permanent_union: ids.union,
+        }));
+        form.clearErrors(`permanent_${level}` as never, 'permanent_place_id' as never);
     };
 
     useEffect(() => {
@@ -427,7 +543,7 @@ export default function AccountCreate({
     }, [form.data.reference_code, form.data.dealer_code, isPartner]);
 
     // Details nobody needs to open an account; kept in one folded block at the end.
-    const MORE_BOXES = ['occupation', 'village', 'post_office', 'extra_contact', 'latitude', 'longitude'];
+    const MORE_BOXES = ['occupation', 'extra_contact', 'latitude', 'longitude'];
     const sections: Section[] = useMemo(() => {
         const finishKyc = isPartner ? [...kycBoxes] : [];
         const typeSection: Section[] = singlePartnerRole ? [] : [{ key: 'type', title: translate('portal', 'acct_step_type'), hint: translate('portal', 'acct_step_type_hint'), required: [], boxes: ['role'] }];
@@ -443,7 +559,8 @@ export default function AccountCreate({
         return [
             ...typeSection,
             { key: 'identity', title: translate('portal', 'acct_step_identity'), hint: translate('portal', 'acct_step_identity_hint'), required: [identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'], boxes: ['identity_type', identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'] },
-            { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: ['place_code'], boxes: ['place_code', 'dealer_code'] },
+            { key: 'home', title: translate('portal', 'acct_step_home'), hint: translate('portal', 'acct_step_home_hint'), required: ['permanent_division', 'permanent_district', 'permanent_upazila'], boxes: ['permanent_division', 'permanent_district', 'permanent_upazila', 'permanent_union', 'permanent_place_id', 'village', 'post_office'] },
+            { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: isSubDealer ? ['place_code'] : ['dealer_level', 'place_code'], boxes: [...(isSubDealer ? [] : ['dealer_level']), 'place_code', 'dealer_code'] },
             { key: 'refer', title: translate('portal', 'acct_step_refer'), required: [], boxes: ['reference_code'] },
             { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email'], boxes: ['phone', 'email', 'shop_name'] },
             { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'directory_visible', ...MORE_BOXES, ...finishKyc] },
@@ -507,8 +624,11 @@ export default function AccountCreate({
             union: data.union,
             village: data.village,
             post_office: data.post_office,
+            // The deepest place picked; the server takes it only from the upazila down.
+            permanent_place_id: data.permanent_union || data.permanent_upazila || data.permanent_district || data.permanent_division,
             latitude: data.latitude,
             longitude: data.longitude,
+            dealer_level: data.role === 'dealer' ? data.dealer_level : '',
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
@@ -562,8 +682,10 @@ export default function AccountCreate({
     const referrerName = typedReference && directReferrer && referenceWarnings.length === 0
         ? `${directReferrer.name}${directReferrer.refer_code ? ` (${directReferrer.refer_code})` : ''}`
         : '';
+    const homeLine = (['union', 'upazila', 'district'] as PlaceLevel[]).map((level) => home.find(level, home.ids[level])?.name).filter(Boolean).join(', ');
     const summaryRows = isPartner ? [
         { term: translate('portal', 'acct_summary_person'), value: form.data.name_bn || form.data.name },
+        { term: translate('portal', 'acct_summary_home'), value: homeLine },
         { term: translate('portal', 'acct_summary_code'), value: form.data.dealer_code },
         { term: translate('portal', 'acct_summary_place'), value: placePreview?.label ?? '' },
         { term: translate('portal', 'acct_summary_referrer'), value: referrerName || (typedReference ? '' : (referenceHint ? translate('portal', 'acct_management_referrer') : translate('portal', 'acct_summary_blank_referrer'))) },
@@ -623,11 +745,18 @@ export default function AccountCreate({
                                             const newRole = e.target.value;
                                             setDealerCodeTouched(false);
                                             placeLastChecked.current = '';
+                                            business.clear();
+                                            setDealerKindNote('');
                                             form.setData((prev) => ({
                                                 ...prev,
                                                 role: newRole,
                                                 place_code: '',
                                                 dealer_code: '',
+                                                dealer_level: '',
+                                                division: '',
+                                                district: '',
+                                                upazila: '',
+                                                union: '',
                                                 permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_onboarding'] : ['orders', 'inventory'],
                                             }));
                                             setPlacePreview(null);
@@ -721,51 +850,47 @@ export default function AccountCreate({
                                 </div>
                             </section>
 
+                            <section className="panel acf-section" id="acf-home">
+                                {heading('home', sectionFor('home'))}
+                                <div className="acf-grid">
+                                    <PlacePickers
+                                        chain={home}
+                                        levels={placeLevels}
+                                        onPick={pickHomePlace}
+                                        errors={{
+                                            division: errorOf('permanent_division'),
+                                            district: errorOf('permanent_district'),
+                                            upazila: errorOf('permanent_upazila') || errorOf('permanent_place_id'),
+                                            union: errorOf('permanent_union'),
+                                        }}
+                                        hints={{ union: translate('portal', 'acct_home_union_hint') }}
+                                    />
+                                    <Box text={translate('portal', 'acct_home_village')} error={errorOf('village')}><input autoComplete="off" value={form.data.village} onChange={(e) => setBox('village', e.target.value)} /></Box>
+                                    <Box text={translate('portal', 'acct_post_office')} error={errorOf('post_office')}><input autoComplete="off" value={form.data.post_office} onChange={(e) => setBox('post_office', e.target.value)} /></Box>
+                                </div>
+                            </section>
+
                             <section className="panel acf-section" id="acf-place">
                                 {heading('place', sectionFor('place'))}
-                                <p className="acf-note">{translate('joining', 'place_pick_hint')}</p>
+                                {!isSubDealer && (
+                                    <div className={`acf-kind${errorOf('dealer_level') ? ' has-error' : ''}`}>
+                                        <span className="acf-label" id="acf-dealer-kind">{translate('portal', 'acct_dealer_kind')}</span>
+                                        <div className="acf-segment is-four" role="radiogroup" aria-labelledby="acf-dealer-kind">
+                                            {placeLevels.map((level) => (
+                                                <label key={level} className={dealerLevel === level ? 'is-on' : ''}>
+                                                    <input type="radio" name="dealer_level" value={level} checked={dealerLevel === level} onChange={() => chooseDealerLevel(level)} />
+                                                    <span>{translate('portal', `acct_dealer_kind_${level}`)}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {errorOf('dealer_level')
+                                            ? <span className="field-error" role="alert">{errorOf('dealer_level')}</span>
+                                            : <p className="acf-note">{dealerKindNote || translate('portal', dealerLevel ? 'acct_dealer_kind_hint' : 'acct_dealer_kind_first')}</p>}
+                                    </div>
+                                )}
+                                {businessLevels.length > 0 && <p className="acf-note">{translate('joining', 'place_pick_hint')}</p>}
                                 <div className="acf-grid">
-                                    <Box text={translate('portal', 'acct_division')}>
-                                        <SearchSelect
-                                            value={divisionId}
-                                            onChange={(value) => { setDivisionId(value); setDistrictId(''); setUpazilaId(''); setUnionId(''); pickPlace({ division: value }); }}
-                                            emptyLabel={translate('portal', 'acct_select_division')}
-                                            options={place_divisions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
-                                        />
-                                    </Box>
-                                    <Box text={translate('portal', 'acct_district')}>
-                                        <SearchSelect
-                                            value={districtId}
-                                            onChange={(value) => { setDistrictId(value); setUpazilaId(''); setUnionId(''); pickPlace({ division: divisionId, district: value }); }}
-                                            disabled={!divisionId}
-                                            loading={placeLoading.district}
-                                            loadingLabel={translate('leftovers_office', 'place_loading')}
-                                            emptyLabel={translate('portal', 'acct_select_district')}
-                                            options={districts.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
-                                        />
-                                    </Box>
-                                    <Box text={translate('portal', 'acct_upazila')}>
-                                        <SearchSelect
-                                            value={upazilaId}
-                                            onChange={(value) => { setUpazilaId(value); setUnionId(''); pickPlace({ division: divisionId, district: districtId, upazila: value }); }}
-                                            disabled={!districtId}
-                                            loading={placeLoading.upazila}
-                                            loadingLabel={translate('leftovers_office', 'place_loading')}
-                                            emptyLabel={translate('portal', 'acct_select_upazila')}
-                                            options={upazilas.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
-                                        />
-                                    </Box>
-                                    <Box text={translate('portal', 'acct_union')}>
-                                        <SearchSelect
-                                            value={unionId}
-                                            onChange={(value) => { setUnionId(value); pickPlace({ division: divisionId, district: districtId, upazila: upazilaId, union: value }); }}
-                                            disabled={!upazilaId}
-                                            loading={placeLoading.union}
-                                            loadingLabel={translate('leftovers_office', 'place_loading')}
-                                            emptyLabel={translate('portal', 'acct_select_union')}
-                                            options={unions.map((item) => ({ value: String(item.id), label: `${item.code} — ${item.name}` }))}
-                                        />
-                                    </Box>
+                                    <PlacePickers chain={business} levels={businessLevels} onPick={pickBusinessPlace} />
                                     <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError} hint={translate('joining', 'place_code_hint')}>
                                         <div className="acf-with-button">
                                             <input
@@ -919,8 +1044,6 @@ export default function AccountCreate({
                                 <div className="acf-grid">
                                     <Box text={translate('portal', 'acct_occupation')} error={errorOf('occupation')}><input autoComplete="off" value={form.data.occupation} onChange={(e) => setBox('occupation', e.target.value)} /></Box>
                                     <Box text={translate('portal', 'acct_extra_contact')} error={errorOf('extra_contact')}><input autoComplete="off" value={form.data.extra_contact} onChange={(e) => setBox('extra_contact', e.target.value)} /></Box>
-                                    <Box text={translate('portal', 'acct_village')} error={errorOf('village')}><input autoComplete="off" value={form.data.village} onChange={(e) => setBox('village', e.target.value)} /></Box>
-                                    <Box text={translate('portal', 'acct_post_office')} error={errorOf('post_office')}><input autoComplete="off" value={form.data.post_office} onChange={(e) => setBox('post_office', e.target.value)} /></Box>
                                     <Box text={translate('portal', 'acct_latitude')} error={errorOf('latitude')}><input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => setBox('latitude', e.target.value)} placeholder={translate('portal', 'acct_latitude_ph')} /></Box>
                                     <Box text={translate('portal', 'acct_longitude')} error={errorOf('longitude')}><input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => setBox('longitude', e.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} /></Box>
                                 </div>

@@ -605,6 +605,14 @@
 .app-shell .acf-segment span{display:block;padding:8px 18px;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-2)}
 .app-shell .acf-segment label.is-on span{background:var(--ds-brand);color:#fff}
 .app-shell .acf-segment input:focus-visible+span{outline:2px solid var(--ds-brand);outline-offset:-3px}
+/* The kind of dealer: four choices in one row, two by two on a phone. */
+.app-shell .acf-kind{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--ds-s-4)}
+.app-shell .acf-kind .acf-segment{margin-bottom:0}
+.app-shell .acf-kind .acf-note{margin:0}
+.app-shell .acf-kind.has-error .acf-segment{border-color:var(--ds-danger-fg)}
+.app-shell .acf-kind .field-error{font-size:var(--ds-fs-xs);font-weight:500;line-height:1.45;color:var(--ds-danger-fg)}
+.app-shell .acf-segment.is-four{display:inline-grid;grid-template-columns:repeat(4,auto)}
+.app-shell .acf-segment.is-four label+label{border-left:1px solid var(--ds-line)}
 .app-shell .acf-more{margin-top:var(--ds-s-4);border-top:1px solid var(--ds-line);padding-top:var(--ds-s-3)}
 .app-shell .acf-more>summary{cursor:pointer;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-brand-text)}
 .app-shell .acf-more>.acf-grid{margin-top:var(--ds-s-3)}
@@ -652,6 +660,10 @@
   .app-shell .acf-grid{grid-template-columns:minmax(0,1fr)}
   .app-shell .acf-segment{display:flex}
   .app-shell .acf-segment label{flex:1;text-align:center}
+  .app-shell .acf-segment.is-four{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .acf-segment.is-four span{padding:9px 8px}
+  .app-shell .acf-segment.is-four label:nth-child(3),.app-shell .acf-segment.is-four label:nth-child(4){border-top:1px solid var(--ds-line)}
+  .app-shell .acf-segment.is-four label:nth-child(3){border-left:0}
 }
 .app-shell .file-picker{position:relative;cursor:pointer}
 .app-shell .file-picker input[type=file]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
