@@ -114,7 +114,8 @@ class CommissionEngineScalingTest extends TestCase
             }
         }
         $this->assertSame('395.00', $expected[$top->id]['bike']['raw_team_volume']);
-        $this->assertSame('175.00', $expected[$left->id]['bike']['raw_team_volume']);
+        // The leader's own purchases count toward the bike and the car too (owner's rule of 2026-11-21).
+        $this->assertSame('275.00', $expected[$left->id]['bike']['raw_team_volume']);
     }
 
     public function test_milestone_refresh_reads_team_volumes_once_however_deep_the_chain(): void
@@ -135,7 +136,8 @@ class CommissionEngineScalingTest extends TestCase
         });
         app(CommissionQualification::class)->refreshMilestonesFor($leaders);
 
-        $this->assertSame(1, $volumeScans);
+        // One scan for every leader's team and one for every leader's own purchases, however deep the chain.
+        $this->assertSame(2, $volumeScans);
         $this->assertSame(array_fill(0, 12, '100.00'), array_values($this->bikeVolumes($leaders)));
     }
 
