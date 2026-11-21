@@ -52,10 +52,10 @@
    "district": "Madaripur",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Dashar",
    "source_url": null,
-   "confidence": "low",
-   "note": "The place list holds no union under this upazila (the upazila is new); nothing to choose from. The office can add its unions by hand in the Place codes panel."
+   "confidence": "medium",
+   "note": "Resolved 2026-11-21: its unions now sit under it in the place list (moved by code, source in bangladesh-place-fixes.json), so the name rule gives the base place: the union Dashar (Dasar). Not a source statement of the headquarters union."
   },
   {
    "code": "1043",
@@ -404,10 +404,10 @@
    "district": "Coxsbazar",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Eidgaon",
    "source_url": null,
-   "confidence": "low",
-   "note": "The place list holds no union under this upazila (new upazila); a union named Eidgaon still sits under Coxsbazar Sadar. The office can add its unions by hand in the Place codes panel."
+   "confidence": "medium",
+   "note": "Resolved 2026-11-21: its unions now sit under it in the place list (moved by code, source in bangladesh-place-fixes.json), so the name rule gives the base place: the union Eidgaon. Not a source statement of the headquarters union."
   },
   {
    "code": "1207",
@@ -448,10 +448,10 @@
    "district": "Khagrachhari",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Guimara",
    "source_url": null,
-   "confidence": "low",
-   "note": "The place list holds no union under this upazila (new upazila); a union named Guimara still sits under Matiranga. The office can add its unions by hand in the Place codes panel."
+   "confidence": "medium",
+   "note": "Resolved 2026-11-21: its unions now sit under it in the place list (moved by code, source in bangladesh-place-fixes.json), so the name rule gives the base place: the union Guimara. Not a source statement of the headquarters union."
   },
   {
    "code": "1225",
@@ -800,10 +800,10 @@
    "district": "Sunamganj",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Madhyanagar",
    "source_url": null,
-   "confidence": "low",
-   "note": "The place list holds no union under this upazila (new upazila); a union named Madhyanagar still sits under Dharmapasha. The office can add its unions by hand in the Place codes panel."
+   "confidence": "medium",
+   "note": "Resolved 2026-11-21: its unions now sit under it in the place list (moved by code, source in bangladesh-place-fixes.json), so the name rule gives the base place: the union Madhyanagar. Not a source statement of the headquarters union."
   },
   {
    "code": "1445",
