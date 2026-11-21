@@ -2,6 +2,8 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Models\Prescription;
 use App\Support\Money;
 use App\Support\MoneyTable;
@@ -237,7 +239,7 @@ final class TreasuryFunds
         if (in_array($fund, ['company_share', 'benefits'], true)) {
             $rows = $this->batchRows($fund);
 
-            return $fund === 'company_share' ? $rows->unionAll($this->clinicRows('p.manufacturer_share', 'p.manufacturer_share > 0')) : $rows;
+            return $fund === 'company_share' ? $rows->unionAll($this->clinicRows('p.manufacturer_share', 'p.manufacturer_share > 0')) : $rows->unionAll($this->splitRemainderRows());
         }
         if ($fund === 'clinic') {
             return $this->clinicRows('p.clinic_fund', 'p.clinic_fund > 0');
@@ -261,6 +263,15 @@ final class TreasuryFunds
         return DB::table('commission_batches as b')->join('orders as o', 'o.id', '=', 'b.order_id')->leftJoin('users as u', 'u.id', '=', 'o.user_id')
             ->where($column, '>', 0)->whereColumn('b.refunded_amount', '<', 'b.cash_basis')
             ->selectRaw("('b-' || b.id::text) AS id, b.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, ROUND({$column} * (b.cash_basis - b.refunded_amount) / NULLIF(b.cash_basis, 0), 2) AS amount, '".($company ? 'company_share' : 'owners_share')."' AS category, {$percent} AS percent, '".($company ? 'mrp' : 'paid')."' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, NULL AS reason, NULL AS reason_key");
+    }
+
+    /** The paisa left over by the month close's equal splits, which also go to the Commission extra fund (own reason). */
+    private function splitRemainderRows(): Builder
+    {
+        return DB::table('commission_allocations as funds')->leftJoin('orders as o', 'o.id', '=', 'funds.order_id')
+            ->where('funds.category', RetainedFundLedger::BenefitsCategory)->where('funds.status', '!=', 'reversed')->where('funds.amount', '>', 0)
+            ->where('funds.metadata->source', CommissionSettlement::SplitRemainder)
+            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, NULL AS partner_name, NULL AS partner_code, NULL AS partner_role, funds.amount, funds.category, NULL::numeric AS percent, NULL AS percent_of, NULL::numeric AS mrp_total, NULL::numeric AS paid, funds.metadata->>'reason' AS reason, funds.metadata->>'reason_key' AS reason_key");
     }
 
     private function clinicRows(string $amount, string $condition): Builder
