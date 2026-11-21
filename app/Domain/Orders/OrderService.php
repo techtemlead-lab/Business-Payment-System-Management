@@ -945,7 +945,9 @@ class OrderService
     /**
      * "Account balance + another way": the usable balance pays first and a second method pays
      * the rest. The balance is read again here, under the money lock, so what the form showed
-     * never decides anything. When the balance covers the whole order it pays it all.
+     * never decides anything. When the balance covers the whole order it pays it all, unless the
+     * buyer set a smaller wallet part (`account_amount`): then only that is taken and the rest must
+     * come another way. A wallet part above the usable balance is refused, never cut down quietly.
      *
      * @param  array<string, mixed>  $data
      * @return array{0: int, 1: bool} Paisa taken from the account, and whether that settled the whole order.
@@ -955,6 +957,21 @@ class OrderService
         $accounts = app(AccountOrderPayment::class);
         CommissionWallet::lock();
         $part = $accounts->usableFor($buyer, $totalCents);
+        $wanted = isset($data['account_amount']) && (string) $data['account_amount'] !== '' ? Money::cents((string) $data['account_amount']) : null;
+        if ($wanted !== null) {
+            if ($wanted <= 0 || $wanted > $totalCents) {
+                throw ValidationException::withMessages(['account_amount' => __('order_payment.err_wallet_part_range', [
+                    'total' => LocalDigits::text(Money::grouped(Money::decimal($totalCents))),
+                ])]);
+            }
+            if ($wanted > $part) {
+                throw ValidationException::withMessages(['account_amount' => __('order_payment.err_wallet_part_over', [
+                    'balance' => LocalDigits::text(Money::grouped(Money::decimal($part))),
+                    'part' => LocalDigits::text(Money::grouped(Money::decimal($wanted))),
+                ])]);
+            }
+            $part = $wanted;
+        }
         if ($part >= $totalCents) {
             $accounts->pay($order, $buyer, $submittedBy);
 

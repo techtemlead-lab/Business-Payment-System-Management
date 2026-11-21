@@ -55,6 +55,8 @@ class StoreOrderRequest extends FormRequest
             'payment_account_id' => ['nullable', self::ServerSetsPayment, 'integer', 'exists:payment_accounts,id'],
             // "Use my account balance first": the balance pays part, the chosen method pays the rest.
             'use_account' => ['nullable', 'boolean', 'prohibited_if:channel,Account'],
+            // How much of the wallet to use with "use_account"; left out, as much as the wallet holds.
+            'account_amount' => ['nullable', 'prohibited_if:channel,Account', 'regex:/^\d{1,12}(\.\d{1,2})?$/D'],
             'channel' => ($paidWithOrder ? 'required' : 'nullable|required_with:reference').'|in:bKash,Nagad,Rocket,Bank,Office,Account',
             'amount' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', 'regex:/^\d{1,12}(\.\d{1,2})?$/D'],
             'proof' => [...$this->paymentDetailRules($paidWithOrder), 'required_with:reference', ...explode('|', PaymentProof::Rules)],

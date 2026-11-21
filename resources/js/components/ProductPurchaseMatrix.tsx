@@ -336,16 +336,29 @@ export default function ProductPurchaseMatrix({
     }, [channelAccounts, f.data.payment_account_id]);
 
     const accountBalance = Number(payOptions.account_available);
-    // The account balance is offered only when it can be spent and holds something.
+    // The wallet is always listed; it can be picked only when it can be spent and holds something.
     const accountOffered = payOptions.account_usable && accountBalance > 0;
-    const accountAfter = accountBalance - cartSummary.totalPayable;
-    const accountIsShort = paisa(cartSummary.totalPayable) > paisa(accountBalance);
-    // Not enough in the account for the whole order: the balance pays part and a second method pays the rest.
-    const splitOn = accountChosen && accountOffered && accountIsShort;
+    const accountOptionNote = accountOffered ? '' : translate('order_payment', payOptions.account_block === 'off'
+        ? 'wallet_option_off'
+        : payOptions.account_block === 'debt' ? 'wallet_option_debt' : 'wallet_option_empty');
+    // The most the wallet can pay: all it holds, or the whole order when it holds more.
+    const walletMax = Math.min(paisa(accountBalance), paisa(cartSummary.totalPayable)) / 100;
+    // The partner may use less than the most; until they type a figure the most is used.
+    const [walletPartText, setWalletPartText] = useState<string | null>(null);
+    const walletPart = walletPartText === null ? walletMax : Number(walletPartText);
+    const walletPartProblem = !accountChosen || walletPartText === null ? null
+        : !Number.isFinite(walletPart) || paisa(walletPart) <= 0 ? translate('order_payment', 'wallet_part_too_little')
+        : paisa(walletPart) > paisa(walletMax) ? translate('order_payment', 'wallet_part_too_much', { max: money(walletMax) })
+        : null;
+    /** The server's word on the wallet part (for example the balance dropped meanwhile). */
+    const walletPartError = (f.errors as Record<string, string | undefined>).account_amount;
+    const accountAfter = accountBalance - walletPart;
+    // The wallet pays less than the order (it holds less, or the partner chose less): a second method pays the rest.
+    const splitOn = accountChosen && accountOffered && paisa(walletPart) < paisa(cartSummary.totalPayable);
     const paysFromAccount = accountChosen && !splitOn;
     const paysAtOffice = moneyChannel === OFFICE_CHANNEL;
     const serverSetsPayment = paysFromAccount || paysAtOffice;
-    const splitRest = (paisa(cartSummary.totalPayable) - paisa(accountBalance)) / 100;
+    const splitRest = (paisa(cartSummary.totalPayable) - paisa(walletPart)) / 100;
     const budgetLeft = budget === null ? 0 : budget - cartSummary.totalPayable;
 
     // The balance can drop to nothing while this page stays open: step back to a normal method, not a dead choice.
@@ -376,7 +389,7 @@ export default function ProductPurchaseMatrix({
     const [confirm, setConfirm] = useState<null | { before: number; status: 'checking' | 'ready' | 'failed' }>(null);
     const askToConfirm = (e: React.FormEvent) => {
         e.preventDefault();
-        if (cart.length === 0) return;
+        if (cart.length === 0 || walletPartProblem !== null) return;
         setConfirm({ before: accountBalance, status: 'checking' });
         let refreshed = false;
         router.reload({
@@ -396,7 +409,8 @@ export default function ProductPurchaseMatrix({
                 quantity: item.quantity,
             })),
             channel: paysFromAccount ? ACCOUNT_CHANNEL : moneyChannel,
-            ...(splitOn ? { use_account: true } : {}),
+            // The wallet part is sent as shown, so the server takes exactly that or refuses.
+            ...(splitOn ? { use_account: true, account_amount: walletPart.toFixed(2) } : {}),
             note: orderNote.shown ? f.data.note : undefined,
             courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
             ...(serverSetsPayment ? {} : {
@@ -979,20 +993,61 @@ export default function ProductPurchaseMatrix({
                                             </option>
                                         ))}
                                         <option value={OFFICE_CHANNEL}>{translate('portal', 'pay_channel_office')}</option>
-                                        {accountOffered && (
-                                            <option value={ACCOUNT_CHANNEL}>{translate('portal', 'pay_channel_account')} ({money(accountBalance)})</option>
-                                        )}
+                                        <option value={ACCOUNT_CHANNEL} disabled={!accountOffered} data-testid="wallet-option">
+                                            {translate('portal', 'pay_channel_account')} ({money(accountBalance)}){accountOptionNote ? ` ${accountOptionNote}` : ''}
+                                        </option>
                                     </select>
-                                    {paysAtOffice && <small className="field-hint">{translate('order_payment', 'method_office_hint')}</small>}
-                                    {paysFromAccount && <small className="field-hint">{translate('order_payment', 'method_account_hint')}</small>}
+                                    {paysAtOffice && !accountChosen && <small className="field-hint">{translate('order_payment', 'method_office_hint')}</small>}
+                                    {accountChosen && <small className="field-hint">{translate('order_payment', 'method_account_hint')}</small>}
+                                    {payOptions.account_block !== 'off' && (
+                                        <small className="field-hint" data-testid="wallet-usable">
+                                            {translate('order_payment', 'wallet_usable_line', { amount: money(accountBalance) })} {translate('order_payment', 'wallet_usable_note')}
+                                        </small>
+                                    )}
                                     {payOptions.account_block === 'debt' && <small className="field-hint is-warn" role="status">{translate('order_payment', 'account_block_debt')}</small>}
                                 </label>
 
-                                {/* Account balance is less than the order: say what is taken and ask how the rest is paid. */}
+                                {/* Paying from the wallet: how much, and what is still to pay. Less than the order means a second method. */}
+                                {accountChosen && accountOffered && (
+                                    <div data-testid="wallet-part">
+                                        <label>
+                                            {translate('order_payment', 'wallet_part_label')}
+                                            <input
+                                                type="number"
+                                                inputMode="decimal"
+                                                min="0.01"
+                                                step="0.01"
+                                                max={walletMax.toFixed(2)}
+                                                value={walletPartText ?? walletMax.toFixed(2)}
+                                                aria-invalid={walletPartProblem !== null}
+                                                onChange={e => setWalletPartText(e.target.value)}
+                                            />
+                                            <small className="field-hint">{translate('order_payment', 'wallet_part_hint', { max: money(walletMax) })}</small>
+                                            {walletPartProblem && <span className="field-error" role="alert">{walletPartProblem}</span>}
+                                            {walletPartError && <span className="field-error" role="alert">{walletPartError}</span>}
+                                        </label>
+                                        <div className="ppm-summary" data-testid="wallet-split-summary">
+                                            <div>
+                                                <small className="ppm-sum-label">{translate('order_payment', 'wallet_part_from')}</small>
+                                                <strong className="ppm-sum-value">{money(walletPartProblem ? 0 : walletPart)}</strong>
+                                            </div>
+                                            <div>
+                                                <small className="ppm-sum-label">{translate('order_payment', 'account_after')}</small>
+                                                <strong className="ppm-sum-value">{money(walletPartProblem ? accountBalance : Math.max(0, accountAfter))}</strong>
+                                            </div>
+                                            <div className="ppm-sum-net">
+                                                <small className="ppm-sum-label">{translate('order_payment', 'wallet_part_rest')}</small>
+                                                <strong className="ppm-sum-value is-net">{money(walletPartProblem ? cartSummary.totalPayable : Math.max(0, splitRest))}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* The wallet pays less than the order: say what is taken and ask how the rest is paid. */}
                                 {splitOn && (
                                     <div data-testid="split-pay">
-                                        <p className="field-hint" role="status" data-testid="split-summary">
-                                            {translate('order_split', 'split_message', { balance: money(accountBalance), rest: money(splitRest) })}
+                                        <p className="field-hint is-warn" role="status" data-testid="split-summary">
+                                            {translate('order_payment', 'wallet_part_rest_needed', { rest: money(splitRest) })}
                                         </p>
                                         <label>
                                             {translate('order_split', 'rest_method')}
@@ -1083,23 +1138,6 @@ export default function ProductPurchaseMatrix({
                                 </>}
                             </div>
 
-                            {paysFromAccount && (
-                                <div className="ppm-summary" data-testid="account-pay-summary">
-                                    <div>
-                                        <small className="ppm-sum-label">{translate('order_payment', 'account_balance')}</small>
-                                        <strong className="ppm-sum-value">{money(accountBalance)}</strong>
-                                    </div>
-                                    <div>
-                                        <small className="ppm-sum-label">{translate('order_payment', 'account_cut')}</small>
-                                        <strong className="ppm-sum-value">{money(cartSummary.totalPayable)}</strong>
-                                    </div>
-                                    <div className="ppm-sum-net">
-                                        <small className="ppm-sum-label">{translate('order_payment', 'account_after')}</small>
-                                        <strong className="ppm-sum-value is-net">{money(Math.max(0, accountAfter))}</strong>
-                                    </div>
-                                </div>
-                            )}
-
                             {courierChoices.length > 0 && (
                                 <label>
                                     {translate('courier', 'order_form_label')}
@@ -1128,18 +1166,18 @@ export default function ProductPurchaseMatrix({
                             </label>}
 
                             {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
-                            <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice']} />
+                            <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice', 'account_amount']} />
 
                             <div className="ops-row is-end ops-mt-3">
                                 <button
                                     type="submit"
                                     className="button dark ppm-submit"
-                                    disabled={f.processing}
+                                    disabled={f.processing || walletPartProblem !== null}
                                 >
                                     {f.processing
                                         ? translate('portal', 'submitting')
                                         : splitOn
-                                            ? translate('order_split', 'submit', { balance: money(accountBalance), rest: money(splitRest) })
+                                            ? translate('order_split', 'submit', { balance: money(walletPart), rest: money(splitRest) })
                                             : paysFromAccount
                                             ? translate('order_payment', 'account_submit', { amount: money(cartSummary.totalPayable) })
                                             : translate('portal', 'submit_purchase_request')}
@@ -1178,7 +1216,7 @@ export default function ProductPurchaseMatrix({
                     : translate('portal', `pay_channel_${f.data.channel.toLowerCase()}`);
                 // The balance dropped while the page was open: the rest payment's details were never asked for, so go back first.
                 const restDetailsMissing = splitOn && !paysAtOffice && f.data.reference.trim() === '';
-                const sendBlocked = checking || failed || restDetailsMissing;
+                const sendBlocked = checking || failed || restDetailsMissing || walletPartProblem !== null;
                 return (
                     <Modal
                         title={page('confirm_title')}
@@ -1211,7 +1249,7 @@ export default function ProductPurchaseMatrix({
                                 <div data-testid="confirm-account">
                                     <p>{page('confirm_account_balance', { balance: money(accountBalance) })}</p>
                                     {balanceMoved && <p className="field-hint is-warn" role="status">{page('confirm_account_changed', { before: money(confirm.before), now: money(accountBalance) })}</p>}
-                                    {splitOn && <p>{page('confirm_account_split', { balance: money(accountBalance), rest: money(splitRest) })}</p>}
+                                    {splitOn && <p>{page('confirm_account_split', { balance: money(walletPart), rest: money(splitRest) })}</p>}
                                     {paysFromAccount && <p>{page('confirm_account_full', { amount: money(cartSummary.totalPayable), after: money(Math.max(0, accountAfter)) })}</p>}
                                     {restDetailsMissing && <p className="field-error" role="alert">{page('confirm_account_short')}</p>}
                                 </div>

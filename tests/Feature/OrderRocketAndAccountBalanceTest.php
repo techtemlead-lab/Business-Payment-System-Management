@@ -41,8 +41,8 @@ class OrderRocketAndAccountBalanceTest extends TestCase
     {
         $this->assertSame('Rocket', __('portal.pay_channel_rocket', [], 'en'));
         $this->assertSame('রকেট', __('portal.pay_channel_rocket', [], 'bn'));
-        $this->assertSame('Account balance', __('portal.pay_channel_account', [], 'en'));
-        $this->assertSame('অ্যাকাউন্ট ব্যালেন্স', __('portal.pay_channel_account', [], 'bn'));
+        $this->assertSame('Wallet / account balance', __('portal.pay_channel_account', [], 'en'));
+        $this->assertSame('ওয়ালেট / অ্যাকাউন্ট ব্যালেন্স', __('portal.pay_channel_account', [], 'bn'));
         foreach (['en', 'bn'] as $locale) {
             foreach (['split_message', 'rest_method', 'method_not_ready'] as $key) {
                 $this->assertNotSame('order_split.'.$key, __('order_split.'.$key, [], $locale));
@@ -106,7 +106,7 @@ class OrderRocketAndAccountBalanceTest extends TestCase
         $this->assertSame('200.00', (string) $order->paid);
         $payload = app(OrderInvoice::class)->payload($order, '');
         $lines = collect($payload['payments'])->map(fn (array $line): string => $line['channel'].' '.$line['amount'])->all();
-        $this->assertContains('Account balance 150.00', $lines);
+        $this->assertContains('Wallet / account balance 150.00', $lines);
         $this->assertContains('Rocket 50.00', $lines);
         $this->assertBooksAgree();
     }
