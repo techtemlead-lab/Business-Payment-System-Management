@@ -29,7 +29,7 @@ class OwedItemsController extends Controller
     public function cancel(Request $request, int $owedItem, OwedItems $owed): RedirectResponse
     {
         $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
-        $owed->cancelWithRefund($request->user(), $owedItem, ReasonFields::text($data['reason']) ?? '');
+        $owed->cancelWithRefund($request->user(), $owedItem, ReasonFields::text($data['reason']));
 
         return back()->with('success', __('owed_items.flash_refund_started'));
     }

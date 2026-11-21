@@ -381,6 +381,7 @@ final class PartnerDashboardHome
             array_push($rows, ...$ranks);
         }
         // Hidden until the company decides to show the sub-dealer tour fund again (see PartnerProgress::ShowTourFund).
+        // @phpstan-ignore if.alwaysFalse (a code switch, off until the company shows the tour fund again)
         if (PartnerProgress::ShowTourFund) {
             $isTourOn = CommissionPolicy::rate($rules, 'sub_dealer_tour')->basisPoints > 0;
             $rows[] = [
@@ -519,7 +520,7 @@ final class PartnerDashboardHome
      * The rank row of a dealer or sub-dealer: own purchases toward MO, then the direct-referral lines toward the next rank.
      *
      * @param  array<string, array<string, mixed>>  $rules
-     * @param  array<string, bool>|null  $controls  PartnerBenefitControls::for($user) when already read
+     * @param  array<string, bool|int|string|null>|null  $controls  PartnerBenefitControls::for($user) when already read
      * @return array<string, mixed>
      */
     private function rankTarget(User $user, array $rules, ?array $controls = null): array

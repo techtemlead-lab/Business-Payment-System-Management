@@ -80,6 +80,7 @@ final class PartnerProgress
                 ? $this->dealerRank($user, $rules, $month)
                 : null,
             'rewards' => DashboardManagement::partnerFeatureEnabled($user, 'rewards') ? $this->rewards($user, $rules) : [],
+            // @phpstan-ignore booleanAnd.leftAlwaysFalse (a code switch, off until the company shows the tour fund again)
             'tour' => self::ShowTourFund && $showSubDealerFunds ? $this->tour($user, $rules, $month) : null,
         ];
     }
@@ -107,7 +108,7 @@ final class PartnerProgress
             $division = match (true) {
                 $mine === null => null,
                 // One salary fund for all of Bangladesh (owner's rule of 2026-11-21).
-                ($mine['nationwide'] ?? false) === true => collect($plan['divisions'])->firstWhere('nationwide', true),
+                $mine['nationwide'] => collect($plan['divisions'])->firstWhere('nationwide', true),
                 $mine['division_id'] !== null => collect($plan['divisions'])->firstWhere('division_id', $mine['division_id']),
                 default => null,
             };

@@ -211,7 +211,7 @@ final class CommissionSettlement
      *
      * @param  list<int>  $fundIds
      * @param  array<string, mixed>  $context
-     * @return array{total: int, to_company_profit: int, distributed: array<int, int>, tiers: array<string, array{qualifiers: int, allocated_cents: int, reserve_cents: int}>, divisions: array<string, array<string, mixed>>}
+     * @return array{total: int, to_company_profit: int, to_extra_fund: int, distributed: array<int, int>, tiers: array<string, array{qualifiers: int, allocated_cents: int, reserve_cents: int}>, divisions: array<string, array<string, mixed>>}
      */
     private function settleChunk(array $fundIds, string $month, string $kind, array &$context): array
     {
@@ -428,8 +428,8 @@ final class CommissionSettlement
      *
      * @param  Collection<int, CommissionAllocation>|null  $pendingFunds
      * @return array{
-     *   divisions: list<array{division: string, division_id: int|null, pool: string, qualifiers: int, per_head: string, to_company_profit: string}>,
-     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, division_id: int|null, monthly_volume: string, share: string}>,
+     *   divisions: list<array{division: string, division_id: int|null, pool: string, qualifiers: int, nationwide: bool, per_head: string, to_company_profit: string, to_commission_extra_fund: string}>,
+     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, division_id: int|null, nationwide: bool, monthly_volume: string, share: string}>,
      *   dealer_pool: string, sub_dealer_salary: string, to_company_profit: string
      * }
      */
