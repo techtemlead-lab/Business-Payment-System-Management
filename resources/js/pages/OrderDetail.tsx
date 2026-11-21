@@ -215,6 +215,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ...(anyGivenBack ? [{ key: 'given_back', title: translate('orders_stock', 'kind_return'), align: 'right' as const, render: (line: Row) => number(line.returned ?? 0) }] : []),
                 ...(anyClosed ? [{ key: 'closed', title: translate('orders_stock', 'kind_cancel'), align: 'right' as const, render: (line: Row) => number(line.closed ?? 0) }] : []),
                 { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(unsentOf(line)) },
+                { key: 'mrp', title: translate('office_orders', 'col_mrp'), render: line => line.is_free || !Number(line.mrp) ? '—' : money(line.mrp) },
                 { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) },
                 { key: 'discount_pct', title: translate('portal', 'col_discount_pct'), align: 'right', render: line => {
                     const percent = orderLineDiscountPercent(line);

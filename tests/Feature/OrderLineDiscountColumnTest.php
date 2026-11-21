@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
@@ -53,7 +54,7 @@ class OrderLineDiscountColumnTest extends TestCase
         $order = $this->placeOrder($dealer, $product);
         $order->lines()->update(['mrp' => '200.00', 'unit_price' => '125.00', 'total' => '125.00']);
 
-        $payload = app(\App\Domain\Orders\OrderInvoice::class)->payload($order->fresh(), 'dealer');
+        $payload = app(OrderInvoice::class)->payload($order->fresh(), 'dealer');
 
         $this->assertSame('37.5%', $payload['lines'][0]['remark']);
     }
