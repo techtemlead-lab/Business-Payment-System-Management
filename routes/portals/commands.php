@@ -28,6 +28,7 @@ use App\Http\Controllers\PartnerFileController;
 use App\Http\Controllers\PartnerPayoutAccountController;
 use App\Http\Controllers\PartnerProfileController;
 use App\Http\Controllers\PartnerRegistrationFormController;
+use App\Http\Controllers\PayoutBatchController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\PrescriberPublicToolsController;
 use App\Http\Controllers\PrescriberVerificationController;
@@ -251,6 +252,10 @@ return function (string $portal): void {
     Route::get('/commands/withdrawals/{id}/facts', [WithdrawalController::class, 'facts'])->whereUuid('id')->middleware('throttle:60,1');
     Route::post('/commands/withdrawals/{id}/payer', [WithdrawalController::class, 'payer'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/attach-receipt', [WithdrawalController::class, 'attachReceipt'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/not-sent', [PayoutBatchController::class, 'notSent'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/returned', [WithdrawalController::class, 'recordReturn'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/returned/confirm', [WithdrawalController::class, 'confirmReturn'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/returned/cancel', [WithdrawalController::class, 'cancelReturn'])->whereUuid('id');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);

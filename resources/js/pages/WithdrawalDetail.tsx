@@ -18,7 +18,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
     };
 
     const status = (w.status || 'requested').toLowerCase();
-    const isTerminal = ['paid', 'rejected'].includes(status);
+    const isTerminal = ['paid', 'rejected', 'returned'].includes(status);
     const inFlight = ['requested', 'processing', 'approved'].includes(status);
 
     const reviewEvent = events.find((e) => e.event === 'review' || String(e.event).includes('review') || String(e.event).includes('approve') || String(e.event).includes('reject'));
@@ -84,6 +84,12 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
         step3Badge = t('stage_badge_settled', 'Paid & Settled');
         step3Icon = <Check size={16} />;
         step3Desc = w.payment_reference ? `${t('col_reference', 'Ref')}: ${w.payment_reference}` : t('wd_desc_settled_confirmed', 'Payout completed & settled');
+    } else if (status === 'returned') {
+        // Paid, then the money came back and went to the wallet again.
+        step3State = 'completed';
+        step3Badge = translate('payouts', 'status_returned');
+        step3Icon = <XCircle size={16} />;
+        step3Desc = translate('payouts', 'notice_returned_title');
     } else if (status === 'approved' || status === 'processing') {
         step3State = 'active';
         step3Badge = t('stage_badge_disbursing', 'Disbursing');
@@ -96,7 +102,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
         badge: step3Badge,
         state: step3State,
         icon: step3Icon,
-        time: w.paid_at,
+        time: status === 'returned' ? w.returned_at : w.paid_at,
         desc: step3Desc,
     };
 
@@ -316,7 +322,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     )}
                     {isTerminal && (
                         <span className={`hub-pill tps-end-pill ${status === 'paid' ? 'tone-ok' : 'tone-danger'}`}>
-                            {status === 'paid' ? t('stage_settled', 'Settled') : t('stage_rejected', 'Rejected')}
+                            {status === 'paid' ? t('stage_settled', 'Settled') : status === 'returned' ? translate('payouts', 'status_returned') : t('stage_rejected', 'Rejected')}
                         </span>
                     )}
                 </div>
@@ -365,6 +371,12 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     });
     const isCash = form.data.method === 'cash';
     const paymentNote = useReasonField('money.withdrawal_settle');
+    // Bank-file and money-came-back steps are named in the payouts words; the rest as before.
+    const eventLabel = (event: string): string => {
+        const key = `event_label_${event}`;
+        const named = translate('payouts', key);
+        return named !== key ? named : label(event, translate);
+    };
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
     const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'], headers: backgroundRefreshHeaders }, { autoStart: inFlight });
@@ -383,7 +395,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <h2>{money(w.amount)}</h2>
                     <p>{translate('portal', 'wd_requested')} {date(w.created_at)} · {channelName(w.channel, translate)}</p>
                 </div>
-                <Badge status={w.status} />
+                {w.status === 'returned' ? <span className="badge rejected">{translate('payouts', 'status_returned')}</span> : <Badge status={w.status} />}
             </div>
             <AmountWords amount={w.amount} />
             {w.on_hold && <div className="notice" role="status"><p>{translate('payouts', isPartnerDesk ? 'partner_on_hold' : 'on_hold_badge')}</p></div>}
@@ -439,11 +451,47 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
-                        <i /><div><b>{label(String(e.event), translate)} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
+                        <i /><div><b>{eventLabel(String(e.event))} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
                     </div>
                 ))}
             </section>
-            {finance && w.status === 'approved' && (
+            {/* Paid money that came back: one person records it, a second confirms or takes it back. */}
+            {finance && w.status === 'paid' && w.return_state && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('payouts', 'return_title')}</h2>
+                    {w.return_note && <p className="muted">{translate('payouts', 'return_recorded_line', { note: String(w.return_note) })}</p>}
+                    {w.return_state === 'record' && <>
+                        <p className="muted">{translate('payouts', 'return_body')}</p>
+                        <ActionForm action={`/commands/withdrawals/${w.id}/returned`} fields={[{ name: 'note', label: translate('payouts', 'return_note'), type: 'textarea', required: true }]} submit={translate('payouts', 'return_save')} />
+                    </>}
+                    {w.return_state === 'confirm' && <>
+                        <p className="notice" role="status">{translate('payouts', 'return_confirm_body', { amount: money(w.amount) })}</p>
+                        <ActionForm action={`/commands/withdrawals/${w.id}/returned/confirm`} fields={[{ name: 'note', label: translate('payouts', 'return_confirm_note'), type: 'textarea', required: true }]} submit={translate('payouts', 'return_confirm_save')} />
+                    </>}
+                    {w.return_state === 'wait_second' && <p className="notice" role="status">{translate('payouts', 'return_wait_second')}</p>}
+                    {w.return_state === 'wait_owner' && <p className="notice" role="status">{translate('payouts', 'return_wait_owner')}</p>}
+                    {(w.return_state === 'confirm' || w.return_state === 'wait_second') && (
+                        <ActionForm action={`/commands/withdrawals/${w.id}/returned/cancel`} fields={[{ name: 'note', label: translate('payouts', 'return_cancel_note'), type: 'textarea', required: true }]} submit={translate('payouts', 'return_cancel_button')} />
+                    )}
+                </section>
+            )}
+            {/* In a file sent to the bank the money may already be on its way: no rejecting until the bank answers. */}
+            {finance && w.status === 'approved' && w.exported_at && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('payouts', 'not_sent_title')}</h2>
+                    <p className="notice" role="status">{translate('payouts', 'in_bank_file_badge', { batch: String(w.payout_batch_id ?? '').slice(0, 8).toUpperCase() })}</p>
+                    <p className="muted">{translate('payouts', 'not_sent_body')}</p>
+                    {w.not_sent_note && <p className="muted">{translate('payouts', 'not_sent_recorded_line', { note: String(w.not_sent_note) })}</p>}
+                    {w.not_sent_state === 'wait_second' && <p className="notice" role="status">{translate('payouts', 'not_sent_wait_second')}</p>}
+                    {w.not_sent_state === 'wait_owner' && <p className="notice" role="status">{translate('payouts', 'not_sent_wait_owner')}</p>}
+                    {(w.not_sent_state === 'record' || w.not_sent_state === 'confirm') && <ActionForm
+                        action={`/commands/withdrawals/${w.id}/not-sent`}
+                        fields={[{ name: 'note', label: translate('payouts', 'not_sent_note'), type: 'textarea', required: true }]}
+                        submit={translate('payouts', w.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_save')}
+                    />}
+                </section>
+            )}
+            {finance && w.status === 'approved' && !w.exported_at && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_review_title')}</h2>
                     <ActionForm

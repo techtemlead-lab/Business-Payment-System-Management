@@ -239,6 +239,8 @@ class EnforceStaffActions
             'FinancialPreviewController' => [['finance'], 'view'],
             'CommissionPageController' => [['finance'], $method === 'split' ? 'view' : 'create'],
             'WithdrawalController' => [['finance'], $method === 'limits' ? 'edit' : 'approve'],
+            // A new bank file is a finance download, as on the accounting page; "the bank did not send it" is a payout decision.
+            'PayoutBatchController' => [['finance'], $method === 'notSent' ? 'approve' : 'create'],
             'InventoryController' => [['inventory'], 'create'],
             'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {
