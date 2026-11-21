@@ -58,6 +58,8 @@ final class AccountingStatements
         'opening_receivables' => self::Asset,
         'commission_clawback_receivable' => self::Asset,
         'company_reserve_clawback_receivable' => self::Asset,
+        // Bike or car prizes paid in advance, owed by the partner until the prize is earned (PrizeAdvances).
+        'prize_advance_receivable' => self::Asset,
         'clinic_cash' => self::Asset,
         'wallet_liability' => self::Liability,
         'commission_held_liability' => self::Liability,

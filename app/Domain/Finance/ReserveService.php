@@ -131,8 +131,12 @@ final class ReserveService
                 if (in_array($row->program, ['bike', 'car'], true)) {
                     $this->assertRuleAmount($row->program, (string) $row->amount);
                 }
-                $remaining = Money::cents($row->amount);
-                foreach ($this->funds($row->program, $row->user_id) as $fund) {
+                // A bike or car prize the partner already had in advance is set against that advance first: that part is
+                // neither taken from the fund again nor paid to the wallet (PrizeAdvances, owner decision 2026-11-22).
+                $setAgainstAdvance = in_array($row->program, VehiclePools::Programs, true)
+                    ? app(PrizeAdvances::class)->settleAgainstAward($row, Money::cents($row->amount), $actor->id) : 0;
+                $remaining = Money::cents($row->amount) - $setAgainstAdvance;
+                foreach ($remaining > 0 ? $this->funds($row->program, $row->user_id) : [] as $fund) {
                     $inPool = in_array($row->program, VehiclePools::Programs, true);
                     $amount = min($remaining, $inPool ? app(VehiclePools::class)->remainingFor($fund, $row->program) : $this->remaining($fund));
                     if ($amount <= 0) {
@@ -157,8 +161,10 @@ final class ReserveService
                         ? __('money_core.vehicle_pool_short', ['program' => __('portal.prc_reserve_program_'.$row->program)])
                         : __('portal.err_reserve_insufficient')]);
                 }
-                if ($row->program !== 'marketing') {
-                    $amount = Money::cents($row->amount);
+                $toWallet = Money::cents($row->amount) - $setAgainstAdvance;
+                if ($row->program !== 'marketing' && $toWallet > 0) {
+                    $amount = $toWallet;
+                    $amountText = Money::decimal($toWallet);
                     $locale = User::find($row->user_id)?->preferredLocale() ?? app()->getLocale();
                     $programLabel = __('portal.reward_program_'.$row->program, [], $locale);
                     if ($programLabel === 'portal.reward_program_'.$row->program) {
@@ -176,11 +182,10 @@ final class ReserveService
                         __('portal.notice_reward_credited_title', [], $locale),
                         __('portal.notice_reward_credited_body', [
                             'program' => $programLabel,
-                            'amount' => $row->amount,
+                            'amount' => $amountText,
                         ], $locale),
                     );
                     $userId = (int) $row->user_id;
-                    $amountText = (string) $row->amount;
                     $program = (string) $row->program;
                     DB::afterCommit(function () use ($userId, $program, $amountText): void {
                         $partner = User::find($userId);
@@ -196,11 +201,12 @@ final class ReserveService
                             ]),
                         );
                     });
-                    if (in_array($row->program, ['bike', 'car'], true)) {
-                        $this->qualification->refreshMilestones($row->user_id);
-                        DB::table('reward_milestone_progress')->where('user_id', $row->user_id)->where('milestone_type', $row->program)
-                            ->update(['claimed' => true, 'claimed_at' => now(), 'updated_at' => now()]);
-                    }
+                }
+                // The prize counts as given once, whether it went to the wallet, against an advance, or both.
+                if (in_array($row->program, ['bike', 'car'], true)) {
+                    $this->qualification->refreshMilestones($row->user_id);
+                    DB::table('reward_milestone_progress')->where('user_id', $row->user_id)->where('milestone_type', $row->program)
+                        ->update(['claimed' => true, 'claimed_at' => now(), 'updated_at' => now()]);
                 }
             }
             DB::table('reserve_disbursements')->where('id', $id)->update(['status' => $decision === 'approved' && $row->program !== 'marketing' ? 'credited' : $decision,

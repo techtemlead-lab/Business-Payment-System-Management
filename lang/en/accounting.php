@@ -292,4 +292,5 @@ return [
     'err_payable_cancel' => 'Only the person who recorded it, or an owner, can take it back before approval.',
     'err_payable_reference_used' => 'This receipt number is already recorded.',
     'err_payable_future_date' => 'The date cannot be in the future.',
+    'account_prize_advance_receivable' => 'Bike/car prizes paid in advance (owed by partners)',
 ];

@@ -292,4 +292,5 @@ return [
     'err_payable_cancel' => 'শুধু যিনি লিখেছেন বা মালিক, অনুমোদনের আগে এটি ফিরিয়ে নিতে পারেন।',
     'err_payable_reference_used' => 'এই রসিদ নম্বর আগেই লেখা আছে।',
     'err_payable_future_date' => 'আগামী দিনের তারিখ দেওয়া যাবে না।',
+    'account_prize_advance_receivable' => 'আগে দেওয়া বাইক/কারের পুরস্কার (পার্টনারের কাছে পাওনা)',
 ];

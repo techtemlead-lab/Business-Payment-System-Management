@@ -318,7 +318,7 @@ final class TreasuryFunds
             ->whereIn('r.status', ['approved', 'paid']))
             ->groupBy('r.id', 'h.name_bn', 'h.name_en', 'partner.name')
             ->havingRaw('SUM(s.amount - s.reversed_amount) <> 0')
-            ->selectRaw("('s-' || r.id::text) AS id, COALESCE(r.spent_on::timestamp, r.paid_at, r.created_at) AS date, 'spend' AS line_kind, COALESCE(h.name_bn, h.name_en, r.program) AS what_text, h.name_en AS what_en, COALESCE(r.payee_name, partner.name) AS payee, NULL::bigint AS partners, SUM(s.amount - s.reversed_amount) AS amount, r.payment_reference AS reference, CASE WHEN r.receipt_path IS NOT NULL THEN r.id END AS receipt_id, r.program AS kind");
+            ->selectRaw("('s-' || r.id::text) AS id, COALESCE(r.spent_on::timestamp, r.paid_at, r.created_at) AS date, 'spend' AS line_kind, CASE WHEN r.program = '".PrizeAdvances::Program."' THEN r.fund_key ELSE COALESCE(h.name_bn, h.name_en, r.program) END AS what_text, h.name_en AS what_en, COALESCE(r.payee_name, partner.name) AS payee, NULL::bigint AS partners, SUM(s.amount - s.reversed_amount) AS amount, r.payment_reference AS reference, CASE WHEN r.receipt_path IS NOT NULL THEN r.id END AS receipt_id, r.program AS kind");
     }
 
     /** Payouts to partners from rows still open, one line per kind and month. */
@@ -384,6 +384,9 @@ final class TreasuryFunds
         }
         if ($row->line_kind === 'partners') {
             return $this->payoutWord((string) $row->kind);
+        }
+        if ($row->kind === PrizeAdvances::Program) {
+            return (string) __('prize_advances.out_what', ['kind' => (string) __('prize_advances.kind_'.$row->what_text)]);
         }
         $name = app()->getLocale() === 'en' && $row->what_en ? (string) $row->what_en : (string) $row->what_text;
 

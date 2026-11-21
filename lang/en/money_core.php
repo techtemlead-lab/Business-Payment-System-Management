@@ -195,4 +195,6 @@ return [
     'task_payables_overdue' => 'Withheld tax or salary deductions not paid on for over :days days',
     'task_spends_overdue' => 'Fund spends waiting for a checker for over :days days',
     'reason_refund_rounding' => 'Paisa left over by rounding when an order was partly refunded',
+    'stale_kind_prize_advance_open' => 'Bike/car prizes paid in advance to partners who are not active',
+    'stale_where_prize_advance_open' => 'Money → Prize advances → Recovered, or Write off',
 ];

@@ -7,6 +7,7 @@ import { FundFigures, type FundCardData } from '../components/treasury/FundCard'
 import FundSpendForm, { FUNDS_COMMAND_ROOT, type FundSpendOptions } from '../components/treasury/FundSpendForm';
 import RewardLeaders, { VehiclePoolsPanel, type RewardAward, type RewardLeaderFigures, type RewardLeaderRow } from '../components/treasury/RewardLeaders';
 import { joined, percentText } from '../components/treasury/format';
+import { FundAdvancesPanel, type OpenAdvance } from '../components/treasury/PrizeAdvances';
 import { useT } from '../shared/i18n/t';
 
 type MoneyInRow = {
@@ -39,7 +40,7 @@ type MoneyOutRow = {
 type FundView = 'in' | 'out' | RewardAward;
 
 /** One fund: the same three cards as the Treasury home, then the money that came in or went out. The car and bike fund can also list leaders' progress. */
-export default function TreasuryFund({ card, view, table, spend, leaders }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow | RewardLeaderRow>; spend: FundSpendOptions | null; leaders: RewardLeaderFigures | null }) {
+export default function TreasuryFund({ card, view, table, spend, leaders, advances }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow | RewardLeaderRow>; spend: FundSpendOptions | null; leaders: RewardLeaderFigures | null; advances?: { open: OpenAdvance[]; can_give: boolean } | null }) {
     const translate = useT();
     const pageUrl = usePage().url;
     const path = pageUrl.split('?')[0];
@@ -110,6 +111,7 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
         >
             <FundFigures card={card} />
             {leaders && <VehiclePoolsPanel pools={leaders.pools} shown={leaders.shown} />}
+            {advances && <FundAdvancesPanel advances={advances} fundKey={card.key} />}
             <div className="office-switch" role="group" aria-label={card.name} ref={viewSwitch}>
                 {views.map((option) => (
                     <Link key={option.key} href={option.key === 'in' ? path : `${path}?view=${option.key}`} preserveScroll className={option.key === view ? 'is-active' : undefined} aria-current={option.key === view ? 'true' : undefined}>
