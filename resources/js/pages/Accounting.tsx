@@ -6,6 +6,7 @@ import { actionAllowed } from '../components/action-permissions';
 import { Badge, Pagination, Row, Table, dateTime, money } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonFields } from '../shared/reasonFields';
+import { randomUuid } from '../shared/randomUuid';
 
 type Translate = (key: string, replace?: Record<string, string | number>) => string;
 
@@ -143,7 +144,7 @@ function StatementCheck({ channels, history, statement, t }: Row & { t: Translat
     </>;
 }
 
-const newRequestKey = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now().toString(16).padStart(8, '0').slice(-8)}-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, '0')}`);
+const newRequestKey = () => randomUuid();
 
 function RemittanceDecision({ row, t }: { row: Row; t: Translate }) {
     const form = useForm({ decision: '', reason: '' });
