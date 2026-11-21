@@ -275,6 +275,8 @@ class EnforceStaffActions
             // Courier parcels: change courier, try a refused booking again, mark picked up. Courier or office
             // pickup changes like the courier; handing goods over at the office is a dispatch.
             'CourierShipmentController' => $method === 'officeHandover' ? [['inventory'], 'edit'] : [['inventory', 'order_review'], 'edit'],
+            // Owed goods: the dispatch desk records and sends them; a refund instead is a finance approval.
+            'OwedItemsController' => $method === 'cancel' ? [['finance'], 'approve'] : [['inventory'], 'edit'],
             'TrainingController', 'PartnerEventController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],

@@ -446,6 +446,9 @@
                 <td>{{ $line['sl'] }}</td>
                 <td class="name">
                     <div class="product-title">{{ $line['name'] }}</div>
+                    @if (! empty($line['owed_note']))
+                        <div class="product-meta"><strong>{{ $line['owed_note'] }}</strong></div>
+                    @endif
                     @if (! empty($line['strength']) || ! empty($line['sub_category']))
                         <div class="product-meta">
                             {{ collect([$line['sub_category'], $line['strength']])->filter()->implode(' • ') }}

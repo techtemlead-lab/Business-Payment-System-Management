@@ -34,6 +34,9 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(/^\/commands\/orders\/[^/]+\/returns\/start$/.test(path)||/^\/commands\/order-returns\/\d+\/(approve|reject)$/.test(path))return any(['order_review','finance'],'approve');
     if(/^\/commands\/order-returns\/\d+\/confirm$/.test(path))return any(['finance'],'approve');
     if(/\/dispatch$|\/delivered$|\/office-handover$/.test(path))return any(['inventory'],'edit');
+    // Owed goods: the dispatch desk records and sends them; a refund instead is a finance approval.
+    if(/^\/commands\/orders\/[^/]+\/owed(\/ship)?$/.test(path))return any(['inventory'],'edit');
+    if(/^\/commands\/owed-items\/\d+\/refund$/.test(path))return any(['finance'],'approve');
     // Courier parcels: change courier or courier/office pickup, try a refused booking again, mark picked up.
     if(/^\/commands\/orders\/[^/]+\/(courier|delivery-method|mixed-outcome-decision|shipments\/\d+\/(courier-retry|picked-up|received-back|manual-update))$/.test(path))return any(['inventory','order_review'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');

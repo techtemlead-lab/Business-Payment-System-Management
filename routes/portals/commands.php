@@ -19,6 +19,7 @@ use App\Http\Controllers\MessageTemplateController;
 use App\Http\Controllers\OfficeProfileController;
 use App\Http\Controllers\OrderCourierController;
 use App\Http\Controllers\OrderReturnController;
+use App\Http\Controllers\OwedItemsController;
 use App\Http\Controllers\PartnerAccountDeletionController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
@@ -147,6 +148,9 @@ return function (string $portal): void {
     Route::post('/commands/orders/{order}/mixed-outcome-decision', [CourierShipmentController::class, 'mixedOutcomeDecision'])->middleware('throttle:20,1');
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
     Route::post('/commands/orders/{order}/refund', [CommandController::class, 'refund'])->middleware('throttle:10,1');
+    Route::post('/commands/orders/{order}/owed', [OwedItemsController::class, 'record'])->middleware('throttle:30,1');
+    Route::post('/commands/orders/{order}/owed/ship', [OwedItemsController::class, 'shipWith'])->middleware('throttle:30,1');
+    Route::post('/commands/owed-items/{owedItem}/refund', [OwedItemsController::class, 'cancel'])->whereNumber('owedItem')->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/returns', [OrderReturnController::class, 'ask'])->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/received', [OrderReturnController::class, 'received'])->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/returns/start', [OrderReturnController::class, 'start'])->middleware('throttle:10,1');

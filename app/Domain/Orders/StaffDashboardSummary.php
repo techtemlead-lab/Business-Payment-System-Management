@@ -47,6 +47,7 @@ final class StaffDashboardSummary
         'orders_to_dispatch' => ['inventory'],
         'deliveries_overdue' => ['orders', 'inventory'],
         'back_orders_late' => ['inventory', 'order_review'],
+        'owed_items_open' => ['inventory'],
         'low_stock_products' => ['inventory'],
         'applications_to_review' => ['accounts'],
     ];
@@ -143,6 +144,13 @@ final class StaffDashboardSummary
                 'key' => 'low_stock_products',
                 'count' => array_sum(StockLevels::counts($branchScope)),
                 'section' => 'inventory',
+            ];
+            // Goods owed to partners who paid in full (owner's rule 2026-11-21): send them with the next order.
+            $queue[] = [
+                'key' => 'owed_items_open',
+                'label' => __('owed_items.dashboard_label'),
+                'count' => OwedItems::openQuery()->count(),
+                'section' => 'deliveries',
             ];
         }
         if (PartnerChat::canAnswer($viewer)) {

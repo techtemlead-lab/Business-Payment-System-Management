@@ -179,6 +179,8 @@ final class OrderInvoice
             $lines[] = [
                 'sl' => $index + 1,
                 'name' => $line->name,
+                // Owed goods sent free with this order (a free line with no scheme) name the order they came from.
+                'owed_note' => $isFreeLine && $line->getAttribute('dated_scheme_id') === null ? $line->getAttribute('scheme_title') : null,
                 'strength' => $product?->strength,
                 'sub_category' => $product?->sub_category,
                 'category' => $product?->category,
