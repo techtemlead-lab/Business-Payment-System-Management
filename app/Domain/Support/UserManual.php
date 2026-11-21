@@ -411,7 +411,7 @@ final class UserManual
             $this->ch('payouts_settlements', ['staff', 'owner'], 7, 2, 2, 2, ['payouts-hub', 'settlement', 'salary', 'rewards', 'পেআউট', 'সেটেলমেন্ট', 'নিষ্পত্তি']),
             $this->ch('ledger_audit_reports', ['staff', 'owner'], 4, 2, 1, 1, ['ledger', 'audit', 'reports', 'integrity', 'লেজার', 'অডিট', 'আইডিপোটেন্সি']),
             $this->ch('website_customization', ['staff', 'owner'], 7, 3, 3, 2, ['website', 'cms', 'banner', 'enquiries', 'partnerships', 'ওয়েবসাইট', 'সিএমএস', 'ব্যানার']),
-            $this->ch('owner_benefits_fund', ['owner'], 3, 1, 1, 1, ['benefits-fund', 'owner', 'equity', 'confidential', 'ওনার ফান্ড', 'লভ্যাংশ', 'এক্সিকিউটিভ']),
+            $this->ch('owner_benefits_fund', ['owner'], 3, 1, 1, 1, ['benefits-fund', 'owner', 'equity', 'confidential', 'ওনার ফান্ড', 'কমিশন এক্সট্রা', 'commission-extra', 'লভ্যাংশ', 'এক্সিকিউটিভ']),
             $this->ch('dual_dashboard', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['dual', 'switch', 'staff', 'partner', 'ড্যাশবোর্ড সুইচ', 'ডুয়াল']),
             $this->ch('financial_activation_gates', ['staff', 'owner'], 6, 3, 2, 3, ['activation', 'preview', 'opening_balance', 'readiness', 'আর্থিক সক্রিয়করণ', 'গো-লাইভ']),
             $this->ch('support', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 3, 1, ['support', 'ticket', 'help', 'manual', 'সাপোর্ট', 'টিকেট', 'হেল্প']),
