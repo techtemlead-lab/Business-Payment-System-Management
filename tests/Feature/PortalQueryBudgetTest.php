@@ -70,7 +70,9 @@ class PortalQueryBudgetTest extends TestCase
         // limits, and once for every owner-only count together. All three are fixed, never one per row.
         // 40-41: the recent-orders table names each partner's kind and place (one read of the dealer's area seats, one of the place codes).
         // 42: failed month closes are read from the database now, not the cache (owner, 2026-11-21).
-        $this->assertQueriesAtMost(42, $queries, 'owner dashboard');
+        // 48: the same round adds late fund spends (1), withheld tax and salary deductions still to pay (2 kinds,
+        // ledger and remittances: 4) and open owed goods (1) to the owner's home.
+        $this->assertQueriesAtMost(48, $queries, 'owner dashboard');
         $this->assertSame(1, $this->matching($queries, 'filter (where status in'), 'Order count, pending, today and money totals should come from one aggregate query.');
 
         foreach (range(1, 10) as $index) {
