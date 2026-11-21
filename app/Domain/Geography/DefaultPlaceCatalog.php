@@ -20,7 +20,7 @@ use RuntimeException;
  * the office to fill in. Running it again changes nothing.
  */
 /**
- * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>, upazilas: array{real: int, with_base: int, without_base: int, reasons: array<string, int>}}
+ * @phpstan-type PlaceSummary array{created: int, coded: int, filled: int, linked: int, codes_taken: list<string>, by_level: array<string, array<string, int>>, conflicts: list<array{code: string, level: string, name: string, held_by: string}>, base_empty: list<array{code: string, level: string, name: string, reason: string, candidates: list<string>, parent: string}>, base_set_list: list<array{code: string, level: string, name: string, base: string, rule: string}>, upazilas: array{real: int, with_base: int, without_base: int, reasons: array<string, int>}, fixes: list<array{step: string, code: string, name: string, status: string, detail: string}>}
  */
 final class DefaultPlaceCatalog
 {
@@ -103,7 +103,9 @@ final class DefaultPlaceCatalog
      */
     private function fill(array $payload): array
     {
-        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_set_list' => [], 'upazilas' => ['real' => 0, 'with_base' => 0, 'without_base' => 0, 'reasons' => []]];
+        $summary = ['created' => 0, 'coded' => 0, 'filled' => 0, 'linked' => 0, 'codes_taken' => [], 'by_level' => [], 'conflicts' => [], 'base_empty' => [], 'base_set_list' => [], 'upazilas' => ['real' => 0, 'with_base' => 0, 'without_base' => 0, 'reasons' => []], 'fixes' => []];
+        // Corrections of the older list first (moves, duplicate copies, metropolitan-area base places), so the matching below sees the right structure.
+        $summary['fixes'] = (new PlaceDataFixes)->apply();
         foreach (PlaceCode::Levels as $level) {
             $summary['by_level'][$level] = ['created' => 0, 'coded' => 0, 'taken' => 0, 'other_code' => 0, 'base_set' => 0];
         }

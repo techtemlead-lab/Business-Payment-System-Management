@@ -44,6 +44,12 @@ class SeedPlaceCodes extends Command
             ));
         }
 
+        $changes = array_values(array_filter($summary['fixes'], fn (array $f): bool => in_array($f['status'], ['done', 'referenced', 'skipped'], true)));
+        if ($changes !== []) {
+            $this->warn($dryRun ? 'Corrections of the older place list that WOULD be made:' : 'Corrections of the older place list made:');
+            $this->table(['Step', 'Code', 'Place', 'Status', 'Detail'], array_map(fn (array $f): array => [$f['step'], $f['code'], $f['name'], $f['status'], $f['detail']], $changes));
+        }
+
         $up = $summary['upazilas'];
         $this->line(sprintf('Upazilas (real ones only, metropolitan areas excluded): %d in total, %d with a base place, %d without.', $up['real'], $up['with_base'], $up['without_base']));
         if ($up['reasons'] !== []) {
