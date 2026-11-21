@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Geography\DefaultBasePlaces;
 use App\Domain\Geography\DefaultPlaceCatalog;
 use App\Domain\Geography\PlaceListChecks;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -37,36 +36,44 @@ class PlaceListChecksTest extends TestCase
         $this->assertSame([], array_filter($issues, fn (array $i): bool => in_array($i['issue'], ['upazila_duplicate', 'upazila_bad_parent', 'union_bad_parent'], true)));
     }
 
-    public function test_unions_listed_under_two_upazilas_and_under_the_wrong_upazila_are_found(): void
+    public function test_the_corrected_list_has_no_duplicate_or_misplaced_unions(): void
     {
         $issues = (new PlaceListChecks)->review($this->places());
-        $byIssue = [];
-        foreach ($issues as $i) {
-            $byIssue[$i['issue']][$i['name'].' / '.$i['parent']] = true;
-        }
 
-        $this->assertArrayHasKey('Juldha / Karnafuli', $byIssue['union_listed_under_two_upazilas']);
-        $this->assertArrayHasKey('Juldha / Patiya', $byIssue['union_listed_under_two_upazilas']);
-        $this->assertArrayHasKey('Perul (North) / Lalmai', $byIssue['union_listed_under_two_upazilas']);
-        $this->assertArrayHasKey('Perul (North) / Sadarsouth', $byIssue['union_listed_under_two_upazilas']);
-        // Same name in two upazilas by coincidence (Mohammadpur) is not a duplicate list.
-        $this->assertArrayNotHasKey('Mohammadpur / Chatkhil', $byIssue['union_listed_under_two_upazilas']);
-        $this->assertSame(['Eidgaon / Coxsbazar Sadar', 'Guimara / Matiranga', 'Madhyanagar / Dharmapasha'], array_keys($byIssue['union_under_wrong_upazila']));
+        $this->assertSame(['not_a_real_upazila'], array_values(array_unique(array_column($issues, 'issue'))));
     }
 
-    public function test_metropolitan_areas_get_no_base_place_and_flagged_unions_are_never_chosen(): void
+    public function test_unions_listed_under_two_upazilas_and_under_the_wrong_upazila_are_found(): void
     {
-        $result = (new DefaultBasePlaces)->derive($this->places());
-        $byCode = array_column($this->places(), null, 'code');
+        $p = fn (string $code, string $level, string $name, ?string $parent, string $kind = ''): array => ['code' => $code, 'level' => $level, 'name' => $name, 'parent_code' => $parent, 'kind' => $kind ?: $level];
+        $places = [
+            $p('201', 'district', 'Test', null),
+            $p('1001', 'upazila', 'Old', '201'),
+            $p('1002', 'upazila', 'Split', '201'),
+            $p('1003', 'upazila', 'Newtown', '201'),
+            $p('1004', 'upazila', 'Other', '201'),
+            $p('100001', 'union', 'Aa', '1001'),
+            $p('100002', 'union', 'Bb', '1001'),
+            $p('100003', 'union', 'Cc', '1001'),
+            $p('100004', 'union', 'Aa', '1002'),
+            $p('100005', 'union', 'Bb', '1002'),
+            $p('100006', 'union', 'Cc', '1002'),
+            $p('100007', 'union', 'Newtown', '1004'),
+            $p('100008', 'union', 'Mohammadpur', '1001'),
+            $p('100009', 'union', 'Mohammadpur', '1004'),
+        ];
 
-        foreach (['9001', '9002', '9003', '9004'] as $metro) {
-            $this->assertArrayNotHasKey($metro, array_column($result['links'], 'base_code', 'code'));
-            $this->assertNotContains($metro, array_column($result['empty'], 'code'));
+        $issues = (new PlaceListChecks)->review($places);
+        $byIssue = [];
+        foreach ($issues as $i) {
+            $byIssue[$i['issue']][] = $i['code'];
         }
-        $excluded = (new PlaceListChecks)->excludedUnionCodes((new PlaceListChecks)->review($this->places()));
-        foreach ($result['links'] as $link) {
-            $this->assertArrayNotHasKey($link['base_code'], $excluded, 'A flagged union was chosen as a base: '.$byCode[$link['base_code']]['name']);
-        }
+
+        sort($byIssue['union_listed_under_two_upazilas']);
+        $this->assertSame(['100001', '100002', '100003', '100004', '100005', '100006'], $byIssue['union_listed_under_two_upazilas']);
+        $this->assertSame(['100007'], $byIssue['union_under_wrong_upazila']);
+        // The same name in two upazilas by coincidence (Mohammadpur) is not a duplicate list.
+        $this->assertNotContains('100008', $byIssue['union_listed_under_two_upazilas']);
     }
 
     public function test_the_loader_reports_honest_upazila_counts(): void

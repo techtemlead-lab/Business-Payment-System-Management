@@ -66,8 +66,8 @@ class PlaceCodeNumberingRuleTest extends TestCase
             $this->assertGreaterThan($last[$place['kind']] ?? $from - 1, $number, 'Codes of one kind must increase in file order');
             $last[$place['kind']] = $number;
         }
-        // Three numbers (101276, 103655, 103939) are unused: codes are never renumbered, since live may already use them.
-        $this->assertSame(104540, $last['union']);
+        // 104541 (Sindukchhari) is the one number added after the first list. Three numbers (101276, 103655, 103939) are unused: codes are never renumbered, since live may already use them.
+        $this->assertSame(104541, $last['union']);
         $this->assertSame(500328, $last['pourashava']);
         $this->assertSame(600012, $last['city_corporation']);
     }
