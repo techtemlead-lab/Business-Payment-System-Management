@@ -68,6 +68,19 @@ class CommissionNamesInLangTest extends TestCase
         'বেতন ফান্ড',
         'বেতনের জমা ফান্ড',
         'বেতন রিজার্ভ',
+        // The owners' fund is now Commission extra (client, 2026-11-21)
+        'মালিক পক্ষের ফান্ড',
+        'মালিক পক্ষের বেনিফিট',
+        'মালিকদের সুবিধা',
+        'বিশেষ বেনিফিট',
+        'বেনিফিট ফান্ড',
+        'অতিরিক্ত সুবিধা ফান্ড',
+        'owners\' fund',
+        'owners\' benefits',
+        'owner benefits fund',
+        'special benefit',
+        'benefits fund',
+        'owner commission',
     ];
 
     /**
@@ -132,6 +145,26 @@ class CommissionNamesInLangTest extends TestCase
         foreach ($expected as $key => [$bn, $en]) {
             $this->assertSame($bn, $page['bn'][$key] ?? null, $key.' (bn)');
             $this->assertSame($en, $page['en'][$key] ?? null, $key.' (en)');
+        }
+    }
+
+    public function test_the_owners_fund_is_called_commission_extra_wherever_its_name_is_shown(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $expected = ['bn' => 'কমিশন এক্সট্রা ফান্ড', 'en' => 'Commission extra fund'];
+        $names = [
+            'treasury.fund_benefits', 'funds.fund_benefits', 'orders_stock.fund_benefits',
+            'portal.benefits_fund', 'portal.benefits_fund_title', 'portal.tr_kpi_benefits',
+            'portal.tour_owner_benefits_title', 'portal.report_cat_company_commission_benefits_fund',
+            'portal.retained_fund_benefits', 'manual.owner_benefits_fund_badge', 'manual.owner_benefits_fund_title',
+        ];
+
+        foreach ($expected as $locale => $name) {
+            foreach ($names as $path) {
+                [$group, $key] = explode('.', $path, 2);
+                $messages = require $root.'/lang/'.$locale.'/'.$group.'.php';
+                $this->assertSame($name, $messages[$key] ?? null, $locale.'/'.$path);
+            }
         }
     }
 

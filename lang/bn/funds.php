@@ -21,7 +21,7 @@ return [
     'fund_salary_reserve' => 'পুরনো বেতনের টাকা',
     'fund_company_share' => 'কোম্পানির ৩০% অংশ (প্রস্তুতকারক)',
     'fund_clinic' => 'চেম্বারের ফান্ড',
-    'fund_benefits' => 'মালিক পক্ষের বেনিফিট ফান্ড',
+    'fund_benefits' => 'কমিশন এক্সট্রা ফান্ড',
     'col_fund' => 'ফান্ড',
     'col_money_in' => 'টাকা এসেছে',
     'col_money_out' => 'টাকা গেছে',
