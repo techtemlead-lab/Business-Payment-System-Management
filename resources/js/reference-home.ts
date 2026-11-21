@@ -291,7 +291,9 @@ function formatMobileSearchPrice(value: unknown): string {
 
 async function runMobileProductSearch(rawQuery: string) {
     const q = rawQuery.trim();
-    if (!q) {
+    // The suggestions come from the public site; a portal host has no such page, so the failed
+    // lookup would send the visitor away after the first letter. The form still searches the public catalog.
+    if (!q || onOfficePortal()) {
         if (mobileSearchList) mobileSearchList.innerHTML = '';
         setMobileSearchMode('idle');
         return;

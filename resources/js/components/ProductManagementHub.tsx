@@ -73,7 +73,7 @@ export default function ProductManagementHub({
     const translate = useT();
     const t = (key: string, replace?: Record<string, string | number>) => translate('office_stock', key, replace);
     const { url, props: pageProps } = usePage<any>();
-    const { auth, staffActions } = pageProps;
+    const { auth, staffActions, publicBase = '' } = pageProps;
     const archivedCount = Number(pageProps.data?.archived_count ?? 0);
     const draftCount = Number(pageProps.data?.draft_count ?? 0);
     const visit = useAddressVisit(null);
@@ -290,7 +290,7 @@ export default function ProductManagementHub({
                     ))}
                 </div>
                 <div className="os-page-actions">
-                    <a href="/" target="_blank" rel="noopener noreferrer" className="button small">
+                    <a href={`${publicBase}/`} target="_blank" rel="noopener noreferrer" className="button small">
                         <Eye size={14} aria-hidden="true" /> {t('view_homepage')}
                     </a>
                     {(auth.capabilities.includes('inventory') || auth.capabilities.includes('catalog')) && (
