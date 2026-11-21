@@ -93,12 +93,16 @@ class OrderService
             if (! in_array($channel, [self::OfficeChannel, AccountOrderPayment::Channel], true) && empty($data['use_account'])) {
                 $this->assertPaidInFullWithOrder($data, $total);
             }
+            // Collected at the office: no courier is chosen or booked for it.
+            $pickup = ($data['delivery_method'] ?? null) === OfficePickup::MethodOffice;
             $order = Order::create(['number' => 'MN-'.now((string) config('madina.business_timezone'))->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
-                'payload_hash' => $hash, 'note' => $data['note'] ?? null, 'courier_choice' => CourierOptions::stored($data['courier_choice'] ?? null)]);
+                'payload_hash' => $hash, 'note' => $data['note'] ?? null,
+                'delivery_method' => $pickup ? OfficePickup::MethodOffice : OfficePickup::MethodCourier,
+                'courier_choice' => $pickup ? null : CourierOptions::stored($data['courier_choice'] ?? null)]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
-            $this->event($order, $submittedBy ?? $user, 'order.submitted');
+            $this->event($order, $submittedBy ?? $user, 'order.submitted', ['delivery_method' => $order->delivery_method]);
             $accountPart = 0;
             $paidWholly = false;
             if (! empty($data['use_account']) && $channel !== AccountOrderPayment::Channel) {

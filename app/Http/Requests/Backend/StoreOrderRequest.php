@@ -4,6 +4,7 @@ namespace App\Http\Requests\Backend;
 
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Orders\CourierOptions;
+use App\Domain\Orders\OfficePickup;
 use App\Domain\Orders\PaymentProof;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
@@ -49,8 +50,10 @@ class StoreOrderRequest extends FormRequest
             'items.*.quantity' => 'required|integer|min:1|max:10000',
             'idempotency_key' => 'required|uuid',
             'note' => ReasonFields::rule('order.note', 1000),
-            // Only the couriers the owner switched on, or "company decides" (the default).
-            'courier_choice' => ['nullable', 'string', Rule::in(app(CourierOptions::class)->choiceKeys())],
+            // "courier" (the default) or "office": the partner collects the goods at the office.
+            'delivery_method' => ['nullable', 'string', Rule::in(OfficePickup::Methods)],
+            // Only the couriers the owner switched on, or "company decides" (the default). Not used for an office pickup.
+            'courier_choice' => ['exclude_if:delivery_method,'.OfficePickup::MethodOffice, 'nullable', 'string', Rule::in(app(CourierOptions::class)->choiceKeys())],
             'reference' => [...$this->paymentDetailRules($paidWithOrder), 'string', TransactionReference::MinRule, 'max:100'],
             'payment_account_id' => ['nullable', self::ServerSetsPayment, 'integer', 'exists:payment_accounts,id'],
             // "Use my account balance first": the balance pays part, the chosen method pays the rest.

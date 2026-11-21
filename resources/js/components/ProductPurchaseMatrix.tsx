@@ -313,8 +313,11 @@ export default function ProductPurchaseMatrix({
         amount: '',
         note: '',
         courier_choice: 'company',
+        // 'courier', or 'office' when the partner collects the goods at the office (no courier part then).
+        delivery_method: 'courier' as 'courier' | 'office',
         proof: null as File | null,
     });
+    const collectsAtOffice = f.data.delivery_method === 'office';
     const orderNote = useReasonField('order.note');
 
     // "Account balance" short of the order total: the balance pays its part and this second method pays the rest.
@@ -412,7 +415,9 @@ export default function ProductPurchaseMatrix({
             // The wallet part is sent as shown, so the server takes exactly that or refuses.
             ...(splitOn ? { use_account: true, account_amount: walletPart.toFixed(2) } : {}),
             note: orderNote.shown ? f.data.note : undefined,
-            courier_choice: courierChoices.length ? f.data.courier_choice : undefined,
+            delivery_method: f.data.delivery_method,
+            // Collected at the office: nothing about a courier is sent.
+            courier_choice: !collectsAtOffice && courierChoices.length ? f.data.courier_choice : undefined,
             ...(serverSetsPayment ? {} : {
                 reference: f.data.reference,
                 payment_account_id: f.data.payment_account_id,
@@ -1138,7 +1143,25 @@ export default function ProductPurchaseMatrix({
                                 </>}
                             </div>
 
-                            {courierChoices.length > 0 && (
+                            <fieldset className="ppm-sizes" data-testid="delivery-method">
+                                <legend className="ops-field-label">{translate('order_delivery', 'method_label')}</legend>
+                                {(['courier', 'office'] as const).map(method => (
+                                    <label key={method} className={`ppm-size${f.data.delivery_method === method ? ' is-on' : ''}`}>
+                                        <input
+                                            type="radio"
+                                            name="ppm-delivery-method"
+                                            value={method}
+                                            checked={f.data.delivery_method === method}
+                                            onChange={() => f.setData('delivery_method', method)}
+                                        />
+                                        <span className="ppm-size-label">{translate('order_delivery', `method_${method}`)}</span>
+                                    </label>
+                                ))}
+                            </fieldset>
+                            {collectsAtOffice && <p className="field-hint" role="status" data-testid="delivery-office-hint">{translate('order_delivery', 'method_office_hint')}</p>}
+                            {f.errors.delivery_method && <span className="field-error" role="alert">{f.errors.delivery_method}</span>}
+
+                            {!collectsAtOffice && courierChoices.length > 0 && (
                                 <label>
                                     {translate('courier', 'order_form_label')}
                                     <select
@@ -1166,7 +1189,7 @@ export default function ProductPurchaseMatrix({
                             </label>}
 
                             {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
-                            <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice', 'account_amount']} />
+                            <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice', 'account_amount', 'delivery_method']} />
 
                             <div className="ops-row is-end ops-mt-3">
                                 <button
@@ -1244,6 +1267,7 @@ export default function ProductPurchaseMatrix({
                                     <strong className="ppm-sum-value">{page('confirm_method')}: {methodLabel}</strong>
                                 </div>
                             </div>
+                            <p data-testid="confirm-delivery"><b>{translate('order_delivery', 'method_label')}:</b> {translate('order_delivery', `method_${f.data.delivery_method}`)}</p>
                             {cartSummary.totalPayable >= BIG_ORDER_TAKA && <p className="notice warning" role="note" data-testid="confirm-big-note">{page('confirm_big_note')}</p>}
                             {!checking && !failed && (paysFromAccount || splitOn) && (
                                 <div data-testid="confirm-account">
