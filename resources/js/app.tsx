@@ -39,6 +39,7 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     CourierAreas: () => import('./pages/CourierAreas'),
     TreasuryFunds: () => import('./pages/TreasuryFunds'),
     TreasuryFund: () => import('./pages/TreasuryFund'),
+  TreasuryPrizeAdvances: () => import('./pages/TreasuryPrizeAdvances'),
     TreasuryOrders: () => import('./pages/TreasuryOrders'),
     TreasuryOrder: () => import('./pages/TreasuryOrder'),
     TreasuryEvents: () => import('./pages/TreasuryEvents'),
