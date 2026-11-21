@@ -112,4 +112,6 @@ return [
     'col_total' => 'Total',
     'find_partner' => 'Find a partner',
     'table_search' => 'Search',
+    'void_salary' => 'Undo this approval',
+    'part_month_review' => 'Check this salary: the account stopped being active on :date, so it is for :days of :month_days days.',
 ];

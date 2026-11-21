@@ -220,7 +220,7 @@ class EnforceStaffActions
             },
             'FinanceOperationsController' => match ($method) {
                 'prepare' => [['payroll'], 'create'],
-                'payrollReview', 'payrollPay', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
+                'payrollReview', 'payrollPay', 'payrollVoid', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
                 'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],

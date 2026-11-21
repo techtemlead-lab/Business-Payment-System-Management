@@ -6876,4 +6876,9 @@ return [
     'cs_param_held_share_months' => 'Months a held area share waits before it goes to the company fund (0 = never)',
     'event_finance_refund_owner_limit_changed' => 'Owner limit for refunds changed',
     'event_finance_fund_spend_owner_limit_changed' => 'Owner limit for fund spending changed',
+    'status_voided' => 'Undone',
+    'payroll_event_prepared_part_month' => 'Prepared for :days of :month_days days: the account is no longer active. Check before approving.',
+    'err_payroll_void' => 'Only an approved salary that is not paid yet can be undone, and never by the person it pays.',
+    'err_payroll_void_own' => 'You approved this salary, so someone else must undo it.',
+    'jr_payroll_voided' => 'Salary approval undone (:month)',
 ];

@@ -6876,4 +6876,9 @@ return [
     'cs_param_held_share_months' => 'আটকে থাকা এরিয়া অংশ কত মাস পর কোম্পানির ফান্ডে যাবে (০ = কখনো নয়)',
     'event_finance_refund_owner_limit_changed' => 'টাকা ফেরতের জন্য মালিকের সীমা বদলানো হয়েছে',
     'event_finance_fund_spend_owner_limit_changed' => 'ফান্ড খরচের জন্য মালিকের সীমা বদলানো হয়েছে',
+    'status_voided' => 'বাতিল করা হয়েছে',
+    'payroll_event_prepared_part_month' => ':month_days দিনের মধ্যে :days দিনের বেতন তৈরি হয়েছে, কারণ অ্যাকাউন্টটি এখন চালু নেই। অনুমোদনের আগে দেখে নিন।',
+    'err_payroll_void' => 'শুধু অনুমোদিত কিন্তু এখনো না দেওয়া বেতন বাতিল করা যায়। যার বেতন, তিনি নিজে বাতিল করতে পারেন না।',
+    'err_payroll_void_own' => 'এই বেতন আপনি অনুমোদন করেছেন, তাই বাতিল করবেন আরেকজন।',
+    'jr_payroll_voided' => 'বেতনের অনুমোদন বাতিল (:month)',
 ];

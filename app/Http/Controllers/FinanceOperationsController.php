@@ -9,6 +9,7 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
+use App\Domain\Finance\PayrollVoids;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Inventory\BranchOperations;
@@ -83,6 +84,15 @@ class FinanceOperationsController extends Controller
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('staff.payroll_review', 1000, 5)]);
         $payroll->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null));
+
+        return $this->done($request);
+    }
+
+    /** Undoes an approved salary that was not paid yet, with a reversing journal. */
+    public function payrollVoid(Request $request, string $id, PayrollVoids $voids): Response
+    {
+        $data = $request->validate(['reason' => 'required|string|min:5|max:1000']);
+        $voids->void($request->user(), $id, trim($data['reason']));
 
         return $this->done($request);
     }
