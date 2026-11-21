@@ -47,6 +47,17 @@
    "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
   },
   {
+   "code": "1038",
+   "upazila": "Dasar",
+   "district": "Madaripur",
+   "hq_union": null,
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": null,
+   "confidence": "low",
+   "note": "The place list holds no union under this upazila (the upazila is new); nothing to choose from. Its unions must first be moved under it in the place list."
+  },
+  {
    "code": "1043",
    "upazila": "Doulatpur",
    "district": "Manikganj",
@@ -107,10 +118,10 @@
    "district": "Tangail",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Nagorpur",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia/Wikipedia/official portal read; none names the union hosting the upazila HQ (only union list / upazila town area)"
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Nagorpur carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1094",
@@ -217,10 +228,10 @@
    "district": "Nilphamari",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Kishoreganj",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, Wikipedia and upazila portal read; none names the HQ union (only an unnamed 'Upazila Town'). Not decided by name similarity."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Kishoreganj carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1130",
@@ -239,10 +250,10 @@
    "district": "Panchagarh",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Tentulia",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, Wikipedia and portal pages do not name the HQ union. Only indirect news wording ('upazila sadar union') seen, not read in full."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Tentulia carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1136",
@@ -250,10 +261,10 @@
    "district": "Rangpur",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Gongachora",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, Wikipedia, portal pages read; HQ union never stated."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Gongachora carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1138",
@@ -308,7 +319,7 @@
    "suggested_union": "Rowangchari Sadar",
    "source_url": "https://rowangchhari.bandarban.gov.bd/pages/static-pages/6991175335ce18e1c073c7ad",
    "confidence": "medium",
-   "note": "Portal lists a 'Rowangchhari Sadar' union first; news refers to the upazila's 'sadar union'. No explicit HQ sentence."
+   "note": "Applied by the name rule, not a source statement: the union Rowangchari Sadar carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1158",
@@ -388,6 +399,17 @@
    "note": "Wikipedia and portal read; HQ union not stated (only a guest house at Karikandi, not proof)."
   },
   {
+   "code": "1206",
+   "upazila": "Eidgaon",
+   "district": "Coxsbazar",
+   "hq_union": null,
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": null,
+   "confidence": "low",
+   "note": "The place list holds no union under this upazila (new upazila); a union named Eidgaon still sits under Coxsbazar Sadar. Unions must first be moved under it in the place list."
+  },
+  {
    "code": "1207",
    "upazila": "Kutubdia",
    "district": "Coxsbazar",
@@ -421,15 +443,26 @@
    "note": "Banglapedia mentions 'Ukhia sadar' but no union; Wikipedia and portal do not state it."
   },
   {
-   "code": "1225",
-   "upazila": "Mohalchari",
+   "code": "1220",
+   "upazila": "Guimara",
    "district": "Khagrachhari",
    "hq_union": null,
    "found_in_source": null,
    "suggested_union": null,
    "source_url": null,
    "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "note": "The place list holds no union under this upazila (new upazila); a union named Guimara still sits under Matiranga. Unions must first be moved under it in the place list."
+  },
+  {
+   "code": "1225",
+   "upazila": "Mohalchari",
+   "district": "Khagrachhari",
+   "hq_union": null,
+   "found_in_source": null,
+   "suggested_union": "Mahalchari",
+   "source_url": null,
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Mahalchari carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1228",
@@ -470,10 +503,10 @@
    "district": "Rangamati",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Langad",
    "source_url": null,
-   "confidence": "low",
-   "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Langad carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1250",
@@ -540,6 +573,28 @@
    "source_url": null,
    "confidence": "low",
    "note": "No public source read (Banglapedia, Wikipedia en/bn, searches) names the HQ union; Banglapedia lists only an unnamed Upazila Town."
+  },
+  {
+   "code": "1302",
+   "upazila": "Bagmara",
+   "district": "Rajshahi",
+   "hq_union": null,
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": "https://en.banglapedia.org/index.php/Baghmara_Upazila",
+   "confidence": "low",
+   "note": "Two municipalities (Bhabaniganj Pourashava, Taherpur Pourashava) and 16 unions. Banglapedia lists an upazila town (2.40 sq km) but does not say which municipality holds the headquarters; the upazila portal could not be read (certificate error). Left empty for the office to choose."
+  },
+  {
+   "code": "1307",
+   "upazila": "Paba",
+   "district": "Rajshahi",
+   "hq_union": null,
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": "https://en.banglapedia.org/index.php/Paba_Upazila",
+   "confidence": "low",
+   "note": "Two municipalities (Katakhali Pourashava, Naohata Pourashava) and eight unions. Banglapedia never names the headquarters; the upazila portal could not be read (certificate error). Left empty for the office to choose."
   },
   {
    "code": "1311",
@@ -679,10 +734,10 @@
    "district": "Jhalakathi",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Kanthalia",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Kanthalia carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1407",
@@ -740,6 +795,17 @@
    "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
   },
   {
+   "code": "1443",
+   "upazila": "Madhyanagar",
+   "district": "Sunamganj",
+   "hq_union": null,
+   "found_in_source": null,
+   "suggested_union": null,
+   "source_url": null,
+   "confidence": "low",
+   "note": "The place list holds no union under this upazila (new upazila); a union named Madhyanagar still sits under Dharmapasha. Unions must first be moved under it in the place list."
+  },
+  {
    "code": "1445",
    "upazila": "Shantiganj",
    "district": "Sunamganj",
@@ -789,10 +855,10 @@
    "district": "Sylhet",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Jaintapur",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Jaintapur carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "1458",
@@ -822,10 +888,10 @@
    "district": "Netrokona",
    "hq_union": null,
    "found_in_source": null,
-   "suggested_union": null,
+   "suggested_union": "Kolmakanda",
    "source_url": null,
-   "confidence": "low",
-   "note": "Banglapedia, en/bn Wikipedia and web search read; none names the HQ union (only 'Upazila Town' area/mouza). Not guessed."
+   "confidence": "medium",
+   "note": "Applied by the name rule, not a source statement: the union Kolmakanda carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
   },
   {
    "code": "9001",
