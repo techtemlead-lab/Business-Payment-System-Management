@@ -11,6 +11,7 @@ use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\RankLabel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -214,7 +215,7 @@ final class PartnerMonthlyTargets
         $code = $currentRank === 'dealer' ? 'mo' : $currentRank;
         $default = $monthlyTarget ?? Money::cents((string) ($rules['rank_maintenance']['parameters'][$code.'_min_monthly_volume'] ?? '0'));
 
-        return $this->moneyRow(self::Royalty, __('partner_file.target_royalty', ['rank' => strtoupper($code)]), __('partner_file.target_royalty_hint', ['rank' => strtoupper($code)]), $volume, $default, $overrides);
+        return $this->moneyRow(self::Royalty, __('partner_file.target_royalty', ['rank' => RankLabel::of($code)]), __('partner_file.target_royalty_hint', ['rank' => RankLabel::of($code)]), $volume, $default, $overrides);
     }
 
     /**
@@ -242,7 +243,7 @@ final class PartnerMonthlyTargets
         $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
         $have = CommissionQualification::leadersAtOrAbove($counts, $required);
 
-        return $this->countRow(self::Rank, __('partner_file.target_rank', ['rank' => strtoupper($next)]), __('partner_file.target_rank_team_hint', ['needed' => $needed, 'rank' => strtoupper($required), 'depth' => $depth]), $have, $needed, $overrides);
+        return $this->countRow(self::Rank, __('partner_file.target_rank', ['rank' => RankLabel::of($next)]), __('partner_file.target_rank_team_hint', ['needed' => $needed, 'rank' => RankLabel::of($required), 'depth' => $depth]), $have, $needed, $overrides);
     }
 
     /**

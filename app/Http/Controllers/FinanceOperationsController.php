@@ -19,6 +19,7 @@ use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\PdfPaper;
+use App\Support\RankLabel;
 use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
@@ -520,7 +521,7 @@ class FinanceOperationsController extends Controller
             return __('portal.rpt_val_award', ['id' => $award[1]]);
         }
         if (preg_match('/^rank_(mo|am|sm|me)$/D', $value, $rank) === 1) {
-            return __('portal.rpt_val_rank_award', ['rank' => strtoupper($rank[1])]);
+            return __('portal.rpt_val_rank_award', ['rank' => RankLabel::of($rank[1])]);
         }
         foreach (['portal.status_', 'portal.rpt_val_', 'portal.settle_kind_', 'portal.report_cat_', 'portal.reward_program_', 'accounting.account_'] as $prefix) {
             $key = $prefix.$value;

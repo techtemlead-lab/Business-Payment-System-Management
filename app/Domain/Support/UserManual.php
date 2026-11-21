@@ -398,7 +398,7 @@ final class UserManual
             $this->ch('reports', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 5, 1, 1, 1, ['report', 'pdf', 'full_report', 'analytics', 'রিপোর্ট', 'অডিট', 'বিবরণী']),
             $this->ch('network_genealogy', ['dealer', 'staff', 'owner'], 8, 3, 3, 2, ['network', 'referral', 'tree', 'genealogy', 'downline', 'qr', 'নেটওয়ার্ক', 'রেফারাল', 'ডাউনলাইন', 'টিম']),
             $this->ch('area_dealers_places', ['dealer', 'staff', 'owner'], 8, 2, 2, 2, ['place_code', 'area_dealer', 'territory', 'division', 'district', 'প্লেস কোড', 'এরিয়া', 'টেরিটোরি']),
-            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 8, 3, 3, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'পদবী', 'রয়্যালটি', 'সম্মাননা']),
+            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 8, 3, 3, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'ed', 'পদবী', 'রয়্যালটি', 'সম্মাননা']),
             $this->ch('rewards_milestones', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক', 'গাড়ি', 'বাইক']),
             $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 8, 3, 2, 2, ['subdealer', 'salary', 'tour', 'tour fund', 'reserve', 'বেতন', 'সাব-ডিলার', 'ট্যুর', 'ট্যুর ফান্ড']),
             $this->ch('staff_people_accounts', ['staff', 'owner'], 10, 3, 4, 3, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট', 'পারমিশন']),

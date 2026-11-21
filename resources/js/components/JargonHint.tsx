@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { HelpCircle } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import { rankLabel } from '../shared/rankLabel';
 
 export type JargonTerm = 'mo' | 'am' | 'sm' | 'me' | 'tds';
 
@@ -19,12 +20,12 @@ export default function JargonHint({ terms }: { terms: JargonTerm[] }) {
         <details className="jargon-hint">
             <summary>
                 <HelpCircle size={14} aria-hidden="true" />
-                <span>{translate('partner_hub', 'jargon_question', { terms: terms.map((term) => term.toUpperCase()).join(', ') })}</span>
+                <span>{translate('partner_hub', 'jargon_question', { terms: terms.map((term) => rankLabel(term)).join(', ') })}</span>
             </summary>
             <dl>
                 {terms.map((term) => (
                     <div key={term}>
-                        <dt>{term.toUpperCase()}</dt>
+                        <dt>{rankLabel(term)}</dt>
                         <dd>{translate('partner_hub', `jargon_${term}`)}</dd>
                     </div>
                 ))}

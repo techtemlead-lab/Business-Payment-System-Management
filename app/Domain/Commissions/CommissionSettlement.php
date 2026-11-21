@@ -732,7 +732,7 @@ final class CommissionSettlement
     }
 
     /**
-     * The weights of the four rank funds (MO, AM, SM, ME), from their share percents.
+     * The weights of the four rank funds (MO, AM, SM, ED; stored key me), from their share percents.
      *
      * @param  array<string, mixed>  $parameters
      * @return list<int>

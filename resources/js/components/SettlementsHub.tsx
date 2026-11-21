@@ -5,6 +5,7 @@ import { money, number, date, Table, Modal, Pagination, type Row } from './UI';
 import ServerListSearch from './ServerListSearch';
 import { useT } from '../shared/i18n/t';
 import { randomUuid } from '../shared/randomUuid';
+import { rankLabel } from '../shared/rankLabel';
 
 type LeaderRank = 'mo' | 'am' | 'sm' | 'me';
 
@@ -114,7 +115,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     const incentiveSummary = (['mo', 'am', 'sm', 'me'] as LeaderRank[])
         .map(rank => {
             const amount = incentiveFor(rank);
-            return `${rank.toUpperCase()} ${amount === null ? translate('portal', 'policy_value_not_set') : money(amount)}`;
+            return `${rankLabel(rank)} ${amount === null ? translate('portal', 'policy_value_not_set') : money(amount)}`;
         })
         .join(' · ');
 
@@ -174,7 +175,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     };
 
     const handleClaimIncentive = (userId: number, leaderName: string, rank: string) => {
-        confirmThen(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }), () => {
+        confirmThen(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rankLabel(rank) }), () => {
             setClaimingIncentive(userId);
             router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: randomUuid() }, {
                 onFinish: () => setClaimingIncentive(null)
@@ -424,7 +425,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                             key: 'rank',
                                             title: translate('portal', 'st_col_rank'),
                                             sortable: true,
-                                            render: l => <span className="hub-strong hub-upper tone-violet">{l.rank}</span>,
+                                            render: l => <span className="hub-strong tone-violet">{rankLabel(l.rank)}</span>,
                                         },
                                         {
                                             key: 'status',
@@ -489,8 +490,8 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             title: translate('portal', 'st_col_achieved'),
                             sortable: true,
                             render: l => (
-                                <span className="hub-pill hub-upper">
-                                    {l.rank}
+                                <span className="hub-pill">
+                                    {rankLabel(l.rank)}
                                 </span>
                             ),
                         },
