@@ -26,6 +26,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class PartnerProgress
 {
+    /**
+     * The sub-dealer tour fund is hidden from the progress pop-up and the home targets card until the company decides to show it.
+     * Set this to true to bring it back; the money and the data are untouched either way.
+     */
+    public const ShowTourFund = false;
+
     public function __construct(
         private CommissionQualification $qualification,
         private CommissionPolicy $policy,
@@ -70,7 +76,7 @@ final class PartnerProgress
                 ? $this->dealerRank($user, $rules, $month)
                 : null,
             'rewards' => DashboardManagement::partnerFeatureEnabled($user, 'rewards') ? $this->rewards($user, $rules) : [],
-            'tour' => $showSubDealerFunds ? $this->tour($user, $rules, $month) : null,
+            'tour' => self::ShowTourFund && $showSubDealerFunds ? $this->tour($user, $rules, $month) : null,
         ];
     }
 
