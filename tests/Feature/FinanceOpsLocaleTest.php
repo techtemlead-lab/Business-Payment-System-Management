@@ -31,6 +31,20 @@ class FinanceOpsLocaleTest extends TestCase
         }
     }
 
+    public function test_every_readiness_check_has_its_own_english_and_bangla_label(): void
+    {
+        foreach (array_keys(app(FinancialReadiness::class)->checks()) as $key) {
+            $id = 'portal.ops_chk_'.$key;
+            $english = __($id, [], 'en');
+            $bangla = __($id, [], 'bn');
+
+            $this->assertNotSame($id, $english, "Missing English label for readiness check {$key}.");
+            $this->assertNotSame($id, $bangla, "Missing Bangla label for readiness check {$key}.");
+            $this->assertNotSame('', trim($english));
+            $this->assertNotSame($english, $bangla, "Bangla label for {$key} is still English.");
+        }
+    }
+
     public function test_backdated_policy_schedule_returns_bangla_validation(): void
     {
         app()->setLocale('bn');
