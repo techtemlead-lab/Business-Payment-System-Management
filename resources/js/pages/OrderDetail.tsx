@@ -15,6 +15,7 @@ import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import OrderMoneyBreakdown, { type OrderMoneyBreakdownData } from '../components/OrderMoneyBreakdown';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
 import { returnedByLine } from '../components/office/portalShared';
+import OwedItemsPanel, { type OwedItem } from '../components/OwedItemsPanel';
 
 /** Units of a line still to send: not sent and not closed by a cancel. */
 const unsentOf = (line: Row) => Math.max(0, Number(line.quantity) - Number(line.dispatched) - Number(line.closed ?? 0));
@@ -138,7 +139,7 @@ function PayWithoutDetails({ orderId, outstanding, payOptions }: { orderId: stri
 
 type BackOrder = { days: number; late: boolean; warn: boolean; days_left: number; deadline_days: number; stock_elsewhere: { branch: string; units: number; can_send_all: boolean }[] };
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], fullPaymentRequired=false, courierChoices=[], payOptions=null, returns=null, handledBy=[], backOrder=null, stockByBranch=[], moneyBreakdown=null }: { moneyBreakdown?: OrderMoneyBreakdownData | null; order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null; returns?: ReturnsData | null; handledBy?: string[]; backOrder?: BackOrder | null; stockByBranch?: BranchStock[] }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], fullPaymentRequired=false, courierChoices=[], payOptions=null, returns=null, handledBy=[], backOrder=null, stockByBranch=[], moneyBreakdown=null, owedItems=[] }: { moneyBreakdown?: OrderMoneyBreakdownData | null; owedItems?: OwedItem[]; order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null; returns?: ReturnsData | null; handledBy?: string[]; backOrder?: BackOrder | null; stockByBranch?: BranchStock[] }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -268,6 +269,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     {backOrder.stock_elsewhere.length > 0 && <p>{translate('orders_stock', 'back_order_stock_elsewhere', { branches: backOrder.stock_elsewhere.map(item => `${item.branch} (${number(item.units)})`).join(', ') })}</p>}
                 </>}
             </div>}
+            <OwedItemsPanel order={order} owedItems={owedItems} owner={owner} canSendGoods={canSendGoods} canRefund={staffOnOrder && capabilities.includes('finance')} unsentOf={unsentOf} />
             {itemsLeft && capabilities.includes('inventory') && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && auth.user.id !== order.user_id && <SupplyDateForm key={`${order.supply_eta ?? ''}|${order.supply_note ?? ''}`} order={order} />}
         </section>
         <div className="two-column">
