@@ -55,7 +55,7 @@
    "suggested_union": null,
    "source_url": null,
    "confidence": "low",
-   "note": "The place list holds no union under this upazila (the upazila is new); nothing to choose from. Its unions must first be moved under it in the place list."
+   "note": "The place list holds no union under this upazila (the upazila is new); nothing to choose from. The office can add its unions by hand in the Place codes panel."
   },
   {
    "code": "1043",
@@ -407,7 +407,7 @@
    "suggested_union": null,
    "source_url": null,
    "confidence": "low",
-   "note": "The place list holds no union under this upazila (new upazila); a union named Eidgaon still sits under Coxsbazar Sadar. Unions must first be moved under it in the place list."
+   "note": "The place list holds no union under this upazila (new upazila); a union named Eidgaon still sits under Coxsbazar Sadar. The office can add its unions by hand in the Place codes panel."
   },
   {
    "code": "1207",
@@ -451,7 +451,7 @@
    "suggested_union": null,
    "source_url": null,
    "confidence": "low",
-   "note": "The place list holds no union under this upazila (new upazila); a union named Guimara still sits under Matiranga. Unions must first be moved under it in the place list."
+   "note": "The place list holds no union under this upazila (new upazila); a union named Guimara still sits under Matiranga. The office can add its unions by hand in the Place codes panel."
   },
   {
    "code": "1225",
@@ -803,7 +803,7 @@
    "suggested_union": null,
    "source_url": null,
    "confidence": "low",
-   "note": "The place list holds no union under this upazila (new upazila); a union named Madhyanagar still sits under Dharmapasha. Unions must first be moved under it in the place list."
+   "note": "The place list holds no union under this upazila (new upazila); a union named Madhyanagar still sits under Dharmapasha. The office can add its unions by hand in the Place codes panel."
   },
   {
    "code": "1445",
@@ -892,17 +892,6 @@
    "source_url": null,
    "confidence": "medium",
    "note": "Applied by the name rule, not a source statement: the union Kolmakanda carries the upazila name in another spelling (matched by UnionNameMatcher); no source read on 2026-11-21 (Banglapedia, Wikipedia, upazila portals) names the headquarters union outright. Same rule as a union with the exact upazila name; the office can change it."
-  },
-  {
-   "code": "9001",
-   "upazila": "Dhaka Metro",
-   "district": "Dhaka",
-   "hq_union": null,
-   "found_in_source": null,
-   "suggested_union": null,
-   "source_url": null,
-   "confidence": "low",
-   "note": "Not an upazila (two city corporations); no upazila HQ union applies."
   }
  ]
 }
