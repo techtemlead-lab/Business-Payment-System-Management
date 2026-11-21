@@ -199,7 +199,7 @@ Money mutations use integer paisa. Allocation rounding reconciles largest remain
 
 Calendar settlement periods follow Asia/Dhaka; database timestamps remain UTC. Current or future months cannot be settled. Salary qualification uses actual posted, net-of-refund volume for the selected month, not an accumulating monthly counter. Each settlement payout retains its source allocation and the cumulative refunded basis at the time of credit, so later refunds cannot claw back an earlier refund twice. Retrying a settlement cannot pay the same source twice, including when further eligible source allocations are added later.
 
-Royalty defaults to 1% for each of MO, AM, SM and ME, shared among that rank's qualified dealers. Configurable rank shares must total the royalty pool. Recorded rank history prevents later promotions from collecting an earlier month's higher royalty.
+Royalty defaults to 1% for each of MO, AM, SM and ED (stored rank key `me`), shared among that rank's qualified dealers. Configurable rank shares must total the royalty pool. Recorded rank history prevents later promotions from collecting an earlier month's higher royalty.
 
 Default leadership criteria and funded awards:
 
@@ -208,7 +208,7 @@ Default leadership criteria and funded awards:
 | MO | BDT 250,000 qualifying own purchases | BDT 5,000 |
 | AM | 10 MO-or-higher leaders within 3 generations | BDT 50,000 |
 | SM | 10 AM-or-higher leaders within 3 generations | BDT 250,000 |
-| ME | 10 SM-or-higher leaders within 3 generations | BDT 300,000 |
+| ED | 10 SM-or-higher leaders within 3 generations | BDT 300,000 |
 
 Awards are unique per user and rank and require sufficient rank-incentive reserve funding. Historical incentive flags without an award history require reconciliation before another award. The default motorcycle target is BDT 5,000,000, with BDT 800,000 counted per branch. The existing car target is BDT 250,000,000, with BDT 20,000,000 per branch. Only paid, delivered, net-of-refund purchases count toward milestones.
 

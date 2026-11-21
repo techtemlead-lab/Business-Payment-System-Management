@@ -298,7 +298,7 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         $sum = fn (string $category): int => (int) CommissionAllocation::where('category', $category)->where('metadata->settlement_kind', 'royalty')->get()->sum(fn ($row): int => Money::cents((string) $row->amount));
         $toCompany = $sum('company_profit_fund');
         $leftover = $sum('company_commission_benefits_fund');
-        $this->assertEqualsWithDelta(3 * intdiv($pool, 4), $toCompany, 3, 'AM, SM and ME funds had no holder: company profit at month end.');
+        $this->assertEqualsWithDelta(3 * intdiv($pool, 4), $toCompany, 3, 'AM, SM and ED funds had no holder: company profit at month end.');
         $this->assertSame($pool, $moBucket + $toCompany + $leftover, 'Every paisa is placed: paid, company profit or Commission extra fund.');
     }
 

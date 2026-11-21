@@ -77,7 +77,7 @@ class UserManualLiveRatesTest extends TestCase
         $this->assertStringContainsString('division 2%, district 2%, upazila 2%, union or municipality 2%, management 2%', $area);
 
         $tips = implode(' ', $this->chapter($dealer, 'ranks_royalties')['tips']);
-        foreach (['৳5,00,000', '৳5,000', '10 active dealers', '৳50,000', 'MO ৳5,000, AM ৳15,000, SM ৳30,000, ME ৳50,000', '30 days'] as $figure) {
+        foreach (['৳5,00,000', '৳5,000', '10 active dealers', '৳50,000', 'MO ৳5,000, AM ৳15,000, SM ৳30,000, ED ৳50,000', '30 days'] as $figure) {
             $this->assertStringContainsString($figure, $tips);
         }
         $this->assertStringContainsString('4% of every purchase', $this->chapter($dealer, 'ranks_royalties')['purpose']);
