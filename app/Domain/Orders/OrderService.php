@@ -403,6 +403,10 @@ class OrderService
                     'number' => $order->number,
                     'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
                 ]);
+                if (! $approve) {
+                    // A wallet-part order whose other payment was turned down: say what is due and by when.
+                    app(WalletPartRelease::class)->remindAfterRejection($order);
+                }
             }, 3);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {

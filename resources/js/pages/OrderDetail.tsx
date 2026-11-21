@@ -357,7 +357,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 const courierLabel = translate('courier', eventKey);
                 const portalLabel = translate('portal', eventKey);
                 const deliveryLabel = translate('order_delivery', eventKey);
-                const title = courierLabel !== eventKey ? courierLabel : portalLabel !== eventKey ? portalLabel : deliveryLabel !== eventKey ? deliveryLabel : label(event.action.replaceAll('.', ' '));
+                const paymentLabel = translate('order_payment', eventKey);
+                const title = courierLabel !== eventKey ? courierLabel : portalLabel !== eventKey ? portalLabel : deliveryLabel !== eventKey ? deliveryLabel : paymentLabel !== eventKey ? paymentLabel : label(event.action.replaceAll('.', ' '));
                 const detail = event.action === 'order.delivery_changed'
                     ? translate('order_delivery', 'changed_from_to', { from: translate('order_delivery', `method_${metadata?.from}_staff`), to: translate('order_delivery', `method_${metadata?.to}_staff`) }) + (metadata?.note ? ` · ${metadata.note}` : '')
                     : event.action === 'order.office_handover' ? (metadata?.note ?? null)

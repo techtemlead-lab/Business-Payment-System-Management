@@ -64,4 +64,13 @@ return [
     'wallet_part_too_little' => 'ওয়ালেট থেকে কত দেবেন লিখুন (শূন্যের বেশি)।',
     'err_wallet_part_range' => 'ওয়ালেট থেকে যত দেবেন তা শূন্যের বেশি আর অর্ডারের দাম ৳:total-এর মধ্যে হতে হবে।',
     'err_wallet_part_over' => 'ওয়ালেটে খরচ করার মতো আছে ৳:balance। ওয়ালেট থেকে ৳:part দেওয়া যাবে না। কম লিখে আবার পাঠান।',
+
+    'notice_wallet_rest_title' => 'অর্ডার :number-এর বাকি টাকা দিন',
+    'notice_wallet_rest_body' => 'অর্ডার :number-এর বাকি ৳:rest-এর পেমেন্ট বাতিল হয়েছে। :days দিনের মধ্যে বাকি টাকা দিন। না দিলে অর্ডার বাতিল হবে আর ওয়ালেট থেকে নেওয়া ৳:wallet ওয়ালেটে ফেরত আসবে। চাইলে এখনই অর্ডার বাতিল করতে পারেন।',
+    'wallet_auto_cancel_reason' => ':days দিনেও বাকি টাকা আসেনি, তাই অর্ডার নিজে থেকে বাতিল হয়েছে। ওয়ালেটের টাকা ফেরত গেছে।',
+    'notice_staff_wallet_cancel_title' => 'অর্ডার :number বাতিল, ওয়ালেটের টাকা ফেরত',
+    'notice_staff_wallet_cancel_body' => ':name অর্ডার :number বাতিল করেছেন। ওয়ালেট থেকে নেওয়া ৳:amount তাঁর ওয়ালেটে ফেরত গেছে।',
+    'notice_staff_wallet_cancel_auto_body' => 'অর্ডার :number-এর বাকি টাকা সময়মতো আসেনি, তাই এটি নিজে থেকে বাতিল হয়েছে। :name-এর ওয়ালেটে ৳:amount ফেরত গেছে।',
+    'event_order_wallet_part_cancelled' => 'অর্ডার বাতিল, ওয়ালেটের টাকা ফেরত',
+    'event_order_wallet_part_reminded' => 'বাকি টাকা দিতে বলা হয়েছে',
 ];

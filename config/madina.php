@@ -129,6 +129,9 @@ return [
     // Owner decision: nobody orders without paying the whole order first. This is only the starting
     // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
     'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),
+    // "Wallet + another method": days the rest may stay unpaid (other payment turned down or never sent)
+    // before the order is cancelled by itself and the wallet part goes back (madina:release-unpaid-wallet-orders).
+    'wallet_part_unpaid_days' => (int) env('MADINA_WALLET_PART_UNPAID_DAYS', 3),
     // Printable order invoice letterhead (matches partner invoice template layout).
     'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', ''),
     'invoice_marketed_by' => env('MADINA_INVOICE_MARKETED_BY', ''),

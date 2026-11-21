@@ -149,6 +149,13 @@ final class OrderReturns
 
                 return ['id' => null, 'cancelled_now' => true];
             }
+            // Only a wallet part was paid and the rest never came: cancelled at once, the wallet part goes back.
+            $walletPart = app(WalletPartRelease::class);
+            if ($kind === self::KindCancel && $walletPart->cancelsAtOnce($locked)) {
+                $walletPart->cancel($partner, $locked, $reason);
+
+                return ['id' => null, 'cancelled_now' => true];
+            }
             $id = $this->insertRequest($locked, $partner, $kind, $units, $reason);
             $this->event($locked, $partner, self::ActionRequested, ['request_id' => $id, 'kind' => $kind, 'lines' => $this->linesForRecord($units), 'reason' => $reason]);
             Audit::notifyStaffFirst(

@@ -23,6 +23,10 @@ Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOver
 Schedule::command('finance:release-quota-holds')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled area-quota hold release failed.'));
 
+// "Wallet + another method" orders whose rest stayed unpaid for the set days: cancelled, wallet part returned.
+Schedule::command('madina:release-unpaid-wallet-orders')->hourly()->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled release of unpaid wallet-part orders failed.'));
+
 // Treasury event log: picks up new orders, payments and fund movements from the records. Writes nothing back.
 Schedule::command('treasury:project-events')->everyMinute()->withoutOverlapping(10)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled event log update failed.'));

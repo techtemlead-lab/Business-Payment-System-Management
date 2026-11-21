@@ -64,4 +64,13 @@ return [
     'wallet_part_too_little' => 'Enter how much to use from the wallet (more than zero).',
     'err_wallet_part_range' => 'The wallet part must be more than zero and not more than the order total of ৳:total.',
     'err_wallet_part_over' => 'You can spend ৳:balance from your wallet, so ৳:part cannot be taken from it. Enter less and send again.',
+
+    'notice_wallet_rest_title' => 'Pay the rest of order :number',
+    'notice_wallet_rest_body' => 'The payment for the other ৳:rest of order :number was turned down. Pay the rest within :days days. If not, the order is cancelled and the ৳:wallet taken from your wallet comes back to it. You can also cancel the order now.',
+    'wallet_auto_cancel_reason' => 'The rest was not paid in :days days, so the order was cancelled by itself. The wallet money went back.',
+    'notice_staff_wallet_cancel_title' => 'Order :number cancelled, wallet money returned',
+    'notice_staff_wallet_cancel_body' => ':name cancelled order :number. The ৳:amount taken from the wallet went back to it.',
+    'notice_staff_wallet_cancel_auto_body' => 'The rest of order :number did not come in time, so it was cancelled by itself. ৳:amount went back to :name\'s wallet.',
+    'event_order_wallet_part_cancelled' => 'Order cancelled, wallet money returned',
+    'event_order_wallet_part_reminded' => 'Asked to pay the rest',
 ];
