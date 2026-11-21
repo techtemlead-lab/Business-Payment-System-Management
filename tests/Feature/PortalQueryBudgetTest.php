@@ -69,7 +69,8 @@ class PortalQueryBudgetTest extends TestCase
         // 37-39 (CR-16): the owner's list asks once which work an active staff member covers, once for the owner
         // limits, and once for every owner-only count together. All three are fixed, never one per row.
         // 40-41: the recent-orders table names each partner's kind and place (one read of the dealer's area seats, one of the place codes).
-        $this->assertQueriesAtMost(41, $queries, 'owner dashboard');
+        // 42: failed month closes are read from the database now, not the cache (owner, 2026-11-21).
+        $this->assertQueriesAtMost(42, $queries, 'owner dashboard');
         $this->assertSame(1, $this->matching($queries, 'filter (where status in'), 'Order count, pending, today and money totals should come from one aggregate query.');
 
         foreach (range(1, 10) as $index) {
@@ -218,8 +219,8 @@ class PortalQueryBudgetTest extends TestCase
 
         [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/settlements?period_month='.$month));
         $response->assertOk();
-        // 32: one read of the owner's own targets for single dealers (owner, 2026-11-21).
-        $this->assertQueriesAtMost(32, $queries, 'settlements');
+        // 33: one read of the owner's own targets for single dealers, one of the failed month closes (database, not cache) (owner, 2026-11-21).
+        $this->assertQueriesAtMost(33, $queries, 'settlements');
 
         $this->rankLeaders(8);
         [$response, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/settlements?period_month='.$month));
