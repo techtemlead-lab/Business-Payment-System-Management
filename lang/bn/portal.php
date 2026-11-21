@@ -6900,4 +6900,6 @@ return [
     'filter_label_dates' => 'তারিখ',
     'filter_label_partner' => 'পার্টনারের ধরন',
     'ops_chk_paid_left_on_closed_orders' => 'বন্ধ অর্ডারে ফেরত না দেওয়া টাকা নেই',
+    'ops_chk_missed_order_batches' => 'ডেলিভারি হওয়া ও পুরো টাকা দেওয়া প্রতিটি অর্ডারের কমিশন হিসাবে উঠেছে',
+    'ops_chk_stale_holdings' => 'কোনো টাকা অনেক দিন ধরে কাজের অপেক্ষায় পড়ে নেই',
 ];

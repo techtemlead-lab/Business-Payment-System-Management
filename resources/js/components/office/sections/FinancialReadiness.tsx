@@ -6,11 +6,12 @@ import { Badge, Modal, Pagination, Table, date, dateTime, label, type Row } from
 import Figures from '../Figures';
 import { useT } from '../../../shared/i18n/t';
 import SettingsForm, { settingsBack, type SettingsAction, type SettingsField } from './SettingsForm';
+import StaleHoldingsPanel, { type StaleHoldingsReport } from './StaleHoldingsPanel';
 
 const root = '/commands/operations';
 
 /** The opening check: do the money records match, is the server ready, and which opening balances wait for a second person. */
-export default function FinancialReadiness({ readiness, deploymentStatus, startupMode, tables = [] }: Row) {
+export default function FinancialReadiness({ readiness, deploymentStatus, startupMode, staleHoldings, tables = [] }: Row) {
     const translate = useT();
     const page = usePage<any>();
     const { auth, financeActive, staffActions } = page.props;
@@ -18,13 +19,14 @@ export default function FinancialReadiness({ readiness, deploymentStatus, startu
     const [selected, setSelected] = useState<SettingsAction | null>(null);
     const search = new URLSearchParams(page.url.split('?')[1] ?? '');
     const reviewsTable: Row | undefined = (tables as Row[]).find((table) => table.key === 'opening_reviews');
-    const views = ['checks', ...(deploymentStatus ? ['live'] : []), ...(reviewsTable ? ['reviews'] : [])];
+    const views = ['checks', ...(staleHoldings ? ['holdings'] : []), ...(deploymentStatus ? ['live'] : []), ...(reviewsTable ? ['reviews'] : [])];
     const requested = search.get('view') ?? '';
     const view = views.includes(requested) ? requested : 'checks';
     const viewTitle: Record<string, string> = {
         checks: translate('portal', 'ops_ledger_reconciliation'),
         live: translate('portal', 'ops_deployment_readiness'),
         reviews: translate('office_settings', 'readiness_reviews_tab'),
+        holdings: translate('money_core', 'sh_tab'),
     };
     const hub = views.length > 1 ? {
         home: 'financial-readiness',
@@ -94,6 +96,7 @@ export default function FinancialReadiness({ readiness, deploymentStatus, startu
                     </section>
                 </>
             )}
+            {view === 'holdings' && staleHoldings && <StaleHoldingsPanel report={staleHoldings as StaleHoldingsReport} />}
             {view === 'live' && deploymentStatus && (
                 <>
                     <section className="panel table-panel">

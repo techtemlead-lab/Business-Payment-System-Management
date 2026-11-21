@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\ManagementReferral;
@@ -23,6 +24,8 @@ use Illuminate\Validation\ValidationException;
  *   so nothing here moves it.
  * - D3 (MA-03): commission held for a suspended partner is paid when they are active again; for an
  *   account closed more than three months it goes to company profit.
+ * - 2026-11-21: commission held for a suspended (not closed) partner waits only the owner's held-share limit
+ *   in months, then goes to company profit too.
  *
  * Every move writes a company profit row that points back to its source and marks the source
  * moved, so running any sweep again moves nothing twice.
@@ -35,6 +38,8 @@ final class UnownedShareSweeps
     public const NoUplineReason = 'money_core.reason_no_upline';
 
     public const ClosedAccountReason = 'money_core.reason_closed_account';
+
+    public const SuspendedHoldReason = 'money_core.reason_suspended_hold_expired';
 
     /** Referral levels that the management fund could have collected. */
     private const ReferralCategories = ['direct_referral', 'd2d_gen2', 'd2d_gen3'];
@@ -151,6 +156,62 @@ final class UnownedShareSweeps
             }
 
             return ['status' => $rows->isNotEmpty() ? 'moved' : 'nothing_to_move', 'moved_count' => $rows->count(), 'total_amount' => Money::decimal($total)];
+        }, 3);
+    }
+
+    /**
+     * Commission held for a suspended (not closed) partner waits for them to be active again, but only for the
+     * owner's limit in months (the "held_share_months" setting, 3 unless changed; 0 = wait for ever). After that it
+     * goes to company profit (owner decision, 2026-11-21). This covers every kind held for an inactive partner,
+     * referral shares and the partner's own cashback included, which cannot be given to anyone else. Area shares
+     * keep their own rule (ReserveService::forfeitStaleAreaHolds) and a closed account keeps the closed-account rule.
+     * The months count from the day the share was held. Running it again moves nothing twice.
+     *
+     * @return array{status: string, months: int, moved_count: int, total_amount: string}
+     */
+    public function suspendedHoldsToCompanyProfit(?int $actorId = null): array
+    {
+        $months = CommissionPolicy::heldShareMonths();
+        if ($months === 0) {
+            return ['status' => 'off', 'months' => 0, 'moved_count' => 0, 'total_amount' => '0.00'];
+        }
+        $cutoff = now()->subMonthsNoOverflow($months);
+
+        return DB::transaction(function () use ($actorId, $cutoff, $months): array {
+            $suspended = fn () => User::query()->where('status', '!=', 'active')->whereNull('closed_at')->select('id');
+            $partnerIds = CommissionAllocation::query()->where('status', 'held')->where('category', 'not like', 'area\_%')
+                ->where('created_at', '<=', $cutoff)->whereIn('user_id', $suspended())->distinct()->pluck('user_id')
+                ->map(fn ($id): int => (int) $id)->all();
+            CommissionWallet::lockPartners(...$partnerIds);
+            // Read again under the partner locks: a partner made active a moment ago is paid by the release instead.
+            $stillSuspended = User::query()->whereKey($partnerIds)->where('status', '!=', 'active')->whereNull('closed_at')->pluck('id')->all();
+            $rows = CommissionAllocation::query()->where('status', 'held')->where('category', 'not like', 'area\_%')
+                ->where('created_at', '<=', $cutoff)->whereIn('user_id', $stillSuspended)
+                ->orderBy('id')->lockForUpdate()->get();
+            $total = 0;
+            $byPartner = [];
+            foreach ($rows as $row) {
+                $amount = Money::cents($row->amount);
+                $total += $this->moveToCompanyProfit($row, $amount, 'suspended_hold_expired', self::SuspendedHoldReason, ['held_months_limit' => $months]);
+                $byPartner[(int) $row->user_id] = ($byPartner[(int) $row->user_id] ?? 0) + $amount;
+            }
+            if ($rows->isNotEmpty()) {
+                Audit::record($actorId, 'commission.suspended_holds_to_company_profit', $cutoff->toDateString(), [
+                    'count' => $rows->count(), 'amount' => Money::decimal($total), 'months' => $months,
+                    'reason' => self::SuspendedHoldReason, 'allocation_ids' => $rows->pluck('id')->all(),
+                    'partners' => array_map(fn (int $cents): string => Money::decimal($cents), $byPartner),
+                ]);
+            }
+            foreach (User::query()->whereKey(array_keys($byPartner))->get() as $partner) {
+                $locale = $partner->preferredLocale();
+                Audit::notice(
+                    $partner->id,
+                    __('money_core.notice_suspended_hold_title', [], $locale),
+                    __('money_core.notice_suspended_hold_body', ['months' => $months, 'amount' => Money::display(Money::decimal($byPartner[$partner->id]), $locale)], $locale),
+                );
+            }
+
+            return ['status' => $rows->isNotEmpty() ? 'moved' : 'nothing_to_move', 'months' => $months, 'moved_count' => $rows->count(), 'total_amount' => Money::decimal($total)];
         }, 3);
     }
 

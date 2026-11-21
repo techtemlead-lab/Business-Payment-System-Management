@@ -21,6 +21,13 @@ use Illuminate\Validation\ValidationException;
 final class FinancialReadiness
 {
     /**
+     * Checks that ask a person to act (an order whose commission was never posted, money held too long) rather
+     * than saying the books disagree. They are listed with the others, but they do not make the books "not
+     * reconciled": the opening check and its fingerprint, which a slow day could otherwise change, leave them out.
+     */
+    public const AttentionChecks = ['missed_order_batches', 'stale_holdings'];
+
+    /**
      * Do the money records agree with each other right now? Each check is a single read of
      * saved rows, so a payment halfway through cannot make one fail.
      *
@@ -98,7 +105,23 @@ final class FinancialReadiness
             // No credit buying: a finished order holds no paid money beyond the goods the partner
             // keeps, unless a cancel, return or refund for it is waiting for its approvals.
             'paid_left_on_closed_orders' => ! $this->paidMoneyLeftOnClosedOrders(),
+            // Attention checks (see AttentionChecks): money waiting for a person, not books that disagree.
+            // Delivered, fully paid orders whose commission was never posted (finance:post-missed-orders posts them).
+            'missed_order_batches' => ! app(MissedOrderPostings::class)->exist(),
+            // Money that has waited longer than the owner's limit for a person to act (the "Old money" list).
+            'stale_holdings' => ! app(StaleHoldings::class)->exist(),
         ];
+    }
+
+    /**
+     * The checks that say whether the books agree, without the attention checks.
+     *
+     * @param  array<string, bool>  $checks
+     * @return array<string, bool>
+     */
+    public static function bookChecks(array $checks): array
+    {
+        return array_diff_key($checks, array_flip(self::AttentionChecks));
     }
 
     private function paidMoneyLeftOnClosedOrders(): bool
@@ -123,10 +146,10 @@ final class FinancialReadiness
             ->whereRaw('r.amount <> COALESCE((SELECT SUM(s.amount) FROM reserve_expense_sources s WHERE s.disbursement_id = r.id),0)')->exists();
     }
 
-    /** True only when every check above has just passed. */
+    /** True only when every book check above has just passed (the attention checks are not book checks). */
     public function booksMatch(): bool
     {
-        return ! in_array(false, $this->checks(), true);
+        return ! in_array(false, self::bookChecks($this->checks()), true);
     }
 
     /**
@@ -202,10 +225,12 @@ final class FinancialReadiness
         }
         // Rule names come back in the reader's language, so they stay out of the fingerprint.
         $policyRules = array_map(fn ($rule) => is_array($rule) ? array_diff_key($rule, ['name' => true]) : $rule, $policy['rules']);
-        $snapshot = ['checks' => $checks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policyRules];
+        $bookChecks = self::bookChecks($checks);
+        $snapshot = ['checks' => $bookChecks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policyRules];
 
-        return [...$snapshot, 'fingerprint' => hash('sha256', json_encode($snapshot, JSON_THROW_ON_ERROR)),
-            'internally_reconciled' => ! in_array(false, $checks, true), 'posting_enabled' => (bool) config('madina.financial_activation'),
+        return [...$snapshot, 'fingerprint' => hash('sha256', json_encode($snapshot, JSON_THROW_ON_ERROR)), 'checks' => $checks,
+            'needs_attention' => self::failedNames(array_diff_key($checks, $bookChecks)),
+            'internally_reconciled' => ! in_array(false, $bookChecks, true), 'posting_enabled' => (bool) config('madina.financial_activation'),
             'opening_verified' => DB::table('financial_verifications')->whereNotNull('verified_at')->exists()];
     }
 

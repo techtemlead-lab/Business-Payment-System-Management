@@ -95,6 +95,11 @@ Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezo
 Schedule::command('partners:progress-alerts')->dailyAt('09:15')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled partner alert run failed.'));
 
+// Money that waited longer than the owner's limit (30 days unless changed): one portal notice a day to the owners,
+// kind by kind, with the amount and where to act. No SMS or email; nothing moves.
+Schedule::command('finance:stale-holdings-notice')->dailyAt('09:20')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled notice about old money waiting for the owner failed.'));
+
 // Partners who share a phone, NID or payout number, or refer themselves: listed for the owner and finance. Flag only.
 Schedule::command('partners:scan-duplicates')->dailyAt('03:30')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled duplicate account check failed.'));

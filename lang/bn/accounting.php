@@ -252,4 +252,6 @@ return [
     'owner_limit_fund_spend_hint' => 'কোম্পানির ফান্ড থেকে এই টাকা বা তার বেশি খরচ শুধু মালিক অনুমোদন করবেন।',
     'flash_limit_saved_refund' => 'টাকা ফেরতের সীমা সেভ হয়েছে।',
     'flash_limit_saved_fund_spend' => 'ফান্ড খরচের সীমা সেভ হয়েছে।',
+    'account_closed_account_balance_income' => 'বন্ধ অ্যাকাউন্টের টাকা, কোম্পানিতে নেওয়া',
+    'account_bad_debt_expense' => 'মাফ করা ফেরতের পাওনা (অনাদায়ী পাওনা)',
 ];

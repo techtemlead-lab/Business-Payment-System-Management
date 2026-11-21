@@ -6900,4 +6900,6 @@ return [
     'filter_label_dates' => 'Dates',
     'filter_label_partner' => 'Partner type',
     'ops_chk_paid_left_on_closed_orders' => 'No paid money left on closed orders',
+    'ops_chk_missed_order_batches' => 'Every delivered, paid order has its commission posted',
+    'ops_chk_stale_holdings' => 'No money has waited too long for someone to act',
 ];

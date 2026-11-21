@@ -333,14 +333,14 @@ class FundSpendForPartnersTest extends TestCase
         $this->assertStringContainsString('"for_partners":1', json_encode($rows, JSON_THROW_ON_ERROR));
     }
 
-    public function test_the_readiness_checks_stay_at_nineteen_and_the_books_still_match(): void
+    public function test_the_readiness_check_count_is_unchanged_and_the_books_still_match(): void
     {
         $partner = $this->partner();
         $before = app(FinancialReadiness::class)->booksMatch();
         $id = $this->spend(['for' => ['mode' => 'everyone']])->assertOk()->json('data.id');
         $this->approve($id);
 
-        $this->assertCount(19, app(FinancialReadiness::class)->checks());
+        $this->assertCount(21, app(FinancialReadiness::class)->checks());
         $this->assertSame($before, app(FinancialReadiness::class)->booksMatch());
         $this->assertSame('0.00', $this->wallet($partner));
     }

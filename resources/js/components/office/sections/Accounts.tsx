@@ -9,6 +9,7 @@ import { Badge, Modal, date, label, money, number, type Row } from '../../UI';
 import MoreMenu from '../MoreMenu';
 import PartnerFrame from './PartnerFrame';
 import AppointmentPill from '../../AppointmentPill';
+import ClosedAccountsWithMoney from '../../ClosedAccountsWithMoney';
 
 const FILE_FILTER_KEYS = ['division', 'district', 'rank', 'no_order_days'];
 const BRANCH_KEYS = ['branch_id', 'all_branches'];
@@ -138,6 +139,7 @@ export default function Accounts({ section, data }: { section: string; data: Row
 
     return (
         <PartnerFrame data={data} action={action}>
+            {isClosedView && <ClosedAccountsWithMoney summary={data.closed_with_money} role={section === 'accounts' ? 'dealer' : 'sub_dealer'} />}
             <div data-tour="accounts-table">
                 <MoneyTable
                     data={tableData}
