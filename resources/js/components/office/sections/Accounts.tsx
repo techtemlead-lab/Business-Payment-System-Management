@@ -212,7 +212,7 @@ function PartnerDetails({ partner, isDealerList }: { partner: Row; isDealerList:
         [translate('portal', 'net_sponsor'), sponsor],
         [translate('portal', 'col_place'), place],
         [translate('cr21_identity', 'label_appointment'), partner.appointment?.line],
-        [translate('cr21_identity', 'label_address'), areaLine],
+        [translate('cr21_identity', 'label_business_area'), areaLine],
         [translate('office_partners', 'detail_shop'), partner.profile?.shop_name],
         [translate('office_partners', 'detail_name_bn'), partner.profile?.name_bn],
         [translate('portal', 'col_joined'), partner.created_at ? date(partner.created_at) : null],

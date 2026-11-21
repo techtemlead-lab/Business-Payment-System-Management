@@ -12,6 +12,7 @@ export default function PartnerProfileCard({card}:{card:Row}){
  const p=(key:string,replace:Record<string,string>={})=>translate('partner_profile',key,replace);
  const none=p('card_not_given');
  const address=card.address??{};
+ const home=card.permanent_address??{};
  const referral=card.referred_by??{};
  const refs=card.referrals??{items:[]};
  const missing:string[]=(card.address_missing??[]).map((field:string)=>p(`card_${field}`));
@@ -48,8 +49,12 @@ export default function PartnerProfileCard({card}:{card:Row}){
   <h3>{c('sec_appointment')}</h3>
   <dl className="profile-grid">{identity.map(([key,value])=><div key={key}><dt>{key}</dt><dd>{key===p('card_status')?<Badge status={card.status}/>:value}</dd></div>)}</dl>
 
-  <h3>{c('label_address')}</h3>
-  <dl className="profile-grid">{(['division','district','upazila','union','village'] as const).map(field=><div key={field}><dt>{p(`card_${field}`)}</dt><dd>{address[field]||none}</dd></div>)}</dl>
+  {/* Where the person lives, then where he does business: two separate places. */}
+  <h3>{c('label_permanent_address')}</h3>
+  <dl className="profile-grid">{(['division','district','upazila','union','village','post_office'] as const).map(field=><div key={field}><dt>{p(`card_${field}`)}</dt><dd>{home[field]||none}</dd></div>)}</dl>
+
+  <h3>{c('label_business_area')}</h3>
+  <dl className="profile-grid">{(['division','district','upazila','union'] as const).map(field=><div key={field}><dt>{p(`card_${field}`)}</dt><dd>{address[field]||none}</dd></div>)}</dl>
   {missing.length>0&&<div className="notice"><div><p>{p('card_address_missing',{fields:missing.join('، ')})}</p></div></div>}
 
   <h3>{p('card_referred_by')}</h3>

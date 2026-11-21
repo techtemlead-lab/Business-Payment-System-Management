@@ -9,7 +9,8 @@ return [
 
     'section_account' => 'Account',
     'section_personal' => 'Personal details',
-    'section_address' => 'Address',
+    'section_permanent_address' => 'Permanent address',
+    'section_business_area' => 'Business area',
     'section_business' => 'Business',
 
     'f_role' => 'Partner type',
@@ -31,7 +32,7 @@ return [
     'f_district' => 'District',
     'f_upazila' => 'Upazila',
     'f_union' => 'Union',
-    'f_village' => 'Village / road',
+    'f_village' => 'Village / road / house',
     'f_post_office' => 'Post office',
     'f_place_code' => 'Area code',
     'f_shop' => 'Pharmacy / shop name',

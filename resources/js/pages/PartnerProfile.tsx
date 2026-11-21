@@ -63,6 +63,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
     const yesNo = (value: boolean) => t(value ? 'yes' : 'no');
     const identity = sheet.identity ?? {};
     const contact = sheet.contact ?? {};
+    const home = sheet.permanent_address ?? {};
     const place = sheet.place ?? {};
     const kyc = sheet.kyc ?? {};
     const network = sheet.network ?? {};
@@ -123,18 +124,26 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                     [t('f_phone'), contact.phone],
                     [t('f_email'), contact.email],
                     [t('f_extra_contact'), contact.extra_contact],
-                    [t('f_village'), contact.village],
-                    [t('f_post_office'), contact.post_office],
-                    [t('f_union'), contact.union],
-                    [t('f_upazila'), contact.upazila],
-                    [t('f_district'), contact.district],
-                    [t('f_division'), contact.division],
                     [t('f_location'), contact.latitude != null && contact.longitude != null ? `${contact.latitude}, ${contact.longitude}` : null],
                     [t('f_directory'), yesNo(Boolean(contact.directory_visible))],
                 ]} />
 
+                {/* Where the person lives; the business area below is a separate place that sets the code. */}
+                <Facts title={t('sec_home')} note={home.upazila ? undefined : t('home_missing')} lines={[
+                    [t('f_village'), home.village],
+                    [t('f_post_office'), home.post_office],
+                    [t('f_union'), home.union],
+                    [t('f_upazila'), home.upazila],
+                    [t('f_district'), home.district],
+                    [t('f_division'), home.division],
+                ]} />
+
                 <Facts title={t('sec_place')} lines={[
                     [translate('cr21_identity', 'label_area'), sheet.appointment?.line],
+                    [t('f_union'), place.union],
+                    [t('f_upazila'), place.upazila],
+                    [t('f_district'), place.district],
+                    [t('f_division'), place.division],
                     [t('f_place_code'), place.place_code],
                     // The same code twice under two names only confuses; show the second one when it differs.
                     ...(place.area_code && place.area_code !== place.place_code ? [[t('f_area_code'), place.area_code] as [string, React.ReactNode]] : []),
