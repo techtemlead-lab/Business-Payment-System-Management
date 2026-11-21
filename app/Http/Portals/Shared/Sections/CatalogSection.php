@@ -109,10 +109,10 @@ final class CatalogSection implements WorkspaceSection
             if (isset($groupMembers[$p->id])) {
                 $base['size_group_members'] = $groupMembers[$p->id];
             }
+            // The group sits under the name on every product card and order row, for partners as well as staff.
+            $base['group'] = ProductFacts::groupForVisitor($p);
             if ($context->isStaff && $context->section === 'catalog') {
-                $facts = ProductFacts::forPublic($p);
-                $base['manufacturer'] = $facts['manufacturer'];
-                $base['group'] = $facts['group'];
+                $base['manufacturer'] = ProductFacts::forPublic($p)['manufacturer'];
             }
             if (! $context->isStaff) {
                 try {

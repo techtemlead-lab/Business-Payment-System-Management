@@ -142,6 +142,15 @@ final class ProductFacts
     }
 
     /**
+     * The group line shown under a product name on cards and rows (for example "Paracetamol"),
+     * in the visitor's language, or null when the owner left it blank.
+     */
+    public static function groupForVisitor(Product $product): ?string
+    {
+        return self::inVisitorLanguage($product, 'group');
+    }
+
+    /**
      * Groups already used on products, so the editor can suggest them and one group is not
      * spelled two ways. One list per language, sorted and without repeats.
      *
