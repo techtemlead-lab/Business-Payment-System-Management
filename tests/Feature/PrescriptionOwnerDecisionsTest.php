@@ -35,6 +35,8 @@ class PrescriptionOwnerDecisionsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Clinic sales post to the journal, so they need money posting on.
+        $this->enableFinancialPosting();
         $this->withoutVite();
         $this->owner = User::factory()->staff('super_admin')->create();
         $this->branch = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();

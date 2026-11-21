@@ -111,7 +111,7 @@ class EnforceStaffActions
             return $next($request);
         }
         $prescribing = in_array($controller, ['PrescriptionToolsController', 'PrescriptionLetterheadController', 'PrescriberPublicToolsController', 'ClinicRecordsController'], true)
-            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
+            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense', 'voidDispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
             return $next($request);

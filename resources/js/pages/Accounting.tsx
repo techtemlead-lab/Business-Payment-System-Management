@@ -212,6 +212,35 @@ function Payables({ payables, t }: { payables: Row; t: Translate }) {
     </section>;
 }
 
+function ClinicCash({ clinicCash, t }: { clinicCash: Row; t: Translate }) {
+    const translate = useT();
+    const canWork = useCanWorkOnStatements();
+    const p = (key: string, replace: Record<string, string | number> = {}) => translate('prescription', key, replace);
+    const form = useForm({ amount: '', deposited_on: new Date().toISOString().slice(0, 10), reference: '', note: '', request_key: newRequestKey() });
+    return <section className="panel">
+        <h2>{p('cash_title')}</h2>
+        <p className="muted">{p('cash_hint')}</p>
+        <div className="metric"><span>{p('cash_balance')}</span><strong>{money(clinicCash.balance)}</strong></div>
+        {canWork && <form className="action-form" onSubmit={event => {
+            event.preventDefault();
+            form.post('/commands/operations/accounting/clinic-cash/deposits', { preserveScroll: true, onSuccess: () => form.setData({ ...form.data, amount: '', reference: '', note: '', request_key: newRequestKey() }) });
+        }}>
+            <label>{t('payable_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event => form.setData('amount', event.target.value)} /></label>
+            <label>{p('cash_deposited_on')}<input required type="date" value={form.data.deposited_on} onChange={event => form.setData('deposited_on', event.target.value)} /></label>
+            <label>{p('cash_reference')}<input maxLength={100} value={form.data.reference} onChange={event => form.setData('reference', event.target.value)} /></label>
+            <label>{p('cash_note')}<input required minLength={5} maxLength={1000} value={form.data.note} onChange={event => form.setData('note', event.target.value)} /></label>
+            {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
+            <button className="button dark" disabled={form.processing}>{p('cash_deposit')}</button>
+        </form>}
+        <Table searchable={false} rows={clinicCash.deposits} columns={[
+            { key: 'deposited_on', title: p('cash_deposited_on') },
+            { key: 'amount', title: t('payable_amount'), money: true, render: (row: Row) => money(row.amount) },
+            { key: 'reference', title: p('cash_reference'), render: (row: Row) => <>{row.reference ?? '—'}<small className="cell-sub">{row.note}</small></> },
+            { key: 'recorded_by', title: t('payable_recorded_by') },
+        ]} empty={p('cash_no_deposits')} />
+    </section>;
+}
+
 export default function Accounting(props: Row) {
     const translate = useT();
     const t: Translate = (key, replace = {}) => translate('accounting', key, replace);
@@ -220,5 +249,6 @@ export default function Accounting(props: Row) {
         <div className="section-header"><div><Link className="text-link" href="/treasury/work">{translate('treasury', 'tab_work')}</Link><h2>{t('tab_import')}</h2></div></div>
         <StatementCheck {...props} t={t} />
         {props.payables && <Payables payables={props.payables} t={t} />}
+        {props.clinicCash && <ClinicCash clinicCash={props.clinicCash} t={t} />}
     </Shell>;
 }

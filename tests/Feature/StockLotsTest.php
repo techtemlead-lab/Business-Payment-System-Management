@@ -209,6 +209,7 @@ class StockLotsTest extends TestCase
 
     public function test_clinic_dispense_takes_earliest_expiry_and_appears_in_recall_without_patient_details(): void
     {
+        $this->enableFinancialPosting();
         [$prescription, $product] = $this->clinicPrescription(3);
         $late = $this->stockIn($product, 5, 'RXLATE', '+300 days');
         $soon = $this->stockIn($product, 5, 'RXSOON', '+30 days');
@@ -231,6 +232,7 @@ class StockLotsTest extends TestCase
 
     public function test_clinic_dispense_refuses_expired_stock(): void
     {
+        $this->enableFinancialPosting();
         [$prescription, $product] = $this->clinicPrescription(1);
         $this->stockIn($product, 5, 'RXOLD', '+30 days')->forceFill(['expires_on' => now()->subDay()->toDateString()])->save();
 

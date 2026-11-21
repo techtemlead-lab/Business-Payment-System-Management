@@ -28,6 +28,8 @@ class PrescriptionNotepadTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Clinic sales post to the journal, so they need money posting on.
+        $this->enableFinancialPosting();
         $this->withoutVite();
     }
 

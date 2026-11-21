@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Clinic\ClinicCashDeposits;
 use App\Domain\Finance\AccountingStatements;
 use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PayableRemittances;
@@ -60,7 +61,29 @@ class AccountingController extends Controller
             'history' => $imports->history(),
             'statement' => $statement,
             'payables' => app(PayableRemittances::class)->page($request->user()),
+            'clinicCash' => app(ClinicCashDeposits::class)->page(),
         ]);
+    }
+
+    /** Records clinic takings carried to the company's bank or main cash. */
+    public function depositClinicCash(Request $request, ClinicCashDeposits $deposits): Response
+    {
+        $this->authorizeAccounting($request->user());
+        TransactionReference::tidy($request, 'reference');
+        $data = $request->validate([
+            'amount' => [...FinanceOperationsController::Amount, 'not_regex:/^0+(\.0+)?$/D'],
+            'deposited_on' => ['required', 'date_format:Y-m-d', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (CarbonImmutable::parse($value, 'Asia/Dhaka')->isFuture()) {
+                    $fail(__('accounting.err_payable_future_date'));
+                }
+            }],
+            'reference' => 'nullable|string|max:100',
+            'note' => 'required|string|min:5|max:1000',
+            'request_key' => 'required|uuid',
+        ]);
+        $id = $deposits->record($request->user(), $data);
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('prescription.flash_cash_deposited'));
     }
 
     /** Records a payment of withheld tax or salary deductions; a second person checks it. */

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Clinic;
 
+use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\Percentage;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
@@ -114,12 +115,15 @@ final class ClinicDispensing
         abort_unless(PrescriptionAccess::usesCompanyStock($actor), 403);
         abort_unless($prescription->kind === Prescription::KindClinic, 422, __('prescription.err_not_clinic'));
         abort_unless(in_array($paymentMethod, Prescription::PaymentMethods, true), 422);
+        // A sale posts to the journal, so it waits for the money-posting switch like every other money flow.
+        CommissionWallet::requireActive();
         $branch = $this->branches->resolveWritableBranch($actor, $branchId);
         $reference = filled($paymentReference) ? trim($paymentReference) : null;
 
         return DB::transaction(function () use ($actor, $prescription, $branch, $paymentMethod, $reference, $confirmBelowFloor, $links): Prescription {
+            CommissionWallet::lockShared();
             $locked = Prescription::query()->whereKey($prescription->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status === Prescription::StatusDispensed) {
+            if (in_array($locked->status, [Prescription::StatusDispensed, Prescription::StatusVoided], true)) {
                 throw ValidationException::withMessages(['prescription' => __('prescription.err_already_dispensed')]);
             }
             $locked->load('lines');

@@ -57,6 +57,9 @@ class Prescription extends Model
 
     public const StatusDispensed = 'dispensed';
 
+    /** A clinic sale taken back: the money and the medicines went back, the record stays. */
+    public const StatusVoided = 'voided';
+
     public const PaymentCash = 'cash';
 
     /** How a clinic sale can be paid; cash is the default. */
