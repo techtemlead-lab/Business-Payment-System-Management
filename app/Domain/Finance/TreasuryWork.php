@@ -92,8 +92,10 @@ final class TreasuryWork
         $ready = $figures->readyToPay();
         $held = $figures->held();
         $failedCloses = $figures->failedCloses();
+        $stalePayables = $figures->stalePayables();
 
         return array_values(array_filter([
+            $stalePayables['count'] > 0 ? $this->tile('payables_overdue', '/operations/accounting', $stalePayables['count'], $stalePayables['amount'], (string) __('money_core.task_payables_overdue', ['days' => $stalePayables['days']]), true) : null,
             $ready['count'] > 0 ? $this->tile('ready_to_pay', '/settlements', $ready['count'], $ready['amount'], (string) __('money_core.task_ready_to_pay')) : null,
             $held['count'] > 0 ? $this->tile('holds', '/operations/commission-holds', $held['count'], $held['amount'], (string) __('money_core.task_held')) : null,
             $failedCloses > 0 ? $this->tile('month_close_failed', '/settlements', $failedCloses, null, (string) __('money_core.task_close_failed'), true) : null,

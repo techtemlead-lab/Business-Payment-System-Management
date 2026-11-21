@@ -110,4 +110,5 @@ return [
     'pr_deadline_none' => 'None; counted from the start',
     'pr_cap_example' => 'Example: if one of your direct lines buys ৳:example, only up to ৳:cap of it counts toward the target. So one big order in one line cannot reach the target alone.',
     'pr_claim' => 'How to get it: no separate application is needed. When the target is reached the office will contact you, and once the office approves, the prize money is added to your wallet.',
+    'task_payables_overdue' => 'Withheld tax or salary deductions not paid on for over :days days',
 ];

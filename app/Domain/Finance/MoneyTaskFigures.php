@@ -41,6 +41,16 @@ final class MoneyTaskFigures
         return ['count' => (int) $row->lines, 'amount' => Money::decimal(Money::cents((string) $row->total))];
     }
 
+    /**
+     * Withheld tax or salary deductions owed for longer than the owner's limit (45 days by default).
+     *
+     * @return array{count: int, amount: string, days: int}
+     */
+    public function stalePayables(): array
+    {
+        return app(PayableRemittances::class)->stale();
+    }
+
     /** How many automatic month closes failed and have not worked since. */
     public function failedCloses(): int
     {

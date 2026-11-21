@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Finance\AccountingStatements;
 use App\Domain\Finance\OwnerApprovalLimits;
+use App\Domain\Finance\PayableRemittances;
 use App\Domain\Finance\StatementImports;
 use App\Domain\Payouts\PayoutBatch;
 use App\Models\User;
@@ -14,6 +15,7 @@ use App\Support\PortalHost;
 use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
+use App\Support\TransactionReference;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,7 +59,48 @@ class AccountingController extends Controller
             'channels' => StatementImports::Channels,
             'history' => $imports->history(),
             'statement' => $statement,
+            'payables' => app(PayableRemittances::class)->page($request->user()),
         ]);
+    }
+
+    /** Records a payment of withheld tax or salary deductions; a second person checks it. */
+    public function requestRemittance(Request $request, PayableRemittances $remittances): Response
+    {
+        $this->authorizeAccounting($request->user());
+        TransactionReference::tidy($request, 'reference');
+        $data = $request->validate([
+            'kind' => ['required', Rule::in(array_keys(PayableRemittances::Accounts))],
+            'amount' => [...FinanceOperationsController::Amount, 'not_regex:/^0+(\.0+)?$/D'],
+            'paid_on' => ['required', 'date_format:Y-m-d', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (CarbonImmutable::parse($value, 'Asia/Dhaka')->isFuture()) {
+                    $fail(__('accounting.err_payable_future_date'));
+                }
+            }],
+            'reference' => 'nullable|string|max:100',
+            'note' => 'required|string|min:5|max:1000',
+            'request_key' => 'required|uuid',
+        ]);
+        $id = $remittances->request($request->user(), $data);
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_payable_recorded'));
+    }
+
+    public function reviewRemittance(Request $request, int $id, PayableRemittances $remittances): Response
+    {
+        $this->authorizeAccounting($request->user());
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|min:5|max:1000']);
+        $remittances->review($request->user(), $id, $data['decision'], trim($data['reason']));
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_payable_'.$data['decision']));
+    }
+
+    public function cancelRemittance(Request $request, int $id, PayableRemittances $remittances): Response
+    {
+        $this->authorizeAccounting($request->user());
+        $data = $request->validate(['reason' => 'required|string|min:5|max:1000']);
+        $remittances->cancel($request->user(), $id, trim($data['reason']));
+
+        return $request->expectsJson() ? response()->json(['data' => ['id' => $id]]) : back()->with('success', __('accounting.flash_payable_cancelled'));
     }
 
     /**

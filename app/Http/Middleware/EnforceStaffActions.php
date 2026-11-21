@@ -310,7 +310,11 @@ class EnforceStaffActions
             // Payroll-only MD and Chairman are owners but must not rewrite SMS or email, including password texts (D11).
             'MessageTemplateController' => [['content'], 'edit'],
             'PartnerFileController' => [['accounts'], 'edit'],
-            'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
+            'AccountingController' => [['finance'], match ($method) {
+                'saveApprovalLimit' => 'edit',
+                'reviewRemittance' => 'approve',
+                default => 'create',
+            }],
             'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             'StockCountController' => [['inventory'], match ($method) {
                 'approve', 'reject' => 'approve',

@@ -159,6 +159,9 @@ $operations = function (): void {
     Route::post('/accounting/statements/{id}/map', [AccountingController::class, 'mapStatement'])->whereUuid('id');
     Route::post('/accounting/statement-lines/{id}/confirm', [AccountingController::class, 'confirmStatementLine'])->whereNumber('id');
     Route::post('/accounting/statement-lines/{id}/dismiss', [AccountingController::class, 'dismissStatementLine'])->whereNumber('id');
+    Route::post('/accounting/payables', [AccountingController::class, 'requestRemittance']);
+    Route::post('/accounting/payables/{id}/review', [AccountingController::class, 'reviewRemittance'])->whereNumber('id');
+    Route::post('/accounting/payables/{id}/cancel', [AccountingController::class, 'cancelRemittance'])->whereNumber('id');
 };
 $staffPortal = EnsureStaffPortalHost::class;
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal, 'agreement', 'authenticator'])->group($operations);

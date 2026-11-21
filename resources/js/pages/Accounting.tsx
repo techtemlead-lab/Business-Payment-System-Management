@@ -143,6 +143,75 @@ function StatementCheck({ channels, history, statement, t }: Row & { t: Translat
     </>;
 }
 
+const newRequestKey = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now().toString(16).padStart(8, '0').slice(-8)}-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, '0')}`);
+
+function RemittanceDecision({ row, t }: { row: Row; t: Translate }) {
+    const form = useForm({ decision: '', reason: '' });
+    const send = (path: string, decision: string) => {
+        form.transform(data => ({ ...data, decision }));
+        form.post(path, { preserveScroll: true });
+    };
+    return <div className="action-form">
+        <input aria-label={t('payable_reason')} placeholder={t('payable_reason')} required minLength={5} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} />
+        {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
+        <div className="button-row">
+            <button type="button" className="button small dark" disabled={form.processing} onClick={() => send(`/commands/operations/accounting/payables/${row.id}/review`, 'approved')}>{t('payable_approve')}</button>
+            <button type="button" className="button small" disabled={form.processing} onClick={() => send(`/commands/operations/accounting/payables/${row.id}/review`, 'rejected')}>{t('payable_reject')}</button>
+            {row.is_mine && <button type="button" className="button small" disabled={form.processing} onClick={() => send(`/commands/operations/accounting/payables/${row.id}/cancel`, '')}>{t('payable_cancel')}</button>}
+        </div>
+    </div>;
+}
+
+function Payables({ payables, t }: { payables: Row; t: Translate }) {
+    const canWork = useCanWorkOnStatements();
+    const form = useForm({ kind: payables.kinds[0]?.kind ?? 'withheld_tax', amount: '', paid_on: new Date().toISOString().slice(0, 10), reference: '', note: '', request_key: newRequestKey() });
+    return <section className="panel">
+        <h2>{t('payables_title')}</h2>
+        <p className="muted">{t('payables_hint')}</p>
+        <div className="metric-grid three ops-mb-4">
+            {payables.kinds.map((kind: Row) => <div className="metric" key={kind.kind}>
+                <span>{t(`payable_kind_${kind.kind}`)}</span>
+                <strong>{money(kind.balance)}</strong>
+                <small>{t('payable_pending', { amount: money(kind.pending) })}</small>
+                {kind.oldest_unpaid_days !== null && <small className={kind.oldest_unpaid_days > payables.stale_days ? 'field-error' : undefined}>{t('payable_oldest', { days: kind.oldest_unpaid_days })}</small>}
+            </div>)}
+        </div>
+        {canWork && <form className="action-form" onSubmit={event => {
+            event.preventDefault();
+            form.post('/commands/operations/accounting/payables', { preserveScroll: true, onSuccess: () => form.setData({ ...form.data, amount: '', reference: '', note: '', request_key: newRequestKey() }) });
+        }}>
+            <label>{t('payable_kind')}<select value={form.data.kind} onChange={event => form.setData('kind', event.target.value)}>
+                {payables.kinds.map((kind: Row) => <option key={kind.kind} value={kind.kind}>{t(`payable_kind_${kind.kind}`)} ({money(kind.available)})</option>)}
+            </select></label>
+            <label>{t('payable_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event => form.setData('amount', event.target.value)} /></label>
+            <label>{t('payable_paid_on')}<input required type="date" value={form.data.paid_on} onChange={event => form.setData('paid_on', event.target.value)} /></label>
+            <label>{t('payable_reference')}<input maxLength={100} value={form.data.reference} onChange={event => form.setData('reference', event.target.value)} /></label>
+            <label>{t('payable_note')}<input required minLength={5} maxLength={1000} value={form.data.note} onChange={event => form.setData('note', event.target.value)} /></label>
+            {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
+            <button className="button dark" disabled={form.processing}>{t('payable_record')}</button>
+        </form>}
+        <h3>{t('payables_waiting')}</h3>
+        <Table searchable={false} rows={payables.waiting} columns={[
+            { key: 'kind', title: t('payable_kind'), render: (row: Row) => t(`payable_kind_${row.kind}`) },
+            { key: 'amount', title: t('payable_amount'), money: true, render: (row: Row) => money(row.amount) },
+            { key: 'paid_on', title: t('payable_paid_on') },
+            { key: 'reference', title: t('payable_reference'), render: (row: Row) => <>{row.reference ?? '—'}<small className="cell-sub">{row.note}</small></> },
+            { key: 'maker_name', title: t('payable_recorded_by') },
+            { key: 'action', title: t('col_action'), render: (row: Row) => canWork ? <RemittanceDecision row={row} t={t} /> : '—' },
+        ]} empty={t('payables_none_waiting')} />
+        <h3>{t('payables_monthly')}</h3>
+        {payables.kinds.map((kind: Row) => <div key={kind.kind} className="ops-mb-4">
+            <h4>{t(`payable_kind_${kind.kind}`)}</h4>
+            <Table searchable={false} rows={kind.months.map((month: Row) => ({ ...month, id: month.month }))} columns={[
+                { key: 'month', title: t('payable_month') },
+                { key: 'withheld', title: t('payable_withheld'), money: true, render: (row: Row) => money(row.withheld) },
+                { key: 'remitted', title: t('payable_remitted'), money: true, render: (row: Row) => money(row.remitted) },
+                { key: 'still_payable', title: t('payable_still_payable'), money: true, render: (row: Row) => money(row.still_payable) },
+            ]} empty={t('payables_no_months')} />
+        </div>)}
+    </section>;
+}
+
 export default function Accounting(props: Row) {
     const translate = useT();
     const t: Translate = (key, replace = {}) => translate('accounting', key, replace);
@@ -150,5 +219,6 @@ export default function Accounting(props: Row) {
     return <Shell section="treasury"><Head title={t('tab_import')} />
         <div className="section-header"><div><Link className="text-link" href="/treasury/work">{translate('treasury', 'tab_work')}</Link><h2>{t('tab_import')}</h2></div></div>
         <StatementCheck {...props} t={t} />
+        {props.payables && <Payables payables={props.payables} t={t} />}
     </Shell>;
 }
