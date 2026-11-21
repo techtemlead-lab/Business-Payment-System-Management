@@ -330,6 +330,7 @@ final class CommissionQualification
         $monthlyTargets = MonthlyTargets::usesMonthlyTargets($rules);
         // A page that already knows the dealer's kind passes it, so it is not read again.
         $kinds = ! $monthlyTargets ? [] : ($kinds ?? app(DealerKinds::class)->for($users->where('role', 'dealer')->keys()->map(fn ($id): int => (int) $id)->all()));
+        $exceptions = $monthlyTargets ? app(DealerKinds::class)->exceptions($users->where('role', 'dealer')->keys()->map(fn ($id): int => (int) $id)->all(), $month) : [];
         $asOf = $month === self::currentMonth() ? now() : $end->subSecond();
 
         $result = [];
@@ -350,7 +351,10 @@ final class CommissionQualification
             $volume = $volumes[$userId] ?? 0;
             $user = $users->get($userId);
             if ($monthlyTargets) {
-                $required = (int) MonthlyTargets::royaltyTarget($rules, (string) $user?->role, $kinds[$userId] ?? null);
+                // The owner's own target for a single dealer this month replaces his kind target (an exception).
+                $required = $user?->role === 'dealer' && isset($exceptions[$userId])
+                    ? $exceptions[$userId]
+                    : (int) MonthlyTargets::royaltyTarget($rules, (string) $user?->role, $kinds[$userId] ?? null);
                 $grace = false;
             } else {
                 $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);

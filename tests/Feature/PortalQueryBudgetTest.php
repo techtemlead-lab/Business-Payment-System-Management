@@ -99,8 +99,8 @@ class PortalQueryBudgetTest extends TestCase
         // head (wallet, withdrawals paid, income by type, balance used on orders, refunds back to it, waiting money).
         // 50-51 (V1, V2): the appointed area line and the income-head totals; one read each, never one per order.
         // 52-53: the pending balance (area shares held for the target, sub-dealer salary or the dealer's pool months); one read each, never one per order.
-        // 54: the salary estimate reads every dealer's kind (one query for all dealers) for the one monthly target by kind (owner, 2026-11-21).
-        $this->assertQueriesAtMost(54, $queries, 'dealer dashboard');
+        // 54-55: the salary estimate reads every dealer's kind, and the royalty check the owner's own target for the dealer (owner, 2026-11-21); one query each.
+        $this->assertQueriesAtMost(55, $queries, 'dealer dashboard');
 
         foreach (range(1, 8) as $index) {
             $this->line($this->order($dealer, $index % 2 === 0 ? 'delivered' : 'submitted', total: '20.00'), $product, quantity: 1, dispatched: 0);
@@ -218,7 +218,8 @@ class PortalQueryBudgetTest extends TestCase
 
         [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/settlements?period_month='.$month));
         $response->assertOk();
-        $this->assertQueriesAtMost(31, $queries, 'settlements');
+        // 32: one read of the owner's own targets for single dealers (owner, 2026-11-21).
+        $this->assertQueriesAtMost(32, $queries, 'settlements');
 
         $this->rankLeaders(8);
         [$response, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/settlements?period_month='.$month));

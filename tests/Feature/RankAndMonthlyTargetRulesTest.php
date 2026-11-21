@@ -270,6 +270,24 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         $this->assertSame($card['money_in'], app(TreasuryFunds::class)->moneyIn(Request::create('/x', 'GET', ['period' => '']), 'benefits')['totals']['sums']['amount']);
     }
 
+    public function test_the_owners_own_target_for_one_dealer_replaces_his_kind_target_for_that_month(): void
+    {
+        $excepted = $this->partner('dealer', $this->union, 'mo');
+        $other = $this->partner('dealer', $this->union, 'mo');
+        DB::table('partner_monthly_targets')->insert(['user_id' => $excepted->id, 'month' => '2026-12', 'kind' => 'salary', 'amount' => '20000.00',
+            'set_by' => User::factory()->create(['role' => 'super_admin'])->id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->purchase($excepted, '20000.00');
+        $this->purchase($other, '20000.00');
+
+        $this->closeMonth('salary');
+        app(CommissionSettlement::class)->settle('2026-12', 'royalty');
+
+        $this->assertGreaterThan(0, $this->paidTo($excepted, 'salary'), 'His own target of 20,000 is met.');
+        $this->assertGreaterThan(0, $this->paidTo($excepted, 'royalty'), 'The same exception unlocks his royalty.');
+        $this->assertSame(0, $this->paidTo($other, 'salary'), 'The union target of 30,000 is not met.');
+        $this->assertSame(0, $this->paidTo($other, 'royalty'));
+    }
+
     public function test_a_salary_fund_nobody_in_bangladesh_qualified_for_goes_to_company_profit(): void
     {
         $this->purchase($this->partner('dealer', $this->union), '1000.00');

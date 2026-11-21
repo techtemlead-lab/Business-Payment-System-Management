@@ -100,6 +100,8 @@ final class CommissionSettlement
             'dealerDivisions' => $kind === 'salary' && $fundIds !== [] ? $this->dealerDivisions($dealers) : [],
             // Each dealer's kind sets his one monthly target (MonthlyTargets).
             'dealerKinds' => $kind === 'salary' && $fundIds !== [] ? app(DealerKinds::class)->for($dealerIds) : [],
+            // The owner's own target for single dealers this month replaces their kind target (an exception).
+            'dealerExceptions' => $kind === 'salary' && $fundIds !== [] ? app(DealerKinds::class)->exceptions($dealerIds, $month) : [],
             'paidAsByRules' => [],
             'subDealerNames' => $subDealers->pluck('name', 'id')->all(),
             'payees' => $dealers->keyBy('id')->all() + $subDealers->keyBy('id')->all(),
@@ -238,7 +240,7 @@ final class CommissionSettlement
         $refundedBasis = $this->refundedBasisByOrder($funds);
         $payoutRows = [];
         foreach ($funds as $fund) {
-            [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $context['dealerDivisions'], $context['volumes'], $batchPolicies, $buyerGeographies, $context['dealerKinds']);
+            [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $context['dealerDivisions'], $context['volumes'], $batchPolicies, $buyerGeographies, $context['dealerKinds'], $context['dealerExceptions']);
             $cents = Money::cents($fund->amount);
             $shares = [];
             $tierReason = false;
@@ -444,6 +446,7 @@ final class CommissionSettlement
         $volumes = $this->qualification->monthlyVolumesFor($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month);
         $dealerDivisions = $this->dealerDivisions($dealers);
         $dealerKinds = app(DealerKinds::class)->for($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $dealerExceptions = app(DealerKinds::class)->exceptions($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month);
         $batchPolicies = $this->batchPolicies($funds);
         $buyerGeographies = $this->fundBuyerGeographies($funds, $batchPolicies);
         $divisions = [];
@@ -459,7 +462,7 @@ final class CommissionSettlement
 
                 continue;
             }
-            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies, $dealerKinds);
+            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies, $dealerKinds, $dealerExceptions);
             [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
             ['shares' => $fundShares, 'leftover' => $leftover] = EqualSplit::among($cents, $qualifiedIds);
             $leftover = $qualifiedIds === [] ? 0 : $leftover;
@@ -591,7 +594,7 @@ final class CommissionSettlement
      * @param  array<int, string|null>  $dealerKinds  each dealer's kind (DealerKinds), which sets his monthly target
      * @return array{0: array<string, mixed>, 1: array<string, mixed>|null, 2: list<int>}
      */
-    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies, array $buyerGeographies = [], array $dealerKinds = []): array
+    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies, array $buyerGeographies = [], array $dealerKinds = [], array $dealerExceptions = []): array
     {
         $source = $batchPolicies[$fund->order_id] ?? null;
         $policy = $source ? json_decode((string) $source, true, 512, JSON_THROW_ON_ERROR) : null;
@@ -609,7 +612,7 @@ final class CommissionSettlement
         // The order's rules say the target: each dealer's one target by kind, or (older orders) one minimum for all.
         $qualifiedIds = $dealers
             ->filter(fn (User $user): bool => ($kind !== 'salary' || $nationwide || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
-                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= MonthlyTargets::dealerTarget($rules, $dealerKinds[(int) $user->id] ?? null)))
+                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= ($nationwide && isset($dealerExceptions[(int) $user->id]) ? $dealerExceptions[(int) $user->id] : MonthlyTargets::dealerTarget($rules, $dealerKinds[(int) $user->id] ?? null))))
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->values()
