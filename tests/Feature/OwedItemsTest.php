@@ -133,6 +133,23 @@ class OwedItemsTest extends TestCase
         $this->assertStringContainsString($source->number, (string) $invoiceLine['owed_note']);
     }
 
+    public function test_owed_goods_are_owed_again_when_the_next_order_is_cancelled(): void
+    {
+        $this->owedOrder();
+        $next = app(OrderService::class)->create($this->dealer, ['items' => [['product_id' => $this->product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
+        app(OwedItems::class)->shipWith($this->owner, $next);
+        $this->assertSame([], app(OwedItems::class)->open($this->dealer->id));
+
+        $this->actingAs($this->dealer)->onPortal('dealer')->post('/commands/orders/'.$next->id.'/returns', ['kind' => 'cancel', 'reason' => 'Ordered by mistake'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('cancelled', $next->fresh()->status);
+        $this->assertCount(1, app(OwedItems::class)->open($this->dealer->id));
+        $third = $this->paidOrder(1);
+        $this->assertSame(1, app(OwedItems::class)->shipWith($this->owner, $third));
+        $this->assertDatabaseHas('owed_items', ['status' => 'shipped', 'shipped_in_order_id' => $third->id]);
+    }
+
     public function test_staff_can_refund_an_owed_item_instead(): void
     {
         $order = $this->owedOrder();

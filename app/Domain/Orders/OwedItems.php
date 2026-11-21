@@ -7,6 +7,7 @@ use App\Models\OrderLine;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -97,9 +98,9 @@ final class OwedItems
             if (! in_array($locked->status, self::ReceivingStatuses, true) || $locked->is_opening_balance) {
                 throw ValidationException::withMessages(['order' => __('owed_items.err_order_cannot_take')]);
             }
-            $items = DB::table('owed_items as o')->join('orders as src', 'src.id', '=', 'o.source_order_id')
+            $items = self::openQuery()->join('orders as src', 'src.id', '=', 'o.source_order_id')
                 ->join('products as p', 'p.id', '=', 'o.product_id')
-                ->where('o.partner_id', $locked->user_id)->where('o.status', self::StatusOpen)
+                ->where('o.partner_id', $locked->user_id)
                 ->where('o.source_order_id', '!=', $locked->id)->lockForUpdate()
                 ->get(['o.id', 'o.quantity', 'p.id as product_id', 'p.name', 'p.sku', 'p.category', 'p.mrp', 'src.number']);
             foreach ($items as $item) {
@@ -115,7 +116,7 @@ final class OwedItems
                     'is_free' => true,
                     'scheme_title' => mb_substr(__('owed_items.invoice_label', ['number' => $item->number]), 0, 150),
                 ])->getKey();
-                DB::table('owed_items')->where('id', $item->id)->where('status', self::StatusOpen)->update([
+                DB::table('owed_items')->where('id', $item->id)->update([
                     'status' => self::StatusShipped, 'shipped_in_order_id' => $locked->id, 'shipped_line_id' => $lineId, 'updated_at' => now(),
                 ]);
                 $meta = ['owed_item_id' => (int) $item->id, 'line_id' => $lineId, 'quantity' => (int) $item->quantity];
@@ -137,7 +138,7 @@ final class OwedItems
         DB::transaction(function () use ($actor, $owedId, $reason): void {
             $item = DB::table('owed_items')->where('id', $owedId)->lockForUpdate()->first();
             abort_unless($item !== null, 404);
-            if ($item->status !== self::StatusOpen) {
+            if (! self::openQuery()->where('o.id', $owedId)->exists()) {
                 return;
             }
             $order = Order::query()->findOrFail($item->source_order_id);
@@ -157,11 +158,10 @@ final class OwedItems
      */
     public function open(?int $partnerId = null, int $limit = 50): array
     {
-        return DB::table('owed_items as o')
+        return self::openQuery()
             ->join('orders as src', 'src.id', '=', 'o.source_order_id')
             ->join('products as p', 'p.id', '=', 'o.product_id')
             ->join('users as u', 'u.id', '=', 'o.partner_id')
-            ->where('o.status', self::StatusOpen)
             ->when($partnerId !== null, fn ($query) => $query->where('o.partner_id', $partnerId))
             ->orderBy('o.created_at')->limit($limit)
             ->get(['o.id', 'o.partner_id', 'u.name as partner', 'p.name as product', 'o.quantity', 'o.unit_price', 'o.source_order_id', 'src.number', 'o.note', 'o.created_at'])
@@ -177,6 +177,19 @@ final class OwedItems
                 'note' => $row->note,
                 'created_at' => (string) $row->created_at,
             ])->values()->all();
+    }
+
+    /**
+     * Owed items still owed (alias `o`): open ones, and ones added to a next order that was then
+     * cancelled or turned down before its free line left the warehouse, so nothing owed is lost.
+     */
+    public static function openQuery(): QueryBuilder
+    {
+        return DB::table('owed_items as o')->where(fn (QueryBuilder $query) => $query->where('o.status', self::StatusOpen)
+            ->orWhere(fn (QueryBuilder $stale) => $stale->where('o.status', self::StatusShipped)->whereExists(fn (QueryBuilder $dead) => $dead->selectRaw('1')
+                ->from('orders as next_order')->join('order_lines as owed_line', 'owed_line.order_id', '=', 'next_order.id')
+                ->whereColumn('next_order.id', 'o.shipped_in_order_id')->whereColumn('owed_line.id', 'o.shipped_line_id')
+                ->whereIn('next_order.status', ['cancelled', 'rejected'])->where('owed_line.dispatched', 0))));
     }
 
     private function assertStaff(User $actor, Order $order): void

@@ -149,7 +149,7 @@ final class StaffDashboardSummary
             $queue[] = [
                 'key' => 'owed_items_open',
                 'label' => __('owed_items.dashboard_label'),
-                'count' => DB::table('owed_items')->where('status', OwedItems::StatusOpen)->count(),
+                'count' => OwedItems::openQuery()->count(),
                 'section' => 'deliveries',
             ];
         }
