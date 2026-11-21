@@ -136,7 +136,7 @@ class AutoApprovePayouts extends Command
     }
 
     /**
-     * Active dealers holding a rank whose one-time reward is not paid yet.
+     * Active dealers and sub-dealers holding a rank whose one-time reward is not paid yet.
      * The reward itself re-checks every rule, so a candidate who is not yet
      * eligible is simply skipped until a later run.
      *
@@ -146,7 +146,8 @@ class AutoApprovePayouts extends Command
     {
         return DealerRank::query()
             ->whereNotIn('current_rank', ['dealer'])
-            ->whereIn('user_id', User::query()->where('role', 'dealer')->where('status', 'active')->select('id'))
+            // Sub-dealers hold ranks too since the owner's rule of 2026-11-21.
+            ->whereIn('user_id', User::query()->whereIn('role', ['dealer', 'sub_dealer'])->where('status', 'active')->select('id'))
             // The current rank, or any lower rank reached on the way (MO then AM within one run),
             // whose one-time reward is still unpaid.
             ->where(fn ($query) => $query
