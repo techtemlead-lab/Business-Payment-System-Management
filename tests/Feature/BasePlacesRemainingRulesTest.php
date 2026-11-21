@@ -67,9 +67,43 @@ class BasePlacesRemainingRulesTest extends TestCase
         $this->assertSame('100009', $links['1004']);
         $this->assertSame('upazila_headquarters_union', $result['rules']['1003']);
         $this->assertSame('headquarters_not_matched', $empty['1005']);
-        // No source entry: no guess.
+        // No source entry and no name like the upazila's: no guess.
         $withoutSource = (new DefaultBasePlaces)->derive($this->fixture());
-        $this->assertSame('no_match', array_column($withoutSource['empty'], 'reason', 'code')['1003']);
+        $this->assertSame('no_match', array_column($withoutSource['empty'], 'reason', 'code')['1005']);
+    }
+
+    public function test_a_union_named_like_the_upazila_in_another_spelling_is_the_base(): void
+    {
+        $result = (new DefaultBasePlaces)->derive($this->fixture());
+        $links = array_column($result['links'], 'base_code', 'code');
+
+        $this->assertSame('100007', $links['1003']);
+        $this->assertSame('100009', $links['1004']);
+        $this->assertSame('upazila_union_named_like_upazila_other_spelling', $result['rules']['1003']);
+        $this->assertSame('upazila_union_named_like_upazila_other_spelling', $result['rules']['1004']);
+        // Nothing named like Mystery: still empty, never guessed.
+        $this->assertArrayNotHasKey('1005', $links);
+    }
+
+    public function test_the_spelling_variant_never_replaces_the_only_municipality_or_an_ambiguous_pair(): void
+    {
+        $p = fn (string $code, string $level, string $name, ?string $parent, string $kind = ''): array => ['code' => $code, 'level' => $level, 'name' => $name, 'parent_code' => $parent, 'kind' => $kind ?: $level];
+        $places = [
+            $p('201', 'district', 'Test', null),
+            $p('1001', 'upazila', 'Kaharole', '201'),
+            $p('1002', 'upazila', 'Shibpar', '201'),
+            $p('100001', 'union', 'Kaharol', '1001'),
+            $p('100002', 'union', 'Some Pourashava', '1001', 'pourashava'),
+            $p('100003', 'union', 'Shibpur', '1002'),
+            $p('100004', 'union', 'Shibpor', '1002'),
+        ];
+
+        $result = (new DefaultBasePlaces)->derive($places);
+        $links = array_column($result['links'], 'base_code', 'code');
+
+        $this->assertSame('100002', $links['1001']);
+        $this->assertSame('upazila_only_pourashava', $result['rules']['1001']);
+        $this->assertArrayNotHasKey('1002', $links);
     }
 
     public function test_the_headquarters_file_only_names_real_upazilas_and_is_applied_by_the_loader(): void

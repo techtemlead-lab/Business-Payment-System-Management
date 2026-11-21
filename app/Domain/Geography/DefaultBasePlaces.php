@@ -35,6 +35,8 @@ final class DefaultBasePlaces
 
     public const NoteHeadquarters = 'headquarters_union';
 
+    public const NoteSpellingVariant = 'named_like_upazila_other_spelling';
+
     public const ReasonSeveralPourashavas = 'several_pourashavas';
 
     public const ReasonHeadquartersNotMatched = 'headquarters_not_matched';
@@ -103,7 +105,8 @@ final class DefaultBasePlaces
                 ? 'upazila_only_child'
                 : ($note === self::NoteOnlyPourashava ? 'upazila_only_pourashava'
                 : ($note === self::NoteHeadquarters ? 'upazila_headquarters_union'
-                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : ''))),
+                : ($note === self::NoteSpellingVariant ? 'upazila_union_named_like_upazila_other_spelling'
+                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : '')))),
         };
     }
 
@@ -193,6 +196,18 @@ final class DefaultBasePlaces
             foreach ($unions as $union) {
                 if ($union['name'] === $found) {
                     return [$union, self::NoteHeadquarters];
+                }
+            }
+        }
+
+        // Last resort, after the only child, the only municipality and a source-named headquarters: the union that
+        // carries the upazila's name in another spelling (Gangachara / Gongachora), found with UnionNameMatcher;
+        // two hits choose nothing.
+        $variant = $this->matcher->find((string) $upazila['name'], array_map(fn (array $u): string => (string) $u['name'], $unions));
+        if ($variant['match'] !== null) {
+            foreach ($unions as $union) {
+                if ($union['name'] === $variant['match']) {
+                    return [$union, self::NoteSpellingVariant];
                 }
             }
         }
