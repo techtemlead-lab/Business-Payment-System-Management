@@ -1382,6 +1382,7 @@ return [
     'col_dispatched' => 'Sent',
     'col_remaining' => 'Remaining',
     'unit_price' => 'Unit price',
+    'col_discount_pct' => 'Discount %',
     'col_total' => 'Total',
     'payment_claims' => 'Payments sent',
     'review_note' => 'Review note',

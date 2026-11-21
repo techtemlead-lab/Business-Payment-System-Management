@@ -168,7 +168,7 @@ final class OrderInvoice
             $mrpBillCents = $isFreeLine ? 0 : $mrpCents * $qty;
             $commissionCents = max(0, $mrpBillCents - $totalCents);
             $remarkPct = $mrpCents > 0 && ! $isFreeLine
-                ? (int) round((($mrpCents - $rateCents) / $mrpCents) * 100)
+                ? round((($mrpCents - $rateCents) / $mrpCents) * 100, 2)
                 : 0;
 
             $sumQty += $qty;
@@ -192,7 +192,7 @@ final class OrderInvoice
                 'mrp_bill' => Money::decimal($mrpBillCents),
                 'commission' => Money::decimal($commissionCents),
                 'total' => Money::decimal($totalCents),
-                'remark' => $isFreeLine ? __('schemes_commission.free_line_label') : ($remarkPct > 0 ? $remarkPct.'%' : '—'),
+                'remark' => $isFreeLine ? __('schemes_commission.free_line_label') : ($remarkPct > 0 ? rtrim(rtrim(number_format($remarkPct, 2, '.', ''), '0'), '.').'%' : '—'),
             ];
         }
 
