@@ -6,7 +6,6 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -16,13 +15,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class MonthCloseStatus
 {
-    /** Cache key holding the automatic closes that failed and have not succeeded since. */
-    public const FailuresKey = 'finance:month-close-failures';
-
     /** @var array<string, list<string>> */
     public const KindCategories = [
         'salary' => ['dealer_monthly_salary_pool', 'sub_dealer_salary'],
         'royalty' => ['rank_royalty_pool'],
+        // The sub-dealer extra kept in the old rank fund (orders whose extra went there) closes each month too.
+        'additional_rank' => ['additional_rank_pool'],
     ];
 
     /**
@@ -80,7 +78,7 @@ final class MonthCloseStatus
      */
     private function monthRows(): array
     {
-        $kindSql = "CASE WHEN category = 'rank_royalty_pool' THEN 'royalty' ELSE 'salary' END";
+        $kindSql = "CASE WHEN category = 'rank_royalty_pool' THEN 'royalty' WHEN category = 'additional_rank_pool' THEN 'additional_rank' ELSE 'salary' END";
 
         return DB::table('commission_allocations')
             ->whereIn('category', array_merge(...array_values(self::KindCategories)))
@@ -150,26 +148,25 @@ final class MonthCloseStatus
      */
     public function failures(): array
     {
-        $failures = array_values((array) Cache::get(self::FailuresKey, []));
-        usort($failures, fn (array $first, array $second): int => strcmp((string) $second['failed_at'], (string) $first['failed_at']));
-
-        return array_map(fn (array $failure): array => [...$failure, 'label' => self::label((string) $failure['month'])], $failures);
+        return DB::table('month_close_failures')->orderByDesc('failed_at')->orderByDesc('id')->get(['kind', 'month', 'error', 'failed_at'])
+            ->map(fn (object $failure): array => ['kind' => (string) $failure->kind, 'month' => (string) $failure->month, 'error' => (string) $failure->error,
+                'failed_at' => CarbonImmutable::parse((string) $failure->failed_at, 'UTC')->toIso8601String(), 'label' => self::label((string) $failure->month)])
+            ->all();
     }
 
+    /** Kept in the database (owner's decision, 2026-11-21), so clearing the cache can never hide a failed close. */
     public function recordFailure(string $kind, string $month, string $error): void
     {
-        $failures = (array) Cache::get(self::FailuresKey, []);
-        $failures[$kind.':'.$month] = ['kind' => $kind, 'month' => $month, 'error' => mb_substr($error, 0, 300), 'failed_at' => now()->toIso8601String()];
-        Cache::forever(self::FailuresKey, $failures);
+        DB::table('month_close_failures')->upsert(
+            [['kind' => $kind, 'month' => $month, 'error' => mb_substr($error, 0, 300), 'failed_at' => now(), 'created_at' => now(), 'updated_at' => now()]],
+            ['kind', 'month'],
+            ['error', 'failed_at', 'updated_at'],
+        );
     }
 
     public function clearFailure(string $kind, string $month): void
     {
-        $failures = (array) Cache::get(self::FailuresKey, []);
-        if (array_key_exists($kind.':'.$month, $failures)) {
-            unset($failures[$kind.':'.$month]);
-            Cache::forever(self::FailuresKey, $failures);
-        }
+        DB::table('month_close_failures')->where('kind', $kind)->where('month', $month)->delete();
     }
 
     /**

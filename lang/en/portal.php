@@ -3826,7 +3826,7 @@ return [
     'cmd_val_incentive_rank_required' => 'Choose an active dealer who has reached a leader rank.',
     'cmd_val_incentive_already_paid' => 'This rank reward was already paid.',
     'cmd_val_incentive_legacy' => 'An old reward payment is already recorded. Check the rank history before giving another.',
-    'cmd_val_incentive_qualification' => 'The rank reward for :rank needs the rank-keeping target to be met now, or extra time (grace).',
+    'cmd_val_incentive_qualification' => 'The rank reward for :rank needs this month\'s monthly target to be met first.',
     'cmd_val_incentive_unfunded' => 'The rank reward fund does not have enough money for this reward yet.',
     'order_val_dealer_maintenance' => 'Dealer ordering is paused for a short time for maintenance. Please try again later.',
     'order_val_subdealer_maintenance' => 'Sub-dealer ordering is paused for a short time for maintenance. Please try again later.',
@@ -3982,7 +3982,7 @@ return [
     'tour_pillar_subdealer_sponsor_title' => 'Who referred you',
     'tour_pillar_subdealer_sponsor_desc' => 'Call or WhatsApp the person who referred you when you need advice.',
     'tour_pillar_subdealer_salary_title' => 'Salary & tour fund',
-    'tour_pillar_subdealer_salary_desc' => 'Every paid and delivered purchase adds to your monthly salary, with no minimum. Another share goes to your tour fund for company tours.',
+    'tour_pillar_subdealer_salary_desc' => 'Your monthly salary is a step of your own purchases that month: the more you buy, the higher the step. Another share goes to your tour fund for company tours.',
 
     'tour_welcome_staff_title' => 'Madina Natural Health Care — Office staff panel',
     'tour_welcome_staff_sub' => 'This short tour shows where your daily work is and which pages you can open.',
@@ -4067,7 +4067,7 @@ return [
     'tour_subdealer_step_targets_loc' => 'The Targets box',
     'tour_subdealer_step_targets_body' => 'Your salary so far this month, the money in your tour fund and your bike reward progress.',
     'tour_subdealer_step_targets_action' => 'Press "See my progress" for the details.',
-    'tour_subdealer_step_targets_tip' => 'There is no minimum: every paid and delivered order adds to your salary. The salary is paid after the month closes. The tour fund carries over to next month.',
+    'tour_subdealer_step_targets_tip' => 'Your salary has steps: buy more in the month to reach a higher step. Below the first step there is no salary. The salary is paid after the month closes. The tour fund carries over to next month.',
 
     'tour_subdealer_step_chart_title' => 'Monthly sales chart',
     'tour_subdealer_step_chart_loc' => 'Chart section',

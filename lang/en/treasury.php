@@ -249,4 +249,6 @@ return [
     'dl_group_statements' => "Accountant's files",
     'dl_too_many' => 'You can download up to 15 files a minute. Try again in a moment.',
     'tile_money_back' => 'Money to give back on closed orders',
+    'out_split_remainder' => 'Paisa left over by the equal split, to the Commission extra fund',
+    'out_kind_extra' => 'Leftover paisa to the Commission extra fund',
 ];

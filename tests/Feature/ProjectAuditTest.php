@@ -122,10 +122,14 @@ class ProjectAuditTest extends TestCase
         $admin = User::factory()->create(['role' => 'super_admin']);
         $subDealer = User::factory()->create(['role' => 'sub_dealer']);
         $this->actingAs($admin)->patchJson('/api/v1/finance/policy', ['rules' => [
-            'sub_dealer_salary' => ['percentage' => '2.00'], 'sub_dealer_tour' => ['percentage' => '1.00'],
+            // The salary steps may not pay more than the salary set aside, so they come down with it.
+            'sub_dealer_salary' => ['percentage' => '2.00', 'parameters' => ['tier2_pct' => '1.50', 'tier3_pct' => '2.00']], 'sub_dealer_tour' => ['percentage' => '1.00'],
         ]])->assertOk();
+        // The tour fund is hidden from the pop-up while PartnerProgress::ShowTourFund is off.
         $this->actingAs($subDealer)->getJson('/workspace/my-progress')->assertOk()
-            ->assertJsonPath('data.salary.rate', '2.00')->assertJsonPath('data.tour.rate', '1.00');
+            ->assertJsonPath('data.salary.kind', 'sub_dealer_tiers')->assertJsonPath('data.salary.rate', '2.00')
+            ->assertJsonPath('data.salary.tiers.1.pct', '1.50')->assertJsonPath('data.salary.tiers.2.pct', '2.00')
+            ->assertJsonPath('data.tour', null);
     }
 
     public function test_salary_qualification_preview_shows_the_selected_month_volume_instead_of_a_stale_cached_counter(): void

@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Models\PlaceCode;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -54,6 +55,24 @@ final class DealerKinds
         }
 
         return $kinds;
+    }
+
+    /**
+     * The owner's own monthly target for single dealers (partner_monthly_targets, kind "salary"): an exception that
+     * replaces the dealer's kind target for that month (owner's decision, 2026-11-21). One query for any number.
+     *
+     * @param  list<int>  $userIds
+     * @return array<int, int> user id => paisa, only dealers with an exception
+     */
+    public function exceptions(array $userIds, string $month): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        return DB::table('partner_monthly_targets')->whereIn('user_id', array_values(array_unique(array_map('intval', $userIds))))
+            ->where('month', $month)->where('kind', 'salary')->pluck('amount', 'user_id')
+            ->mapWithKeys(fn ($amount, $userId): array => [(int) $userId => Money::cents((string) $amount)])->all();
     }
 
     public function of(int $userId): ?string

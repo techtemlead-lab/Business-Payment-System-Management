@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Finance\TreasuryFunds;
 use App\Domain\Orders\OrderService;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
@@ -18,6 +19,7 @@ use App\Models\User;
 use App\Support\Money;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -245,6 +247,7 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         $this->purchase($there, '100000.00');
         $this->purchase($alsoThere, '100000.00');
         $this->purchase($this->partner('dealer', $this->union), '1000.01');
+        $before = app(TreasuryFunds::class)->card('benefits', true);
 
         $result = $this->closeMonth('salary');
 
@@ -261,6 +264,35 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         $row = CommissionAllocation::where('metadata->source', 'split_remainder')->first();
         $this->assertSame('owner_commission_benefits_fund', $row->metadata['retained_by']);
         $this->assertSame('money_core.reason_split_remainder', $row->metadata['reason_key']);
+        // The leftover is in the Commission extra fund's balance and its money-in list, which still add up.
+        $card = app(TreasuryFunds::class)->card('benefits', true);
+        $this->assertSame(Money::cents($before['money_in']) + $leftover, Money::cents($card['money_in']));
+        $this->assertSame($card['money_in'], app(TreasuryFunds::class)->moneyIn(Request::create('/x', 'GET', ['period' => '']), 'benefits')['totals']['sums']['amount']);
+        // The salary fund's money-out list shows the leftover as its own line, never as "moved to profit", and still adds up.
+        app()->setLocale('en');
+        $out = app(TreasuryFunds::class)->moneyOut(Request::create('/x', 'GET', ['period' => '']), 'salary_pool');
+        $lines = collect($out['rows']->items());
+        $this->assertSame(Money::decimal($leftover), Money::decimal(Money::cents((string) $lines->firstWhere('what', __('treasury.out_split_remainder'))['amount'])));
+        $this->assertNull($lines->firstWhere('what', __('treasury.out_moved_to_profit')), 'Someone qualified, so nothing moved to profit.');
+        $this->assertSame(Money::cents((string) app(TreasuryFunds::class)->card('salary_pool', true)['money_out']), Money::cents((string) $out['totals']['sums']['amount']));
+    }
+
+    public function test_the_owners_own_target_for_one_dealer_replaces_his_kind_target_for_that_month(): void
+    {
+        $excepted = $this->partner('dealer', $this->union, 'mo');
+        $other = $this->partner('dealer', $this->union, 'mo');
+        DB::table('partner_monthly_targets')->insert(['user_id' => $excepted->id, 'month' => '2026-12', 'kind' => 'salary', 'amount' => '20000.00',
+            'set_by' => User::factory()->create(['role' => 'super_admin'])->id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->purchase($excepted, '20000.00');
+        $this->purchase($other, '20000.00');
+
+        $this->closeMonth('salary');
+        app(CommissionSettlement::class)->settle('2026-12', 'royalty');
+
+        $this->assertGreaterThan(0, $this->paidTo($excepted, 'salary'), 'His own target of 20,000 is met.');
+        $this->assertGreaterThan(0, $this->paidTo($excepted, 'royalty'), 'The same exception unlocks his royalty.');
+        $this->assertSame(0, $this->paidTo($other, 'salary'), 'The union target of 30,000 is not met.');
+        $this->assertSame(0, $this->paidTo($other, 'royalty'));
     }
 
     public function test_a_salary_fund_nobody_in_bangladesh_qualified_for_goes_to_company_profit(): void
