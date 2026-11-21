@@ -145,7 +145,8 @@ $operations = function (): void {
     Route::post('/company-funds/spends', [FundSpendingController::class, 'store']);
     Route::post('/company-funds/spends/{id}/review', [FundSpendingController::class, 'review'])->whereNumber('id');
     Route::post('/company-funds/spends/{id}/cancel', [FundSpendingController::class, 'cancel'])->whereNumber('id');
-    Route::post('/company-funds/spends/{id}/reverse', [FundSpendingController::class, 'reverse'])->whereNumber('id');    Route::post('/company-funds/heads', [FundSpendingController::class, 'storeHead']);
+    Route::post('/company-funds/spends/{id}/reverse', [FundSpendingController::class, 'reverse'])->whereNumber('id');
+    Route::post('/company-funds/heads', [FundSpendingController::class, 'storeHead']);
     Route::patch('/company-funds/heads/{id}', [FundSpendingController::class, 'updateHead'])->whereNumber('id');
     Route::post('/company-funds/budgets', [FundSpendingController::class, 'saveBudget']);
     Route::post('/holds/{id}/release', [$finance, 'release'])->whereNumber('id');

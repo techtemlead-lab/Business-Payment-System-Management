@@ -22,7 +22,7 @@ return [
     'fund_rank_bonus' => 'Rank bonus fund',
     'fund_rank_reward' => 'Sub-dealer rank fund',
     'fund_clinic' => 'Clinic fund',
-    'fund_benefits' => "Commission extra fund",
+    'fund_benefits' => 'Commission extra fund',
     'fund_salary_reserve' => 'Old salary money',
     'fund_geographic_reserve' => 'Old area money',
     'fund_referral_reserve' => 'Old Staff commission money',
