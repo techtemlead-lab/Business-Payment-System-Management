@@ -6984,4 +6984,6 @@ return [
     'event_withdrawal_refused_weekday' => 'টাকা তোলার দিন না হওয়ায় অনুরোধ নেওয়া হয়নি',
     'event_withdrawal_week_changed' => 'টাকা তোলার দিন বদলানো হয়েছে',
     'event_receipt_viewed' => 'রসিদ দেখা হয়েছে',
+    'event_prize_advance_given' => 'বাইক বা গাড়ির পুরস্কার আগাম দেওয়া হয়েছে',
+    'event_prize_advance_settled' => 'আগাম পুরস্কার পাওয়া পুরস্কার থেকে মেটানো হয়েছে',
 ];

@@ -6984,4 +6984,6 @@ return [
     'event_withdrawal_refused_weekday' => 'Withdrawal refused outside the withdrawal day',
     'event_withdrawal_week_changed' => 'Withdrawal day changed',
     'event_receipt_viewed' => 'Receipt viewed',
+    'event_prize_advance_given' => 'Bike or car prize paid in advance',
+    'event_prize_advance_settled' => 'Prize advance set against the earned prize',
 ];
