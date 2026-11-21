@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\ReceiptImage;
 use Tests\TestCase;
 
 /**
@@ -115,7 +116,7 @@ class PayoutBankFileSafetyTest extends TestCase
         DB::table('withdrawals')->where('id', $id)->update(['on_hold_at' => now()]);
 
         $this->actingAs($payer)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/record-payment', [
-            'method' => 'bkash', 'wallet_number' => '01700000000', 'payment_reference' => 'BK7Q2M9X4P', 'receipt_later' => '1',
+            'method' => 'bkash', 'wallet_number' => '01700000000', 'payment_reference' => 'BK7Q2M9X4P', 'receipt' => ReceiptImage::make('transfer.png'),
             'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent with the bank file',
         ])->assertSessionHasNoErrors();
 
