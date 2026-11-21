@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Orders\OrderService;
 use App\Models\AreaDealerAssignment;
@@ -41,6 +42,12 @@ class AreaQuotaHoldReleaseTest extends TestCase
         return $order;
     }
 
+    /** The area target is the dealer's one monthly target by kind, not the seat's own quota (owner's rule, 2026-11-21). */
+    private function setDivisionTarget(string $target): void
+    {
+        app(CommissionPolicy::class)->update(User::factory()->staff('super_admin')->create(), ['dealer_monthly_salary' => ['parameters' => ['division_target' => $target]]]);
+    }
+
     public function test_quota_hold_auto_release_is_disabled_by_default(): void
     {
         $this->enableFinancialPosting();
@@ -55,6 +62,7 @@ class AreaQuotaHoldReleaseTest extends TestCase
     {
         $this->enableFinancialPosting();
         config(['madina.auto_release_quota_holds' => true]);
+        $this->setDivisionTarget('100.00');
 
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $area = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
@@ -81,6 +89,14 @@ class AreaQuotaHoldReleaseTest extends TestCase
         $this->assertSame('held', $hold->fresh()->status);
 
         $this->postedOrder($area);
+        // The target is decided once a month: even with it met, the share waits for the month to end.
+        $this->artisan('finance:release-quota-holds')
+            ->expectsOutputToContain('no_qualified_quota_holds')
+            ->assertSuccessful();
+        $this->assertSame('held', $hold->fresh()->status);
+        $this->assertSame('100.00', (string) $hold->fresh()->metadata['monthly_quota']);
+
+        $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
         $this->artisan('finance:release-quota-holds')
             ->expectsOutputToContain('success')
             ->assertSuccessful();
@@ -96,22 +112,27 @@ class AreaQuotaHoldReleaseTest extends TestCase
     {
         $this->enableFinancialPosting();
         config(['madina.auto_release_quota_holds' => true]);
+        // One target per dealer kind: the division dealer's is set low, the district dealer's stays at its default.
+        $this->setDivisionTarget('100.00');
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+        $dhakaDistrict = PlaceCode::factory()->district($dhaka)->create(['name' => 'Gazipur']);
         $metQuota = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
-        $missedQuota = User::factory()->inPlace($dhaka)->create(['role' => 'dealer', 'status' => 'active']);
-        foreach ([[$metQuota, $rangpur, '100'], [$missedQuota, $dhaka, '100000']] as [$dealer, $place, $quota]) {
-            AreaDealerAssignment::create(['user_id' => $dealer->id, 'level' => 'division', 'place_code_id' => $place->id,
-                'division' => $place->name, 'zone_name' => $place->name, 'monthly_quota' => $quota, 'is_active' => true]);
+        $missedQuota = User::factory()->inPlace($dhakaDistrict)->create(['role' => 'dealer', 'status' => 'active']);
+        foreach ([[$metQuota, $rangpur, 'division'], [$missedQuota, $dhakaDistrict, 'district']] as [$dealer, $place, $level]) {
+            AreaDealerAssignment::create(['user_id' => $dealer->id, 'level' => $level, 'place_code_id' => $place->id,
+                'division' => $place->name, 'zone_name' => $place->name, 'monthly_quota' => '100', 'is_active' => true]);
         }
         $rangpurBuyer = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
-        $dhakaBuyer = User::factory()->inPlace($dhaka)->create(['role' => 'dealer', 'status' => 'active']);
+        $dhakaBuyer = User::factory()->inPlace($dhakaDistrict)->create(['role' => 'dealer', 'status' => 'active']);
         for ($i = 0; $i < 3; $i++) {
             $this->postedOrder($rangpurBuyer);
             $this->postedOrder($dhakaBuyer);
         }
-        $this->assertSame(6, CommissionAllocation::where('category', 'area_division')->where('status', 'held')->count());
+        $this->assertSame(3, CommissionAllocation::where('category', 'area_division')->where('status', 'held')->count());
+        $this->assertSame(3, CommissionAllocation::where('category', 'area_district')->where('status', 'held')->count());
         $this->postedOrder($metQuota);
+        $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
 
         $volumeQueries = 0;
         DB::listen(function ($query) use (&$volumeQueries): void {
@@ -127,7 +148,7 @@ class AreaQuotaHoldReleaseTest extends TestCase
         $this->assertGreaterThanOrEqual(3, $released);
         $this->assertSame(1 + $released, $volumeQueries);
         $this->assertSame(0, CommissionAllocation::where('category', 'area_division')->where('user_id', $metQuota->id)->where('status', 'held')->count());
-        $this->assertSame(3, CommissionAllocation::where('category', 'area_division')->where('user_id', $missedQuota->id)->where('status', 'held')->count());
+        $this->assertSame(3, CommissionAllocation::where('category', 'area_district')->where('user_id', $missedQuota->id)->where('status', 'held')->count());
     }
 
     public function test_auto_release_skips_when_financial_activation_is_off(): void

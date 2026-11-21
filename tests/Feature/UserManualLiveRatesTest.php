@@ -77,13 +77,13 @@ class UserManualLiveRatesTest extends TestCase
         $this->assertStringContainsString('division 2%, district 2%, upazila 2%, union or municipality 2%, management 2%', $area);
 
         $tips = implode(' ', $this->chapter($dealer, 'ranks_royalties')['tips']);
-        foreach (['৳2,50,000', '৳5,000', '10 active dealers', '৳50,000', 'MO ৳5,000, AM ৳15,000, SM ৳30,000, ME ৳50,000', '30 days'] as $figure) {
+        foreach (['৳5,00,000', '৳5,000', '10 active dealers', '৳50,000', 'MO ৳5,000, AM ৳15,000, SM ৳30,000, ME ৳50,000', '30 days'] as $figure) {
             $this->assertStringContainsString($figure, $tips);
         }
         $this->assertStringContainsString('4% of every purchase', $this->chapter($dealer, 'ranks_royalties')['purpose']);
 
         $rewards = $this->text($this->chapter($dealer, 'rewards_milestones'));
-        foreach (['bike ৳50,00,000', 'car ৳25,00,00,000', '৳8,00,000', '৳2,00,00,000'] as $figure) {
+        foreach (['bike ৳1,00,00,000', 'car ৳50,00,00,000', '৳20,00,000', '৳8,00,00,000'] as $figure) {
             $this->assertStringContainsString($figure, $rewards);
         }
     }
@@ -104,7 +104,7 @@ class UserManualLiveRatesTest extends TestCase
         $this->assertStringContainsString('৩% বেতন', $sub['purpose']);
         $this->assertStringContainsString('আরও ৩% আপনার নিজের ট্যুর ফান্ডে', $sub['purpose']);
         $this->assertStringContainsString('কোনো ন্যূনতম কেনা লাগে না', $sub['purpose']);
-        $this->assertStringContainsString('৳২,৫০,০০০', implode(' ', $this->chapter(User::factory()->create(), 'ranks_royalties')['tips']));
+        $this->assertStringContainsString('৳৫,০০,০০০', implode(' ', $this->chapter(User::factory()->create(), 'ranks_royalties')['tips']));
     }
 
     public function test_portal_pages_send_the_manual_without_reading_rules_and_load_the_rates_afterwards(): void
@@ -122,7 +122,7 @@ class UserManualLiveRatesTest extends TestCase
                 ->loadDeferredProps('manual', fn ($reload) => $reload
                     ->where('manualRuleValues.sub_salary_rate', '3')
                     ->where('manualRuleValues.sub_tour_rate', '3')
-                    ->where('manualRuleValues.mo_target', '৳2,50,000')));
+                    ->where('manualRuleValues.mo_target', '৳5,00,000')));
     }
 
     public function test_sub_dealers_see_the_bike_and_car_reward_chapter(): void

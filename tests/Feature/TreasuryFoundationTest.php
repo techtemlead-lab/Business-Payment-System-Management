@@ -436,12 +436,15 @@ class TreasuryFoundationTest extends TestCase
 
     public function test_a_statement_closes_on_the_wallet_with_held_waiting_and_released_money(): void
     {
+        // The month-end area rule applies from 2026-11.
+        $this->travelTo(now()->setDate(2026, 11, 10)->startOfDay());
         $place = PlaceCode::factory()->division()->create(['name' => 'Khulna']);
         $seatHolder = User::factory()->dealer()->inPlace($place)->create();
         AreaDealerAssignment::create(['user_id' => $seatHolder->id, 'level' => 'division', 'place_code_id' => $place->id, 'division' => 'Khulna', 'zone_name' => 'Khulna', 'monthly_quota' => '1.00', 'is_active' => true]);
         $buyer = User::factory()->dealer()->inPlace($place)->create(['sponsor_id' => $seatHolder->id]);
         $this->delivered($buyer);
-        $this->delivered($seatHolder, '60.00', '120.00');
+        // ৳1,00,000 is a division dealer's one monthly target.
+        $this->delivered($seatHolder, '100000.00', '200000.00');
         $this->delivered($buyer);
         $this->assertStatementClosesOnWallet($seatHolder);
         $this->assertStatementClosesOnWallet($buyer);
@@ -449,6 +452,15 @@ class TreasuryFoundationTest extends TestCase
         $book = app(PartnerMoneyBook::class);
         $cards = collect($book->incomeCards($seatHolder))->keyBy('key');
         $this->assertTrue($cards->has('referral'));
+        $this->assertFalse($cards->has('area_division'), 'The area share waits for the month to end, so it is not income yet.');
+        $this->assertSame('held', CommissionAllocation::where('user_id', $seatHolder->id)->where('category', 'area_division')->first()->status);
+
+        // At month end the target is met, so the held share is released and the statement still closes on the wallet.
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
+        app(ReserveService::class)->forfeitUnmetQuotaHolds('2026-11');
+        $this->assertStatementClosesOnWallet($seatHolder);
+        $this->assertStatementClosesOnWallet($buyer);
+        $cards = collect($book->incomeCards($seatHolder))->keyBy('key');
         $this->assertTrue($cards->has('area_division'));
     }
 

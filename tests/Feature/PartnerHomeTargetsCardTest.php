@@ -10,8 +10,8 @@ use App\Domain\Orders\OrderService;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\RewardMilestoneProgress;
 use App\Models\ReferralTreePath;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use Database\Seeders\CommissionRuleSeeder;
@@ -44,7 +44,7 @@ class PartnerHomeTargetsCardTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_sub_dealer_card_shows_this_months_purchase_then_salary_then_bike_with_no_tour_fund_or_rank(): void
+    public function test_sub_dealer_card_shows_purchase_salary_step_royalty_rank_then_bike_with_no_tour_fund(): void
     {
         $sub = User::factory()->create(['role' => 'sub_dealer']);
         ReferralTreePath::attachUser($sub->id, null);
@@ -53,20 +53,30 @@ class PartnerHomeTargetsCardTest extends TestCase
         app()->setLocale('en');
         $targets = collect(app(PartnerDashboardHome::class)->for($sub->fresh())['targets'])->keyBy('key');
 
-        $this->assertSame(['monthly_purchase', 'sub_dealer_salary', 'bike_incentive'], $targets->keys()->all());
+        $this->assertSame(['monthly_purchase', 'sub_dealer_salary', 'sub_dealer_royalty', 'rank_reward', 'bike_incentive'], $targets->keys()->all());
         $this->assertFalse($targets->has('tour_fund'), 'The tour fund stays hidden while PartnerProgress::ShowTourFund is off.');
         $this->assertSame('amount', $targets['monthly_purchase']['kind']);
         $this->assertSame('12000.00', $targets['monthly_purchase']['value']);
-        $this->assertSame('amount', $targets['sub_dealer_salary']['kind']);
-        $this->assertSame('360.00', $targets['sub_dealer_salary']['value']);
-        $this->assertSame(__('portal.target_subdealer_salary_hint', ['rate' => '3']), $targets['sub_dealer_salary']['hint']);
-        $this->assertStringContainsString('No minimum', $targets['sub_dealer_salary']['hint']);
+        // The salary row is a progress row toward the next step (2% at ৳20,000); ৳12,000 is at the 1% step.
+        $this->assertSame('12000.00', $targets['sub_dealer_salary']['current']);
+        $this->assertSame('20000.00', $targets['sub_dealer_salary']['target']);
+        $this->assertSame('8000.00', $targets['sub_dealer_salary']['remaining']);
+        $this->assertEquals(60.0, $targets['sub_dealer_salary']['percent']);
+        $this->assertSame('1.00', $targets['sub_dealer_salary']['tier_pct']);
+        $this->assertNotSame(__('portal.target_switched_off_hint'), $targets['sub_dealer_salary']['hint']);
+        // His own target for the rank royalty is ৳30,000 of purchases; his rank goal starts with MO on ৳5 lakh.
+        $this->assertSame('12000.00', $targets['sub_dealer_royalty']['current']);
+        $this->assertSame('30000.00', $targets['sub_dealer_royalty']['target']);
+        $this->assertSame(__('portal.target_mo_rank_reward'), $targets['rank_reward']['label']);
+        $this->assertSame('500000.00', $targets['rank_reward']['target']);
 
-        // The card and the "My progress" pop-up show the same money.
+        // The card and the "My progress" pop-up show the same numbers.
         $popup = $this->actingAs($sub)->onPortal('subdealer')->getJson('/my-progress')->json('data');
-        $this->assertSame($popup['salary']['earned'], $targets['sub_dealer_salary']['value']);
+        $this->assertSame($popup['salary']['tier_pct'], $targets['sub_dealer_salary']['tier_pct']);
         $this->assertSame($popup['salary']['current'], $targets['monthly_purchase']['value']);
+        $this->assertSame($popup['rank']['next']['target'], $targets['rank_reward']['target']);
     }
+
     public function test_sub_dealer_card_says_when_the_company_switched_the_salary_off(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin']);
@@ -83,7 +93,7 @@ class PartnerHomeTargetsCardTest extends TestCase
         DashboardManagement::save(['subdealer_salary_enabled' => false]);
         $sub = User::factory()->create(['role' => 'sub_dealer']);
 
-        $this->assertSame(['bike_incentive'], array_column(app(PartnerDashboardHome::class)->for($sub)['targets'], 'key'));
+        $this->assertSame(['rank_reward', 'bike_incentive'], array_column(app(PartnerDashboardHome::class)->for($sub)['targets'], 'key'));
     }
 
     public function test_dealer_card_lists_monthly_progress_then_salary_then_rank_then_bike(): void
@@ -100,12 +110,14 @@ class PartnerHomeTargetsCardTest extends TestCase
         $this->assertSame('not_met', $targets['salary_state']['state']);
         $this->assertSame(__('portal.target_salary_state_not_met'), $targets['salary_state']['value']);
 
-        $this->purchase($dealer, '12000.00', '20000.00');
+        // A dealer with no seat and no appointed place has the rule's minimum (৳30,000) as his target.
+        $this->purchase($dealer, '30000.00', '60000.00');
         $met = collect(app(PartnerDashboardHome::class)->for($dealer->fresh())['targets'])->keyBy('key');
 
         $this->assertSame('met', $met['salary_state']['state']);
         $this->assertSame(__('portal.target_salary_state_met_hint'), $met['salary_state']['hint']);
     }
+
     public function test_the_card_shows_the_bike_first_and_the_car_only_once_the_bike_target_is_full(): void
     {
         $dealer = User::factory()->create();
@@ -115,18 +127,19 @@ class PartnerHomeTargetsCardTest extends TestCase
         $this->assertContains('bike_incentive', $keys());
         $this->assertNotContains('car_incentive', $keys());
 
-        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00', 'qualifying_volume' => '4999999.00']);
+        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '10000000.00', 'leg_cap_amount' => '2000000.00', 'qualifying_volume' => '9999999.00']);
         $this->assertContains('bike_incentive', $keys(), 'Bike progress remains, so no car row yet.');
         $this->assertNotContains('car_incentive', $keys());
 
-        RewardMilestoneProgress::query()->where('user_id', $dealer->id)->where('milestone_type', 'bike')->update(['qualifying_volume' => '5000000.00']);
-        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'car', 'target_amount' => '250000000.00', 'leg_cap_amount' => '20000000.00', 'qualifying_volume' => '1000000.00']);
+        RewardMilestoneProgress::query()->where('user_id', $dealer->id)->where('milestone_type', 'bike')->update(['qualifying_volume' => '10000000.00']);
+        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'car', 'target_amount' => '500000000.00', 'leg_cap_amount' => '80000000.00', 'qualifying_volume' => '1000000.00']);
         $targets = collect(app(PartnerDashboardHome::class)->for($dealer->fresh())['targets'])->keyBy('key');
 
         $this->assertNotContains('bike_incentive', $keys());
         $this->assertSame('1000000.00', $targets['car_incentive']['current']);
-        $this->assertSame('250000000.00', $targets['car_incentive']['target']);
+        $this->assertSame('500000000.00', $targets['car_incentive']['target']);
     }
+
     public function test_opening_the_home_page_does_not_write_a_rank_row(): void
     {
         $dealer = User::factory()->create();
@@ -138,7 +151,7 @@ class PartnerHomeTargetsCardTest extends TestCase
         $this->assertSame(0, DB::table('dealer_ranks')->whereIn('user_id', [$dealer->id, $sub->id])->count());
         $rank = collect(app(PartnerDashboardHome::class)->for($dealer)['targets'])->firstWhere('key', 'rank_reward');
         $this->assertSame('0.00', $rank['current']);
-        $this->assertSame('250000.00', $rank['target']);
+        $this->assertSame('500000.00', $rank['target']);
     }
 
     public function test_mo_dealer_card_counts_team_leaders_the_same_way_promotion_does(): void
@@ -163,6 +176,7 @@ class PartnerHomeTargetsCardTest extends TestCase
         $this->assertSame('10', $rank['target']);
         $this->assertSame('7', $rank['remaining']);
         $this->assertSame(__('portal.target_named_rank_reward', ['rank' => 'AM']), $rank['label']);
+        $this->assertSame(__('portal.target_rank_lines_hint', ['needed' => 10, 'rank' => 'MO', 'depth' => 3]), $rank['hint']);
     }
 
     private function purchase(User $buyer, string $cash, string $mrp): Order

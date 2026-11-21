@@ -116,29 +116,29 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
         $this->travelTo(now()->setDate(2026, 9, 15)->startOfDay());
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
-        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
-        $inPlace = fn (string $district): User => User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => $district]))->create();
-        [$sharerA, $sharerB, $small] = [$inPlace('Rangpur'), $inPlace('Dinajpur'), $inPlace('Gaibandha')];
-        $this->purchase($sharerA, '10000.00', '20000.00');
-        $this->purchase($sharerB, '10000.00', '20000.00');
+        $inPlace = $this->unionDealerFactory();
+        [$sharerA, $sharerB, $small] = [$inPlace('Chaitrakul'), $inPlace('Kabilpur'), $inPlace('Tukuria')];
+        $this->purchase($sharerA, '40000.00', '80000.00');
+        $this->purchase($sharerB, '30000.00', '60000.00');
         $this->purchase($small, '5000.00', '10000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
-        $division = collect($result['divisions'])->first(fn (array $row): bool => mb_strtolower($row['division']) === 'rangpur');
+        // One pool for the whole country: 2% of ৳75,000, shared by the two dealers who met their own target (৳30,000).
+        $country = $result['divisions'][0];
         $note = app(PartnerSalaryNotes::class)->for($sharerA)[0];
         $this->assertSame('paid', $note['state']);
         $this->assertSame('2026-09', $note['month']);
-        $this->assertSame($division['pool'], $note['pool']);
-        $this->assertSame('500.00', $note['pool']);
-        $this->assertSame($division['qualifiers'], $note['sharers']);
+        $this->assertSame($country['pool'], $note['pool']);
+        $this->assertSame('1500.00', $note['pool']);
+        $this->assertSame($country['qualifiers'], $note['sharers']);
         $this->assertSame(2, $note['sharers']);
-        $this->assertSame('250.00', $note['amount']);
-        $this->assertSame('10000.00', $note['min_volume']);
+        $this->assertSame('750.00', $note['amount']);
+        $this->assertSame('30000.00', $note['min_volume']);
 
         $this->actingAs($sharerA)->onPortal('dealer')->get('/my-money')->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('salary_notes.0.state', 'paid')->where('salary_notes.0.sharers', 2)->where('salary_notes.0.pool', '500.00'));
+            ->where('salary_notes.0.state', 'paid')->where('salary_notes.0.sharers', 2)->where('salary_notes.0.pool', '1500.00'));
     }
 
     public function test_a_dealer_with_no_salary_for_a_closed_month_gets_the_one_line_no_purchase_of_the_minimum(): void
@@ -146,10 +146,9 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
         $this->travelTo(now()->setDate(2026, 9, 15)->startOfDay());
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
-        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
-        $inPlace = fn (string $district): User => User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => $district]))->create();
-        [$sharer, $small] = [$inPlace('Rangpur'), $inPlace('Dinajpur')];
-        $this->purchase($sharer, '10000.00', '20000.00');
+        $inPlace = $this->unionDealerFactory();
+        [$sharer, $small] = [$inPlace('Chaitrakul'), $inPlace('Kabilpur')];
+        $this->purchase($sharer, '30000.00', '60000.00');
         $this->purchase($small, '5000.00', '10000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
@@ -158,7 +157,7 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
 
         $this->assertCount(1, $notes);
         $this->assertSame('none_low_volume', $notes[0]['state']);
-        $this->assertSame('10000.00', $notes[0]['min_volume']);
+        $this->assertSame('30000.00', $notes[0]['min_volume']);
         $this->assertNull($notes[0]['amount']);
         $this->assertSame([], app(PartnerSalaryNotes::class)->for(User::factory()->subDealer()->create()), 'A sub-dealer has no division pool.');
     }
@@ -189,6 +188,14 @@ class PartnerHeldAndSalaryNotesTest extends TestCase
             $this->assertNotSame('', trim((string) ($bangla[$key] ?? '')), "bn {$key}");
             $this->assertNotSame('', trim((string) ($english[$key] ?? '')), "en {$key}");
         }
+    }
+
+    /** Makes dealers seated in a union of one upazila: their one monthly target is ৳30,000. */
+    private function unionDealerFactory(): \Closure
+    {
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Rangpur']))->create(['name' => 'Pirganj']);
+
+        return fn (string $union): User => User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create(['name' => $union]))->create();
     }
 
     private function purchase(User $buyer, string $cash, string $mrp): Order

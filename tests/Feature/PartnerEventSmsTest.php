@@ -326,7 +326,7 @@ class PartnerEventSmsTest extends TestCase
         ReferralTreePath::attachUser($dealer->id, null);
         DealerRank::firstOrCreate(
             ['user_id' => $dealer->id],
-            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 230000.00],
+            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 480000.00],
         );
 
         $order = Order::create([

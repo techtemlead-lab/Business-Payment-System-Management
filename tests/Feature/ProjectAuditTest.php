@@ -132,10 +132,12 @@ class ProjectAuditTest extends TestCase
     {
         $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
-        $buyer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
+        // A union dealer's monthly target is ৳30,000.
+        $union = PlaceCode::factory()->union(PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create())->create())->create())->create();
+        $buyer = User::factory()->inPlace($union)->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
-        $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 100]], 'idempotency_key' => (string) Str::uuid()]);
-        $order->update(['paid' => '10000.00', 'status' => 'delivered']);
+        $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 300]], 'idempotency_key' => (string) Str::uuid()]);
+        $order->update(['paid' => '30000.00', 'status' => 'delivered']);
         app(CommissionService::class)->processOrder($order);
         DealerRank::where('user_id', $buyer->id)->update(['monthly_purchase_total' => '999.00']);
         $this->travelTo(now()->setDate(2026, 10, 16));
@@ -143,7 +145,7 @@ class ProjectAuditTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'finance']))->get('/company/settlements?period_month=2026-09')
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.settlement_state.qualified_salary_dealers_count', 1)
-            ->where('data.settlement_state.qualified_salary_dealers.data.0.monthly_volume', 10000));
+            ->where('data.settlement_state.qualified_salary_dealers.data.0.monthly_volume', 30000));
     }
 
     public function test_salary_screen_separates_partner_reserves_and_reports_only_the_amount_actually_distributed(): void
@@ -152,42 +154,52 @@ class ProjectAuditTest extends TestCase
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
         $product = Product::factory()->create(['mrp' => '200.00', 'sub_dealer_price' => '120.00']);
-        $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 10]], 'idempotency_key' => (string) Str::uuid()]);
-        $order->update(['paid' => '1200.00', 'status' => 'delivered']);
+        $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 400]], 'idempotency_key' => (string) Str::uuid()]);
+        // ৳48,000 is above the sub-dealer's top salary step (৳40,000), so he is paid the whole 3%.
+        $order->update(['paid' => '48000.00', 'status' => 'delivered']);
         app(CommissionService::class)->processOrder($order);
         $this->travelTo(now()->setDate(2026, 10, 16));
 
         $this->actingAs(User::factory()->create(['role' => 'finance']))->get('/company/settlements?period_month=2026-09')
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('data.settlement_state.dealer_salary_pool_pending', 24)
-            ->where('data.settlement_state.sub_dealer_salary_pending', 36));
+            ->where('data.settlement_state.dealer_salary_pool_pending', 960)
+            ->where('data.settlement_state.sub_dealer_salary_pending', 1440));
         $this->post('/commands/commissions/settle-salary', ['period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertRedirect()
             ->assertSessionHas('success', __('portal.flash_salary_pool_distributed', [
                 'period' => '2026-09',
-                'amount' => '36.00',
+                'amount' => '1440.00',
                 'count' => 1,
-            ]).__('portal.flash_salary_profit_extra', ['amount' => '24.00']));
-        $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary', 'amount' => '36.00']);
-        // No dealer in the buyer's division qualified, so the dealer pool goes to company profit.
+            ]).__('portal.flash_salary_profit_extra', ['amount' => '960.00']));
+        $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary', 'amount' => '1440.00']);
+        // No dealer in Bangladesh qualified, so the dealer pool goes to company profit.
         $this->assertDatabaseHas('commission_allocations', [
             'order_id' => $order->id,
             'category' => 'company_profit_fund',
             'status' => 'reserved',
-            'amount' => '24.00',
+            'amount' => '960.00',
         ]);
     }
 
-    public function test_royalty_preview_counts_a_leader_who_is_eligible_during_the_grace_period(): void
+    public function test_royalty_preview_counts_only_leaders_who_met_the_monthly_target(): void
     {
+        $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 10, 16)->setTime(12, 0));
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
+        $idle = User::factory()->create();
+        DealerRank::create(['user_id' => $idle->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
+        // The leader buys his ৳30,000 target this month; the other MO buys nothing and gets no grace period.
+        $product = Product::factory()->create(['mrp' => '60000.00', 'dealer_price' => '30000.00']);
+        $order = app(OrderService::class)->create($leader, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
+        $order->update(['paid' => '30000.00', 'status' => 'delivered']);
+        app(CommissionService::class)->processOrder($order);
 
         $this->actingAs(User::factory()->create(['role' => 'finance']))->get('/company/settlements?period_month=2026-10')
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.settlement_state.qualified_rank_leaders_count', 1)
-            ->where('data.settlement_state.qualified_rank_leaders.data.0.in_grace_period', true)
-            ->where('data.settlement_state.qualified_rank_leaders.data.0.is_qualified', false));
+            ->where('data.settlement_state.qualified_rank_leaders.data.0.user_id', $leader->id)
+            ->where('data.settlement_state.qualified_rank_leaders.data.0.in_grace_period', false)
+            ->where('data.settlement_state.qualified_rank_leaders.data.0.is_qualified', true));
     }
 
     public function test_area_commissions_match_the_district_place_code_not_a_same_named_district_elsewhere(): void
@@ -209,9 +221,10 @@ class ProjectAuditTest extends TestCase
         app(CommissionService::class)->processOrder($order);
 
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'area_district',
-            'user_id' => $recipient->id, 'amount' => '2.00', 'status' => 'available']);
+            'user_id' => $recipient->id, 'amount' => '2.00', 'status' => 'held']);
         $this->assertDatabaseMissing('commission_allocations', ['order_id' => $order->id, 'category' => 'area_district', 'user_id' => $other->id]);
-        $this->assertDatabaseHas('wallets', ['user_id' => $recipient->id, 'available' => '2.00']);
+        // The share waits for the month to end (decided once a month by the dealer's target), so the wallet is not credited yet.
+        $this->assertDatabaseMissing('wallets', ['user_id' => $recipient->id, 'available' => '2.00']);
     }
 
     public function test_ambiguous_case_variant_legacy_area_assignments_do_not_receive_wallet_credits(): void
