@@ -287,7 +287,12 @@ export default function OfficeOrders({ data }: { data: Row }) {
         { key: 'group_done', members: ['delivered', 'partly_delivered'] },
         { key: 'group_closed', members: ['returned', 'rejected', 'cancelled'] },
     ];
-    const lone = activeStatus !== '' && !groups.some((group) => group.key === activeStatus) ? [{ key: activeStatus, members: [activeStatus] }] : [];
+    // Finished orders still holding paid money for the partner: a tab of its own while there are any.
+    const moneyBackCount = Number(data.money_back_count ?? 0);
+    const moneyBack = moneyBackCount > 0 || activeStatus === 'money_back'
+        ? [{ key: 'money_back', label: translate('office_orders', 'money_back'), href: statusHref('money_back'), active: activeStatus === 'money_back', count: moneyBackCount }]
+        : [];
+    const lone = activeStatus !== '' && activeStatus !== 'money_back' && !groups.some((group) => group.key === activeStatus) ? [{ key: activeStatus, members: [activeStatus] }] : [];
     const statusTabs = {
         home: 'orders',
         label: translate('portal', 'col_status'),
@@ -300,6 +305,7 @@ export default function OfficeOrders({ data }: { data: Row }) {
                 active: activeStatus === group.key,
                 count: group.members.reduce((sum, status) => sum + Number(counts[status] ?? 0), 0),
             })),
+            ...moneyBack,
         ],
     };
 

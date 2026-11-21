@@ -47,6 +47,7 @@ final class StaffDashboardSummary
         'orders_to_dispatch' => ['inventory'],
         'deliveries_overdue' => ['orders', 'inventory'],
         'back_orders_late' => ['inventory', 'order_review'],
+        'owed_items_open' => ['inventory'],
         'low_stock_products' => ['inventory'],
         'applications_to_review' => ['accounts'],
     ];
@@ -144,6 +145,13 @@ final class StaffDashboardSummary
                 'count' => array_sum(StockLevels::counts($branchScope)),
                 'section' => 'inventory',
             ];
+            // Goods owed to partners who paid in full (owner's rule 2026-11-21): send them with the next order.
+            $queue[] = [
+                'key' => 'owed_items_open',
+                'label' => __('owed_items.dashboard_label'),
+                'count' => OwedItems::openQuery()->count(),
+                'section' => 'deliveries',
+            ];
         }
         if (PartnerChat::canAnswer($viewer)) {
             $waiting = app(PartnerChat::class)->unanswered($viewer);
@@ -235,6 +243,14 @@ final class StaffDashboardSummary
         }
         if ($failedCloses > 0) {
             $tasks[] = ['key' => 'month_close_failed', 'count' => $failedCloses, 'section' => 'settlements', 'label' => (string) __('money_core.task_close_failed'), 'alert' => true];
+        }
+        $staleSpends = $figures->staleSpends();
+        if ($staleSpends['count'] > 0) {
+            $tasks[] = ['key' => 'spends_overdue', 'count' => $staleSpends['count'], 'section' => 'treasury/work', 'label' => (string) __('money_core.task_spends_overdue', ['days' => $staleSpends['days']]), 'amount' => $staleSpends['amount'], 'alert' => true];
+        }
+        $stalePayables = $figures->stalePayables();
+        if ($stalePayables['count'] > 0) {
+            $tasks[] = ['key' => 'payables_overdue', 'count' => $stalePayables['count'], 'section' => 'operations/accounting', 'label' => (string) __('money_core.task_payables_overdue', ['days' => $stalePayables['days']]), 'amount' => $stalePayables['amount'], 'alert' => true];
         }
 
         return $tasks;

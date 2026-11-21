@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Accounts\PartnerFullReport;
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\ReserveService;
@@ -88,7 +89,9 @@ class MonthlyCloseProfitFundTest extends TestCase
 
         $this->assertSame('company_profit_fund', $this->divisionShare($before)->metadata['retained_by']);
         $this->assertSame($dealer->id, $this->divisionShare($after)->user_id);
-        $this->assertSame('available', $this->divisionShare($after)->status);
+        // A seated dealer's share is always held until its month ends (owner's rule, 2026-11-21).
+        $this->assertSame('held', $this->divisionShare($after)->status);
+        $this->assertTrue($this->divisionShare($after)->metadata['monthly_close']);
     }
 
     public function test_a_missed_quota_goes_to_company_profit_at_month_close_and_a_rerun_moves_nothing(): void
@@ -118,7 +121,10 @@ class MonthlyCloseProfitFundTest extends TestCase
 
     public function test_a_quota_met_later_in_the_month_is_released_not_forfeited(): void
     {
-        config(['madina.auto_release_quota_holds' => true]);
+        // The release at the month close no longer depends on this flag; it stays off to prove that.
+        config(['madina.auto_release_quota_holds' => false]);
+        // The target is the division dealer's one monthly target (the seat's own quota is no longer read).
+        app(CommissionPolicy::class)->update(User::factory()->staff('super_admin')->create(), ['dealer_monthly_salary' => ['parameters' => ['division_target' => '100.00']]]);
         $dealer = User::factory()->inPlace($this->division)->create();
         $this->seat($dealer, '100.00');
         $hold = $this->divisionShare($this->purchase(User::factory()->inPlace($this->division)->create()));
@@ -248,8 +254,15 @@ class MonthlyCloseProfitFundTest extends TestCase
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
 
-        foreach (['rank_incentive_pool' => 'pending', 'sub_dealer_tour' => 'reserved', 'car_bike_incentive_fund' => 'pending'] as $category => $status) {
+        foreach (['sub_dealer_tour' => 'reserved', 'car_bike_incentive_fund' => 'pending'] as $category => $status) {
             $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => $category, 'status' => $status]);
         }
+        // Owner's rule of 2026-11-21: the one-time rank prize fund keeps only what waiting (earned, unpaid) prizes need. Nobody
+        // has earned a prize here, so the whole row of the ended month goes to company profit, once.
+        $prize = CommissionAllocation::where('order_id', $order->id)->where('category', 'rank_incentive_pool')->sole();
+        $this->assertSame('settled', $prize->status);
+        $profit = CommissionAllocation::where('category', 'company_profit_fund')->where('metadata->source_allocation_id', $prize->id)->sole();
+        $this->assertSame((string) $prize->amount, (string) $profit->amount);
+        $this->assertSame('retained_reason_rank_prize_surplus', $profit->metadata['reason_key']);
     }
 }

@@ -5,6 +5,7 @@ import { FormErrors, Modal, money, number, Table, Pagination, type Row } from '.
 import { actionAllowed } from './action-permissions';
 import { t, useT } from '../shared/i18n/t';
 import SearchSelect from './SearchSelect';
+import { FilterChips } from './FilterChips';
 
 interface AreaAssignment {
     id: number | string;
@@ -297,16 +298,18 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
 
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
-                        <select
+                        <FilterChips
+                            label={translate('portal', 'area_all_tiers')}
                             value={selectedLevel}
-                            onChange={e => setSelectedLevel(e.target.value)}
-                        >
-                            <option value="all">{translate('portal', 'area_all_tiers')}</option>
-                            <option value="division">{translate('portal', 'area_tier_division')}</option>
-                            <option value="district">{translate('portal', 'area_tier_district')}</option>
-                            <option value="upazila">{translate('portal', 'area_tier_upazila')}</option>
-                            <option value="union">{translate('portal', 'area_tier_union')}</option>
-                        </select>
+                            onChange={setSelectedLevel}
+                            options={[
+                                { value: 'all', label: translate('portal', 'area_all_tiers') },
+                                { value: 'division', label: translate('portal', 'area_tier_division') },
+                                { value: 'district', label: translate('portal', 'area_tier_district') },
+                                { value: 'upazila', label: translate('portal', 'area_tier_upazila') },
+                                { value: 'union', label: translate('portal', 'area_tier_union') },
+                            ]}
+                        />
                     </div>
                 </div>
 

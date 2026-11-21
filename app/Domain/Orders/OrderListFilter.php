@@ -66,6 +66,8 @@ final class OrderListFilter
         if ($chosenStatus !== '' && ! $overdueDeliveries) {
             if ($chosenStatus === self::CameBack) {
                 $query->whereRaw(self::cameBackSql());
+            } elseif ($chosenStatus === OrderReturns::MoneyBackFilter) {
+                OrderReturns::whereMoneyLeft($query);
             } elseif (isset(self::StatusGroups[$chosenStatus])) {
                 $query->whereIn('status', self::StatusGroups[$chosenStatus])
                     ->when(in_array('approved', self::StatusGroups[$chosenStatus], true), fn (Builder $orders) => $orders->whereRaw('NOT '.self::cameBackSql()));

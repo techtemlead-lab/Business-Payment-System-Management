@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerPendingMoney;
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Orders\OrderService;
 use App\Domain\Payouts\ManualPayoutService;
@@ -53,8 +54,13 @@ class PartnerPendingMoneyTest extends TestCase
         return $order;
     }
 
+    /**
+     * Since the owner's rule of 2026-11-21 the area target is the dealer's one monthly target by kind (a division
+     * dealer: the division target), not the seat's own quota, so the tests set that number.
+     */
     private function seatedDealer(string $target = '100000.00'): User
     {
+        app(CommissionPolicy::class)->update(User::factory()->staff('super_admin')->create(), ['dealer_monthly_salary' => ['parameters' => ['division_target' => $target]]]);
         $dealer = User::factory()->inPlace($this->division)->create();
         AreaDealerAssignment::create(['user_id' => $dealer->id, 'level' => 'division', 'place_code_id' => $this->division->id,
             'division' => 'Rangpur', 'zone_name' => 'Rangpur', 'monthly_quota' => $target, 'is_active' => true]);
@@ -147,9 +153,10 @@ class PartnerPendingMoneyTest extends TestCase
         // The dealer's own first order was posted before the target was reached, so its area share is held too.
         $held = number_format((float) DB::table('commission_allocations')->where('user_id', $dealer->id)->where('status', 'held')->where('category', 'like', 'area\_%')->sum('amount'), 2, '.', '');
 
+        // The month-end salary estimate is pending too (the dealer met his target), so only the area lines are summed.
         $this->myMoney($dealer, fn (Assert $page) => $page
             ->where('pending.lines.0.reason', 'target_met_waiting')
-            ->where('pending.total', $held));
+            ->where('pending.lines', fn ($lines) => number_format(collect($lines)->filter(fn ($line) => str_starts_with($line['head'], 'area_'))->sum(fn ($line) => (float) $line['amount']), 2, '.', '') === $held));
     }
 
     public function test_a_missed_target_at_month_end_shows_not_received_and_adds_nothing_to_the_wallet(): void
@@ -194,9 +201,10 @@ class PartnerPendingMoneyTest extends TestCase
     }
 
     /**
-     * Client rule: the day the target is met, that month's held shares are paid and later orders of the month pay
-     * at once; a month that never meets the target is lost at its month end and never paid later. November is the
-     * missed month, December meets the target on the 15th.
+     * Owner's rule of 2026-11-21: a month's area shares are decided once, when the month ends. A month that never meets
+     * the target is lost at its month end and never paid later; a month that meets it is paid in full at its close,
+     * including shares posted after the target was reached. November is the missed month, December meets the target
+     * on the 15th.
      */
     public function test_only_the_month_that_meets_its_target_is_released_and_a_missed_month_is_never_pending_again(): void
     {
@@ -232,32 +240,34 @@ class PartnerPendingMoneyTest extends TestCase
             ->where('pending.total', $decemberTotal)->where('pending.count', 2)
             ->where('not_earned_area.0.month', '2026-11'));
 
-        // The dealer reaches the target on the 15th: December's held shares are paid that day, November's are not.
+        // The dealer reaches the target on the 15th: December's shares are still held, now only waiting for the month end.
         $this->travelTo(now()->setDate(2026, 12, 15)->startOfDay());
         $own = $this->areaShare($this->purchase($dealer));
         $this->artisan('finance:release-quota-holds')->assertSuccessful();
         foreach ([...$december, $own] as $share) {
-            $this->assertContains($share->fresh()->status, ['available', 'maturing']);
-            $this->assertSame(1, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
+            $this->assertSame('held', $share->fresh()->status);
         }
-        foreach ($november as $share) {
-            $this->assertSame('forfeited', $share->fresh()->status);
-            $this->assertSame(0, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
-        }
+        $this->myMoney($dealer, fn (Assert $page) => $page
+            ->where('pending.lines.0.reason', 'target_met_waiting')->where('pending.paid', []));
 
-        // Every later order of December pays straight in.
+        // A later order of December is held too: nothing is paid straight in any more.
         $this->travelTo(now()->setDate(2026, 12, 16)->startOfDay());
         $later = $this->areaShare($this->purchase($this->buyer()));
-        $this->assertContains($later->status, ['available', 'maturing']);
-        $this->myMoney($dealer, fn (Assert $page) => $page
-            ->where('pending.total', '0.00')->where('pending.lines', [])
-            ->where('pending.paid', fn ($paid) => collect($paid)->pluck('amount')->sort()->values()->all() === collect([...$december, $own])->map(fn ($share) => (string) $share->amount)->sort()->values()->all())
-            ->where('not_earned_area.0.month', '2026-11')->where('not_earned_area.0.amount', $novemberTotal));
+        $this->assertSame('held', $later->status);
+        $this->assertSame(0, DB::table('journal_entries')->where('event_key', 'like', 'commission.hold_release.%')->count());
 
-        // Later closes never pay November and never move it twice.
+        // The close of December pays every one of its shares once; November stays lost and is never moved twice.
         $this->travelTo(now()->setDate(2027, 1, 1)->setTime(1, 0));
         $this->artisan('finance:auto-approve')->assertSuccessful();
         $this->artisan('finance:auto-approve')->assertSuccessful();
+        foreach ([...$december, $own, $later] as $share) {
+            $this->assertContains($share->fresh()->status, ['available', 'maturing']);
+            $this->assertSame(1, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
+        }
+        $this->myMoney($dealer, fn (Assert $page) => $page
+            ->where('pending.total', '0.00')->where('pending.lines', [])
+            ->where('pending.paid', fn ($paid) => collect($paid)->pluck('amount')->sort()->values()->all() === collect([...$december, $own, $later])->map(fn ($share) => (string) $share->amount)->sort()->values()->all())
+            ->where('not_earned_area.0.month', '2026-11')->where('not_earned_area.0.amount', $novemberTotal));
         foreach ($november as $share) {
             $this->assertSame('forfeited', $share->fresh()->status);
             $this->assertSame(1, CommissionAllocation::where('metadata->source_allocation_id', $share->id)->count());
@@ -288,10 +298,11 @@ class PartnerPendingMoneyTest extends TestCase
 
     public function test_a_sub_dealers_salary_is_pending_until_the_month_close_pays_it(): void
     {
+        // ৳40,000 in the month reaches the top salary step (3%), so the whole amount set aside is his.
         $subDealer = User::factory()->subDealer()->inPlace($this->division)->create();
-        $this->purchase($subDealer, '120.00', '200.00');
+        $this->purchase($subDealer, '42000.00', '70000.00');
         $set = number_format((float) DB::table('commission_allocations')->where('user_id', $subDealer->id)->where('category', 'sub_dealer_salary')->where('status', 'pending')->sum('amount'), 2, '.', '');
-        $this->assertGreaterThan(0, (float) $set);
+        $this->assertSame('1260.00', $set);
         // The sub-dealer's own cashback is already in the wallet; the salary is not.
         $before = $this->available($subDealer);
 
@@ -299,7 +310,7 @@ class PartnerPendingMoneyTest extends TestCase
             ->where('pending.total', $set)
             ->where('pending.lines.0.head', 'salary')
             ->where('pending.lines.0.reason', 'month_end')
-            ->where('pending.lines.0.estimate', false)
+            ->where('pending.lines.0.estimate', true)
             ->where('summary.available', $before));
 
         $this->closeNovember();
@@ -312,10 +323,31 @@ class PartnerPendingMoneyTest extends TestCase
             ->where('summary.available', $after));
     }
 
+    public function test_a_sub_dealer_is_shown_and_paid_only_the_salary_step_his_month_reached(): void
+    {
+        // ৳15,000 reaches the first step (1% of 3%): a third of the ৳450 set aside is his, the rest goes to company profit.
+        $subDealer = User::factory()->subDealer()->inPlace($this->division)->create();
+        $this->purchase($subDealer, '15000.00', '25000.00');
+        $set = (float) DB::table('commission_allocations')->where('user_id', $subDealer->id)->where('category', 'sub_dealer_salary')->where('status', 'pending')->sum('amount');
+        $this->assertSame('450.00', number_format($set, 2, '.', ''));
+        $before = $this->available($subDealer);
+
+        $this->myMoney($subDealer, fn (Assert $page) => $page
+            ->where('pending.total', '150.00')->where('pending.lines.0.estimate', true));
+
+        $this->closeNovember();
+
+        $this->assertSame(number_format((float) $before + 150, 2, '.', ''), $this->available($subDealer));
+        $profit = CommissionAllocation::where('category', 'company_profit_fund')->where('metadata->reason_key', 'retained_reason_sub_dealer_salary_tier')->sole();
+        $this->assertSame('300.00', (string) $profit->amount);
+        $this->myMoney($subDealer, fn (Assert $page) => $page->where('pending.total', '0.00')->where('pending.lines', []));
+    }
+
     public function test_a_dealers_salary_share_is_a_pending_estimate_until_the_month_close_pays_it(): void
     {
-        $dealer = User::factory()->inPlace($this->division)->create();
-        $this->purchase($dealer, '20000.00');
+        // A dealer with no seat and no appointed place has the general target (৳30,000).
+        $dealer = User::factory()->create();
+        $this->purchase($dealer, '30000.00');
 
         $pending = app(PartnerPendingMoney::class)->for($dealer);
         $this->assertCount(1, $pending['lines']);

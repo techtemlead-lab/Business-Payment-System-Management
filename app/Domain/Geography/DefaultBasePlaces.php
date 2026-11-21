@@ -28,12 +28,17 @@ final class DefaultBasePlaces
 
     public const ReasonNoChildren = 'no_children';
 
+    /** Every union under the upazila is listed twice or under the wrong upazila (PlaceListChecks). */
+    public const ReasonUnionsNeedReview = 'unions_need_review';
+
     /** Chosen, but worth a look: the only child, or one of several places carrying the upazila's name. */
     public const NoteOnlyChild = 'only_child';
 
     public const NoteOnlyPourashava = 'only_pourashava';
 
     public const NoteHeadquarters = 'headquarters_union';
+
+    public const NoteSpellingVariant = 'named_like_upazila_other_spelling';
 
     public const ReasonSeveralPourashavas = 'several_pourashavas';
 
@@ -64,6 +69,8 @@ final class DefaultBasePlaces
             }
         }
 
+        $checks = new PlaceListChecks;
+        $excluded = $checks->excludedUnionCodes($checks->review($places));
         $links = [];
         $empty = [];
         $rules = [];
@@ -71,12 +78,28 @@ final class DefaultBasePlaces
             if (! in_array($place['level'], [PlaceCode::LevelDivision, PlaceCode::LevelDistrict, PlaceCode::LevelUpazila], true)) {
                 continue;
             }
+            // Metropolitan areas are typed upazila in the list but are not upazilas: no base place for them.
+            if ($place['level'] === PlaceCode::LevelUpazila && ($place['kind'] ?? 'upazila') !== 'upazila') {
+                continue;
+            }
             $kids = $children[$place['code']] ?? [];
+            $allKids = $kids;
+            if ($place['level'] === PlaceCode::LevelUpazila) {
+                // Unions that are listed twice or under the wrong upazila are never chosen (see PlaceListChecks).
+                $kids = array_values(array_filter($kids, fn (array $k): bool => ! isset($excluded[$k['code']])));
+            }
             [$base, $reason] = match ($place['level']) {
                 PlaceCode::LevelDivision => $this->divisionBase($place, $kids),
                 PlaceCode::LevelDistrict => $this->districtBase($place, $kids),
                 default => $this->upazilaBase($place, $kids),
             };
+            $someLeftOut = count($kids) !== count($allKids);
+            if ($reason === self::ReasonNoChildren && $allKids !== []) {
+                $reason = self::ReasonUnionsNeedReview;
+            } elseif ($someLeftOut && $base !== null && in_array($reason, [self::NoteOnlyChild, self::NoteOnlyPourashava], true)) {
+                // Only child / only municipality is not certain when listed-twice unions were left out.
+                [$base, $reason] = [null, self::ReasonUnionsNeedReview];
+            }
             if ($base !== null) {
                 $links[] = ['code' => $place['code'], 'base_code' => $base['code']];
                 $rules[$place['code']] = $this->ruleLabel($place, $base, $reason);
@@ -103,7 +126,8 @@ final class DefaultBasePlaces
                 ? 'upazila_only_child'
                 : ($note === self::NoteOnlyPourashava ? 'upazila_only_pourashava'
                 : ($note === self::NoteHeadquarters ? 'upazila_headquarters_union'
-                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : ''))),
+                : ($note === self::NoteSpellingVariant ? 'upazila_union_named_like_upazila_other_spelling'
+                : 'upazila_'.$this->kindOf($base).'_named_like_upazila'.($note === self::NotePreferred ? '_preferred_over_same_name' : '')))),
         };
     }
 
@@ -177,12 +201,8 @@ final class DefaultBasePlaces
         if (count($pourashavas) === 1) {
             return [$pourashavas[0], self::NoteOnlyPourashava];
         }
-        if (count($pourashavas) > 1) {
-            return [null, self::ReasonSeveralPourashavas];
-        }
-
-        // No municipality: the union that hosts the upazila headquarters, when a source names it
-        // and it matches exactly one union of ours.
+        // The union or municipality that hosts the upazila headquarters, when the headquarters file names it
+        // (also for two municipalities) and it matches exactly one of ours.
         $headquarters = $this->headquarters[(string) $upazila['code']] ?? null;
         if ($headquarters !== null) {
             $names = array_map(fn (array $u): string => (string) $u['name'], $unions);
@@ -193,6 +213,22 @@ final class DefaultBasePlaces
             foreach ($unions as $union) {
                 if ($union['name'] === $found) {
                     return [$union, self::NoteHeadquarters];
+                }
+            }
+        }
+
+        if (count($pourashavas) > 1) {
+            return [null, self::ReasonSeveralPourashavas];
+        }
+
+        // Last resort, after the only child, the only municipality and a source-named headquarters: the union that
+        // carries the upazila's name in another spelling (Gangachara / Gongachora), found with UnionNameMatcher;
+        // two hits choose nothing.
+        $variant = $this->matcher->find((string) $upazila['name'], array_map(fn (array $u): string => (string) $u['name'], $unions));
+        if ($variant['match'] !== null) {
+            foreach ($unions as $union) {
+                if ($union['name'] === $variant['match']) {
+                    return [$union, self::NoteSpellingVariant];
                 }
             }
         }

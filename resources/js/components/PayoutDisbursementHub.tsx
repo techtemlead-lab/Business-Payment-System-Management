@@ -9,9 +9,14 @@ import { useEscape } from '../shared/useEscape';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 import WithdrawalFacts, { AmountWords, useWithdrawalFacts } from './payouts/WithdrawalFacts';
 import ReceiptPicker from './payouts/ReceiptPicker';
+import OfficePayoutList from './payouts/OfficePayoutList';
 import { PartnerTypeCell } from './office/portalShared';
+import { randomUuid } from '../shared/randomUuid';
 
-type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled';
+type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'returned' | 'rejected' | 'cancelled';
+
+/** What the viewer may do about paid money that came back (PayoutReturns::state). */
+type ReturnState = 'record' | 'confirm' | 'wait_second' | 'wait_owner' | null;
 
 interface WithdrawalRecord {
     id: string;
@@ -46,6 +51,98 @@ interface WithdrawalRecord {
     receipt_due?: boolean;
     waiting_days?: number | null;
     overdue?: boolean;
+    /** Approved and listed in a file sent to the bank; it may not be rejected until it is paid or marked as not sent. */
+    in_bank_file?: boolean;
+    bank_file?: string | null;
+    /** "Bank did not send": same two-person states as a return (PayoutBatchFiles::notSentState). */
+    not_sent_state?: ReturnState;
+    not_sent_note?: string | null;
+    return_state?: ReturnState;
+    return_note?: string | null;
+    returned_at?: string | null;
+}
+
+/** A file of approved withdrawals sent to the bank (PayoutBatchFiles::recent). */
+interface PayoutBatchRow {
+    id: string;
+    short_id: string;
+    month: string;
+    channel: string | null;
+    row_count: number;
+    total_net: string | number;
+    waiting: number;
+    created_at: string;
+    created_by: string | null;
+}
+
+function csrfToken(): string {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+}
+
+/**
+ * The new bank file and the files already sent. A new file marks its rows "in bank file", so the
+ * form sends a one-time batch id: pressing twice gives the same file, never a second one.
+ */
+function BankFiles({ batches }: { batches: PayoutBatchRow[] }) {
+    const translate = useT();
+    const [batchId, setBatchId] = useState(() => randomUuid());
+
+    const handleSubmit = (e: React.FormEvent) => {
+        if (!window.confirm(translate('payouts', 'payout_file_confirm'))) {
+            e.preventDefault();
+            return;
+        }
+        // The download does not leave the page: show the rows as "in bank file" and ready a new id for the next file.
+        window.setTimeout(() => {
+            setBatchId(randomUuid());
+            router.reload();
+        }, 4000);
+    };
+
+    return (
+        <div className="panel">
+            <div className="hub-row is-between">
+                <div>
+                    <h3 className="hub-title">{translate('payouts', 'batches_title')}</h3>
+                    <p className="hub-hint">{translate('payouts', 'batches_hint')}</p>
+                </div>
+                <form method="post" action="/commands/operations/accounting/payout-batch/export" onSubmit={handleSubmit}>
+                    <input type="hidden" name="_token" value={csrfToken()} />
+                    <input type="hidden" name="batch_id" value={batchId} />
+                    <button type="submit" className="button small">
+                        <Download size={14} aria-hidden="true" /> {translate('treasury', 'payout_file')}
+                    </button>
+                </form>
+            </div>
+            {batches.length > 0 && (
+                <div className="hub-ledger">
+                    {batches.map((batch) => (
+                        <div key={batch.id} className="hub-ledger-row">
+                            <span>
+                                {translate('payouts', 'batch_line', {
+                                    batch: batch.short_id,
+                                    month: batch.month,
+                                    channel: batch.channel ? channelName(batch.channel, translate) : translate('payouts', 'batch_all_channels'),
+                                    count: String(batch.row_count),
+                                    amount: money(batch.total_net),
+                                })}
+                                <small className="cell-sub">{date(batch.created_at)}{batch.created_by ? ` · ${batch.created_by}` : ''} · {translate('payouts', 'batch_waiting', { count: String(batch.waiting) })}</small>
+                            </span>
+                            {batch.waiting > 0 && (
+                                <a
+                                    className="text-link"
+                                    href={`/commands/operations/accounting/payout-batches/${batch.id}/file`}
+                                    onClick={(e) => { if (!window.confirm(translate('payouts', 'batch_download_again_confirm'))) e.preventDefault(); }}
+                                >
+                                    {translate('payouts', 'batch_download_again')}
+                                </a>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 }
 
 /** Totals over every request that matches the search, not only the visible page. */
@@ -94,10 +191,11 @@ function PayoutsTable({ data, rowActions }: { data: MoneyTableData<WithdrawalRec
         { key: 'withheld_amount', title: translate('portal', 'pay_col_withholding'), sortKey: 'withheld', money: true, phone: 'hide', render: (w) => money(w.withheld_amount ?? 0) },
         { key: 'net_amount', title: translate('portal', 'pay_col_net'), sortKey: 'net', money: true, phone: 'hide', render: (w) => money(w.net_amount ?? w.amount) },
         { key: 'status', title: translate('portal', 'pay_col_status'), sortKey: 'status', phone: 'sub', render: (w) => <>
-            <span className={`badge hub-capital ${w.status}`}>{w.status === 'cancelled' ? translate('payouts', 'status_cancelled') : translate('portal', `pay_status_${w.status}`)}</span>
+            <span className={`badge hub-capital ${w.status === 'returned' ? 'rejected' : w.status}`}>{w.status === 'cancelled' || w.status === 'returned' ? translate('payouts', `status_${w.status}`) : translate('portal', `pay_status_${w.status}`)}</span>
             {w.on_hold && <span className="badge rejected">{translate('payouts', 'on_hold_badge')}</span>}
             {w.overdue && <span className="badge rejected">{translate('payouts', 'overdue_badge')}</span>}
             {w.receipt_due && <span className="badge requested">{translate('payouts', 'receipt_due_badge')}</span>}
+            {w.in_bank_file && <span className="badge requested">{translate('payouts', 'in_bank_file_badge', { batch: w.bank_file ?? '' })}</span>}
             {w.waiting_days != null && <small className="cell-sub">{w.waiting_days > 0 ? translate('payouts', 'waiting_days', { days: String(w.waiting_days) }) : translate('payouts', 'waiting_today')}</small>}
             {w.status === 'approved' && <small className="cell-sub">{w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}</small>}
         </> },
@@ -141,7 +239,6 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     const [paymentAccountId, setPaymentAccountId] = useState('');
     const isCash = payoutMethod === 'cash';
     const [payerId, setPayerId] = useState('');
-    const [receiptLater, setReceiptLater] = useState(false);
     const [attachRecord, setAttachRecord] = useState<WithdrawalRecord | null>(null);
     const [attachFile, setAttachFile] = useState<File | null>(null);
     useEscape(attachRecord !== null, () => setAttachRecord(null));
@@ -187,7 +284,6 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         setPaidAt(new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
         setSettleNote('');
         setReceiptFile(null);
-        setReceiptLater(false);
         setPayoutMethod(methodForChannel(record.channel));
         setBankName('');
         setAccountNumber('');
@@ -198,11 +294,10 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
     const handleSubmitSettle = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!settleModalRecord || (!isCash && !receiptFile && !receiptLater)) return;
+        if (!settleModalRecord || (!isCash && !receiptFile)) return;
 
         const formData = new FormData();
         if (receiptFile) formData.append('receipt', receiptFile);
-        if (!isCash && !receiptFile && receiptLater) formData.append('receipt_later', '1');
         formData.append('method', payoutMethod);
         if (!isCash && paymentAccountId) formData.append('payment_account_id', paymentAccountId);
         formData.append('payment_reference', paymentReference);
@@ -236,6 +331,48 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
     const takeOver = (w: WithdrawalRecord) => router.post(`/commands/withdrawals/${w.id}/payer`, { payer_id: myId }, { preserveScroll: true });
 
+    // "The bank did not send it": the only way, besides recording the payment, out of a bank file.
+    const [notSentRecord, setNotSentRecord] = useState<WithdrawalRecord | null>(null);
+    const [notSentNote, setNotSentNote] = useState('');
+    const [processingNotSent, setProcessingNotSent] = useState(false);
+    useEscape(notSentRecord !== null, () => setNotSentRecord(null));
+    const handleNotSent = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!notSentRecord) return;
+        setProcessingNotSent(true);
+        router.post(`/commands/withdrawals/${notSentRecord.id}/not-sent`, { note: notSentNote }, {
+            preserveScroll: true,
+            onSuccess: () => setNotSentRecord(null),
+            onError: (errors) => setModalErrors(errors),
+            onFinish: () => setProcessingNotSent(false),
+        });
+    };
+
+    // "Money came back": one person records it, a second confirms or takes it back (the owner finishes alone).
+    const [returnRecord, setReturnRecord] = useState<WithdrawalRecord | null>(null);
+    const [returnStep, setReturnStep] = useState<'record' | 'confirm' | 'cancel'>('record');
+    const [returnNote, setReturnNote] = useState('');
+    const [processingReturn, setProcessingReturn] = useState(false);
+    useEscape(returnRecord !== null, () => setReturnRecord(null));
+    const openReturn = (w: WithdrawalRecord, step: 'record' | 'confirm' | 'cancel') => {
+        setModalErrors({});
+        setReturnNote('');
+        setReturnStep(step);
+        setReturnRecord(w);
+    };
+    const handleReturn = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!returnRecord) return;
+        setProcessingReturn(true);
+        const path = returnStep === 'record' ? 'returned' : `returned/${returnStep}`;
+        router.post(`/commands/withdrawals/${returnRecord.id}/${path}`, { note: returnNote }, {
+            preserveScroll: true,
+            onSuccess: () => setReturnRecord(null),
+            onError: (errors) => setModalErrors(errors),
+            onFinish: () => setProcessingReturn(false),
+        });
+    };
+
     const rowActions = (w: WithdrawalRecord) => (
         <div className="hub-row is-end">
             {w.status === 'approved' && canProcess && w.payer_id !== myId && w.payer_state !== 'second_person' && (
@@ -268,7 +405,12 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 <small className="muted">{translate('self_approval', 'wait_second_person')}</small>
             )}
 
-            {w.status === 'approved' && w.payer_state !== 'second_person' && canProcess && (
+            {/* Office withdrawals are handed over in cash from the office list, not sent to an account. */}
+            {w.status === 'approved' && w.channel === 'Office' && w.payer_state !== 'second_person' && canProcess && (
+                <small className="muted">{translate('office_withdrawal', 'use_office_list')}</small>
+            )}
+
+            {w.status === 'approved' && w.channel !== 'Office' && w.payer_state !== 'second_person' && canProcess && (
                 <button
                     type="button"
                     onClick={() => handleOpenSettle(w)}
@@ -278,6 +420,41 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 </button>
             )}
 
+            {canProcess && (w.not_sent_state === 'record' || w.not_sent_state === 'confirm') && (
+                <button type="button" onClick={() => { setModalErrors({}); setNotSentNote(''); setNotSentRecord(w); }} className="button small">
+                    {translate('payouts', w.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_button')}
+                </button>
+            )}
+            {w.not_sent_state === 'wait_second' && <small className="muted">{translate('payouts', 'not_sent_wait_second')}</small>}
+            {w.not_sent_state === 'wait_owner' && <small className="muted">{translate('payouts', 'not_sent_wait_owner')}</small>}
+
+            {canProcess && w.return_state === 'record' && (
+                <button type="button" onClick={() => openReturn(w, 'record')} className="button small">
+                    {translate('payouts', 'return_button')}
+                </button>
+            )}
+            {canProcess && w.return_state === 'confirm' && (
+                <>
+                    <button type="button" onClick={() => openReturn(w, 'confirm')} className="button small dark">
+                        {translate('payouts', 'return_confirm_button')}
+                    </button>
+                    <button type="button" onClick={() => openReturn(w, 'cancel')} className="button small">
+                        {translate('payouts', 'return_cancel_button')}
+                    </button>
+                </>
+            )}
+            {w.return_state === 'wait_second' && (
+                <>
+                    <small className="muted">{translate('payouts', 'return_wait_second')}</small>
+                    {canProcess && (
+                        <button type="button" onClick={() => openReturn(w, 'cancel')} className="button small">
+                            {translate('payouts', 'return_cancel_button')}
+                        </button>
+                    )}
+                </>
+            )}
+            {w.return_state === 'wait_owner' && <small className="muted">{translate('payouts', 'return_wait_owner')}</small>}
+
             {/* The full number to send the money to is only on this page, where opening it is logged. */}
             <a
                 href={`/withdrawals/${w.id}`}
@@ -286,7 +463,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 {translate('portal', 'pay_details')}
             </a>
 
-            {w.status === 'paid' && w.payout_receipt_id && (
+            {(w.status === 'paid' || w.status === 'returned') && w.payout_receipt_id && (
                 <a
                     href={`${portalBase ?? ''}/payment-receipts/${w.payout_receipt_id}/print`}
                     target="_blank"
@@ -379,13 +556,9 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
 
             {!canProcess && <div className="notice" role="status"><p>{translate('portal', 'pay_view_only_notice')}</p></div>}
 
-            {canProcess && (
-                <div className="toolbar-end">
-                    <a className="button small" href="/commands/operations/accounting/payout-batch/export">
-                        <Download size={14} aria-hidden="true" /> {translate('treasury', 'payout_file')}
-                    </a>
-                </div>
-            )}
+            {canProcess && <BankFiles batches={pageData?.payout_batches ?? []} />}
+
+            <OfficePayoutList rows={pageData?.office_payouts ?? []} total={pageData?.office_cash_total} canProcess={canProcess} />
 
             <PayoutsTable data={data} rowActions={rowActions} />
 
@@ -513,10 +686,10 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                         {settle.facts && <p className="hub-hint">{translate('payouts', 'fact_destination')}: <b>{settle.facts.destination}</b></p>}
 
                         <form onSubmit={handleSubmitSettle} onPaste={(e) => {
-                            const pasted = Array.from(e.clipboardData.files).find((item) => ['image/png', 'image/jpeg', 'application/pdf'].includes(item.type));
+                            const pasted = Array.from(e.clipboardData.files).find((item) => ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'].includes(item.type));
                             if (pasted && !isCash) {
                                 e.preventDefault();
-                                setReceiptFile(new File([pasted], `receipt-${Date.now()}.${pasted.type === 'application/pdf' ? 'pdf' : pasted.type === 'image/png' ? 'png' : 'jpg'}`, { type: pasted.type }));
+                                setReceiptFile(new File([pasted], `receipt-${Date.now()}.${pasted.type === 'application/pdf' ? 'pdf' : pasted.type === 'image/png' ? 'png' : pasted.type === 'image/webp' ? 'webp' : 'jpg'}`, { type: pasted.type }));
                             }
                         }}>
                             <div className="hub-field">
@@ -594,23 +767,16 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                                 />
                             </div>
 
+                            {/* Owner, 2026-11-21: the transfer screenshot comes first; the partner is shown it as proof. */}
                             <ReceiptPicker
                                 id="payout-receipt"
-                                label={translate('portal', isCash ? 'pay_fld_receipt_cash' : 'pay_fld_receipt')}
-                                required={!isCash && !receiptLater}
+                                label={isCash ? translate('portal', 'pay_fld_receipt_cash') : translate('office_withdrawal', 'proof_label')}
+                                required={!isCash}
+                                webp
                                 file={receiptFile}
                                 onChange={setReceiptFile}
                             />
-
-                            {!isCash && !receiptFile && (
-                                <div className="hub-field">
-                                    <label className="hub-choice">
-                                        <input type="checkbox" checked={receiptLater} onChange={(e) => setReceiptLater(e.target.checked)} />
-                                        {translate('payouts', 'receipt_later')}
-                                    </label>
-                                    {receiptLater && <small className="hub-hint">{translate('payouts', 'receipt_later_hint')}</small>}
-                                </div>
-                            )}
+                            {!isCash && <small className="hub-hint">{translate('office_withdrawal', 'proof_hint')}</small>}
 
                             {paymentNote.shown && <div className="hub-field is-last">
                                 <label>
@@ -649,6 +815,53 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 </div>
             )}
 
+            {notSentRecord && (
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">{translate('payouts', 'not_sent_title')}</h3>
+                        <p className="hub-sub is-lead">{notSentRecord.user_name} · {money(notSentRecord.net_amount ?? notSentRecord.amount)} · {translate('payouts', 'in_bank_file_badge', { batch: notSentRecord.bank_file ?? '' })}</p>
+                        <div className="notice" role="note"><p>{translate('payouts', 'not_sent_body')}</p></div>
+                        {notSentRecord.not_sent_note && <p className="hub-hint">{translate('payouts', 'not_sent_recorded_line', { note: notSentRecord.not_sent_note })}</p>}
+                        <form onSubmit={handleNotSent}>
+                            <div className="hub-field is-last">
+                                <label htmlFor="not-sent-note">{translate('payouts', 'not_sent_note')}</label>
+                                <textarea id="not-sent-note" required minLength={5} maxLength={1000} rows={3} value={notSentNote} onChange={(e) => setNotSentNote(e.target.value)} />
+                            </div>
+                            <FormErrors errors={modalErrors} />
+                            <div className="hub-row is-end">
+                                <button type="button" onClick={() => setNotSentRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
+                                <button type="submit" disabled={processingNotSent || notSentNote.trim().length < 5} className="button danger">{translate('payouts', notSentRecord.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_save')}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {returnRecord && (
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">{translate('payouts', returnStep === 'record' ? 'return_title' : returnStep === 'confirm' ? 'return_confirm_title' : 'return_cancel_button')}</h3>
+                        <p className="hub-sub is-lead">{returnRecord.user_name} · {money(returnRecord.amount)} · {returnRecord.payment_reference}</p>
+                        {returnStep === 'record' && <div className="notice" role="note"><p>{translate('payouts', 'return_body')}</p></div>}
+                        {returnStep === 'confirm' && <div className="notice" role="note"><p>{translate('payouts', 'return_confirm_body', { amount: money(returnRecord.amount) })}</p></div>}
+                        {returnStep !== 'record' && returnRecord.return_note && <p className="hub-hint">{translate('payouts', 'return_recorded_line', { note: returnRecord.return_note })}</p>}
+                        <form onSubmit={handleReturn}>
+                            <div className="hub-field is-last">
+                                <label htmlFor="return-note">{translate('payouts', returnStep === 'record' ? 'return_note' : returnStep === 'confirm' ? 'return_confirm_note' : 'return_cancel_note')}</label>
+                                <textarea id="return-note" required minLength={5} maxLength={1000} rows={3} value={returnNote} onChange={(e) => setReturnNote(e.target.value)} />
+                            </div>
+                            <FormErrors errors={modalErrors} />
+                            <div className="hub-row is-end">
+                                <button type="button" onClick={() => setReturnRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>
+                                <button type="submit" disabled={processingReturn || returnNote.trim().length < 5} className={`button ${returnStep === 'cancel' ? '' : 'dark'}`}>
+                                    {translate('payouts', returnStep === 'record' ? 'return_save' : returnStep === 'confirm' ? 'return_confirm_save' : 'return_cancel_button')}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Receipt for a payout recorded as "money sent, receipt later" */}
             {attachRecord && (
                 <div className="hub-overlay">
@@ -656,7 +869,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                         <h3 className="hub-title is-lg">{translate('payouts', 'attach_receipt')}</h3>
                         <p className="hub-sub is-lead">{attachRecord.user_name} · {money(attachRecord.net_amount ?? attachRecord.amount)} · {attachRecord.payment_reference}</p>
                         <form onSubmit={handleAttach}>
-                            <ReceiptPicker id="attach-receipt" label={translate('portal', 'pay_fld_receipt')} required file={attachFile} onChange={setAttachFile} />
+                            <ReceiptPicker id="attach-receipt" label={translate('portal', 'pay_fld_receipt')} required webp file={attachFile} onChange={setAttachFile} />
                             <FormErrors errors={modalErrors} />
                             <div className="hub-row is-end">
                                 <button type="button" onClick={() => setAttachRecord(null)} className="button">{translate('portal', 'pay_cancel')}</button>

@@ -96,7 +96,7 @@ class RankRewardVisibilityTest extends TestCase
         $other = $this->dealer();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()->subDays(60)]);
 
-        // The rank is held, the grace days are over and this month's keep volume is not met: the prize waits for that, and the line says so.
+        // The rank is held but this month's target (৳30,000 for a dealer with no seat) is not met: the prize waits for that, and the line says so.
         $lines = $this->rewards($leader);
         $this->assertCount(1, $lines);
         $this->assertSame(['rank_mo', '5000.00', 'rank_prize_keep'], [$lines[0]['head'], $lines[0]['amount'], $lines[0]['reason']]);
@@ -104,10 +104,11 @@ class RankRewardVisibilityTest extends TestCase
         $this->assertSame([], $this->rewards($other), 'Nobody else sees it.');
         $this->assertSame([], $this->statementRows($leader), 'It is not income yet.');
 
-        // The keep volume is met but the reserve is empty: now it waits for the office.
-        $this->purchase($leader, '10000.00', '20000.00');
+        // The month's target is met but the reserve is empty: now it waits for the office.
+        $this->purchase($leader, '30000.00', '60000.00');
         $this->assertSame('rank_prize_office', $this->rewards($leader)[0]['reason']);
-        $this->assertSame('0.00', $this->myMoney($leader)['pending']['total'], 'A waiting prize is not part of the pending total.');
+        // The pending total is only the month's salary share (2% of ৳30,000); the waiting prize (৳5,000) is not in it.
+        $this->assertSame('600.00', $this->myMoney($leader)['pending']['total'], 'A waiting prize is not part of the pending total.');
 
         // The reserve is funded and the prize is paid by the engine, exactly as before.
         $this->purchase(User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']), '250000.00', '400000.00');
@@ -137,6 +138,10 @@ class RankRewardVisibilityTest extends TestCase
         DB::table('rank_incentive_awards')->insert(['user_id' => $leader->id, 'rank' => 'mo', 'amount' => '5000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()]);
 
         $lines = $this->rewards($leader);
+        $this->assertSame(['rank_am'], array_column($lines, 'head'), 'The paid MO prize has no line; with the month\'s target not met there is no royalty note either.');
+
+        $this->purchase($leader, '30000.00', '60000.00');
+        $lines = $this->rewards($leader);
 
         $this->assertSame(['rank_am', 'royalty'], array_column($lines, 'head'), 'The paid MO prize has no line; the royalty note follows the prizes.');
         $this->assertSame('50000.00', $lines[0]['amount']);
@@ -165,13 +170,16 @@ class RankRewardVisibilityTest extends TestCase
         $this->assertSame([], collect($this->statementRows($other))->all());
     }
 
-    public function test_a_car_prize_with_no_amount_in_the_rule_is_not_shown_and_with_one_it_is(): void
+    public function test_a_car_prize_shows_with_the_rules_amount_and_is_left_out_when_the_rule_has_no_amount(): void
     {
         $leader = $this->dealer();
-        RewardMilestoneProgress::create(['user_id' => $leader->id, 'milestone_type' => 'car', 'target_amount' => '250000000.00', 'leg_cap_amount' => '20000000.00', 'achieved' => true, 'achieved_at' => now()]);
-        $this->assertSame([], $this->rewards($leader), 'The car amount is blank until the owner decides.');
+        RewardMilestoneProgress::create(['user_id' => $leader->id, 'milestone_type' => 'car', 'target_amount' => '500000000.00', 'leg_cap_amount' => '80000000.00', 'achieved' => true, 'achieved_at' => now()]);
+        $this->assertSame([['car', '2500000.00']], array_map(fn (array $line): array => [$line['head'], $line['amount']], $this->rewards($leader)), 'The car prize is ৳25,00,000 by default.');
 
         $rule = CommissionRuleParameter::getRule('car_bike_incentive');
+        $rule->update(['parameters' => [...$rule->parameters, 'car_award_amount' => '0.00']]);
+        $this->assertSame([], $this->rewards($leader), 'With no amount in the rule there is nothing honest to show.');
+
         $rule->update(['parameters' => [...$rule->parameters, 'car_award_amount' => '500000.00']]);
 
         $this->assertSame([['car', '500000.00']], array_map(fn (array $line): array => [$line['head'], $line['amount']], $this->rewards($leader)));
@@ -199,7 +207,8 @@ class RankRewardVisibilityTest extends TestCase
         $finance = User::factory()->create(['role' => 'finance', 'status' => 'active']);
 
         $home = app(PartnerDashboardHome::class)->for($leader);
-        $this->assertSame(['rank_mo', 'royalty'], array_column($home['wallet']['pending']['rewards'], 'head'));
+        // No purchase this month, so the month's target is not met and there is no royalty note.
+        $this->assertSame(['rank_mo'], array_column($home['wallet']['pending']['rewards'], 'head'));
 
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$leader->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('TreasuryPartner')
@@ -207,12 +216,17 @@ class RankRewardVisibilityTest extends TestCase
             ->where('pending.rewards.0.amount', '5000.00'));
     }
 
-    public function test_a_sub_dealer_never_gets_a_rank_prize_line(): void
+    public function test_a_sub_dealer_holding_mo_gets_his_prize_line_and_one_with_no_rank_gets_none(): void
     {
         $sub = User::factory()->subDealer()->create(['status' => 'active']);
+        $plain = User::factory()->subDealer()->create(['status' => 'active']);
         DealerRank::create(['user_id' => $sub->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
+        $rewards = fn (User $partner): array => $this->actingAs($partner)->onPortal('subdealer')->get('/my-money')->assertOk()->viewData('page')['props']['pending']['rewards'];
 
-        $this->assertSame([], $this->actingAs($sub)->onPortal('subdealer')->get('/my-money')->assertOk()->viewData('page')['props']['pending']['rewards']);
+        // His own royalty target (৳30,000 of purchases) is not met yet, so the prize waits for that and there is no royalty note.
+        $lines = $rewards($sub);
+        $this->assertSame([['rank_mo', '5000.00', 'rank_prize_keep']], array_map(fn (array $line): array => [$line['head'], $line['amount'], $line['reason']], $lines));
+        $this->assertSame([], $rewards($plain), 'A sub-dealer with no rank has no rank prize line.');
     }
 
     public function test_the_royalty_note_has_no_amount_and_only_a_rank_holder_gets_it(): void
@@ -225,6 +239,8 @@ class RankRewardVisibilityTest extends TestCase
             ['user_id' => $holder->id, 'rank' => 'am', 'amount' => '50000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
             ['user_id' => $holder->id, 'rank' => 'sm', 'amount' => '250000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
         ]);
+        $this->assertSame([], $this->rewards($holder), 'The royalty note waits for the month\'s target.');
+        $this->purchase($holder, '30000.00', '60000.00');
 
         $lines = $this->rewards($holder);
         $this->assertSame([['royalty', null, 'royalty_month_end', 'pending']], array_map(fn (array $line): array => [$line['head'], $line['amount'], $line['reason'], $line['state']], $lines));

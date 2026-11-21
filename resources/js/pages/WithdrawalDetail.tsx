@@ -9,6 +9,7 @@ import { useReasonField } from '../shared/reasonFields';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 import WithdrawalFacts, { AmountWords, type WithdrawalFactsData } from '../components/payouts/WithdrawalFacts';
 import ReceiptPicker from '../components/payouts/ReceiptPicker';
+import { HandOverDialog } from '../components/payouts/OfficePayoutList';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
@@ -18,7 +19,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
     };
 
     const status = (w.status || 'requested').toLowerCase();
-    const isTerminal = ['paid', 'rejected'].includes(status);
+    const isTerminal = ['paid', 'rejected', 'returned'].includes(status);
     const inFlight = ['requested', 'processing', 'approved'].includes(status);
 
     const reviewEvent = events.find((e) => e.event === 'review' || String(e.event).includes('review') || String(e.event).includes('approve') || String(e.event).includes('reject'));
@@ -84,6 +85,12 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
         step3Badge = t('stage_badge_settled', 'Paid & Settled');
         step3Icon = <Check size={16} />;
         step3Desc = w.payment_reference ? `${t('col_reference', 'Ref')}: ${w.payment_reference}` : t('wd_desc_settled_confirmed', 'Payout completed & settled');
+    } else if (status === 'returned') {
+        // Paid, then the money came back and went to the wallet again.
+        step3State = 'completed';
+        step3Badge = translate('payouts', 'status_returned');
+        step3Icon = <XCircle size={16} />;
+        step3Desc = translate('payouts', 'notice_returned_title');
     } else if (status === 'approved' || status === 'processing') {
         step3State = 'active';
         step3Badge = t('stage_badge_disbursing', 'Disbursing');
@@ -96,7 +103,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
         badge: step3Badge,
         state: step3State,
         icon: step3Icon,
-        time: w.paid_at,
+        time: status === 'returned' ? w.returned_at : w.paid_at,
         desc: step3Desc,
     };
 
@@ -316,7 +323,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     )}
                     {isTerminal && (
                         <span className={`hub-pill tps-end-pill ${status === 'paid' ? 'tone-ok' : 'tone-danger'}`}>
-                            {status === 'paid' ? t('stage_settled', 'Settled') : t('stage_rejected', 'Rejected')}
+                            {status === 'paid' ? t('stage_settled', 'Settled') : status === 'returned' ? translate('payouts', 'status_returned') : t('stage_rejected', 'Rejected')}
                         </span>
                     )}
                 </div>
@@ -358,13 +365,20 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     const { auth, financeActive, staffActions, portalBase: base, paymentAccounts = [] } = usePage<any>().props;
     const isPartnerDesk = ['dealer', 'sub_dealer'].includes(auth?.user?.role) && auth?.user?.workspace_mode !== 'staff';
     const finance = financeActive && auth.capabilities.includes('finance') && (staffActions?.finance?.approve ?? true);
-    const form = useForm<{ payment_account_id: string; receipt: File | null; receipt_later: boolean; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
-        payment_account_id: '', receipt: null, receipt_later: false, payment_reference: '', paid_at: '', note: '',
+    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
+        payment_account_id: '', receipt: null, payment_reference: '', paid_at: '', note: '',
         // The number the partner asked to be paid to; the server refuses any other (F-verify-01).
         method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: String(w.destination_for_payment ?? ''), wallet_number: String(w.destination_for_payment ?? ''), received_by: '',
     });
     const isCash = form.data.method === 'cash';
+    const [handingOver, setHandingOver] = React.useState(false);
     const paymentNote = useReasonField('money.withdrawal_settle');
+    // Bank-file and money-came-back steps are named in the payouts words; the rest as before.
+    const eventLabel = (event: string): string => {
+        const key = `event_label_${event}`;
+        const named = translate('payouts', key);
+        return named !== key ? named : label(event, translate);
+    };
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
     const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'], headers: backgroundRefreshHeaders }, { autoStart: inFlight });
@@ -383,11 +397,12 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <h2>{money(w.amount)}</h2>
                     <p>{translate('portal', 'wd_requested')} {date(w.created_at)} · {channelName(w.channel, translate)}</p>
                 </div>
-                <Badge status={w.status} />
+                {w.status === 'returned' ? <span className="badge rejected">{translate('payouts', 'status_returned')}</span> : <Badge status={w.status} />}
             </div>
             <AmountWords amount={w.amount} />
             {w.on_hold && <div className="notice" role="status"><p>{translate('payouts', isPartnerDesk ? 'partner_on_hold' : 'on_hold_badge')}</p></div>}
             {w.status === 'approved' && w.pay_by && <p className="muted">{isPartnerDesk ? translate('payouts', 'partner_pay_by', { date: date(w.pay_by) }) : translate('payouts', 'pay_by', { date: date(w.pay_by) })}{!isPartnerDesk && ` · ${w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}`}</p>}
+            {w.payout_line && <div className="notice" role="status"><Clock size={20} /><p>{w.payout_line}</p></div>}
             {isPartnerDesk && w.can_cancel && (
                 <button type="button" className="button small" onClick={() => {
                     if (window.confirm(translate('payouts', 'cancel_confirm'))) {
@@ -427,6 +442,14 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <div><dt>{translate('portal', 'wd_payment_ref')}</dt><dd>{w.payment_reference ?? translate('portal', 'wd_not_recorded')}</dd></div>
                     <div><dt>{translate('portal', 'wd_payment_date')}</dt><dd>{w.paid_at ? date(w.paid_at) : translate('portal', 'wd_not_recorded')}</dd></div>
                 </dl>
+                {w.proof_is_image && (
+                    <figure className="wd-proof">
+                        <figcaption><b>{translate('office_withdrawal', 'proof_title')}</b>{w.paid_at && <> · {translate('office_withdrawal', 'proof_sent_on', { date: date(w.paid_at) })}</>}</figcaption>
+                        <a href={`${base}/withdrawals/${w.id}/receipt?view=1`} target="_blank" rel="noopener">
+                            <img src={`${base}/withdrawals/${w.id}/receipt?view=1`} alt={translate('office_withdrawal', 'proof_alt')} loading="lazy" style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 8, border: '1px solid var(--ds-line, #e2e8f0)' }} />
+                        </a>
+                    </figure>
+                )}
                 {w.has_receipt
                     ? <a className="button" href={`${base}/withdrawals/${w.id}/receipt`}><Download size={17} />{translate('portal', 'wd_download_receipt')}</a>
                     : <p className="muted">{translate('portal', 'wd_receipt_pending')}</p>}
@@ -439,11 +462,47 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
-                        <i /><div><b>{label(String(e.event), translate)} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
+                        <i /><div><b>{eventLabel(String(e.event))} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
                     </div>
                 ))}
             </section>
-            {finance && w.status === 'approved' && (
+            {/* Paid money that came back: one person records it, a second confirms or takes it back. */}
+            {finance && w.status === 'paid' && w.return_state && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('payouts', 'return_title')}</h2>
+                    {w.return_note && <p className="muted">{translate('payouts', 'return_recorded_line', { note: String(w.return_note) })}</p>}
+                    {w.return_state === 'record' && <>
+                        <p className="muted">{translate('payouts', 'return_body')}</p>
+                        <ActionForm action={`/commands/withdrawals/${w.id}/returned`} fields={[{ name: 'note', label: translate('payouts', 'return_note'), type: 'textarea', required: true }]} submit={translate('payouts', 'return_save')} />
+                    </>}
+                    {w.return_state === 'confirm' && <>
+                        <p className="notice" role="status">{translate('payouts', 'return_confirm_body', { amount: money(w.amount) })}</p>
+                        <ActionForm action={`/commands/withdrawals/${w.id}/returned/confirm`} fields={[{ name: 'note', label: translate('payouts', 'return_confirm_note'), type: 'textarea', required: true }]} submit={translate('payouts', 'return_confirm_save')} />
+                    </>}
+                    {w.return_state === 'wait_second' && <p className="notice" role="status">{translate('payouts', 'return_wait_second')}</p>}
+                    {w.return_state === 'wait_owner' && <p className="notice" role="status">{translate('payouts', 'return_wait_owner')}</p>}
+                    {(w.return_state === 'confirm' || w.return_state === 'wait_second') && (
+                        <ActionForm action={`/commands/withdrawals/${w.id}/returned/cancel`} fields={[{ name: 'note', label: translate('payouts', 'return_cancel_note'), type: 'textarea', required: true }]} submit={translate('payouts', 'return_cancel_button')} />
+                    )}
+                </section>
+            )}
+            {/* In a file sent to the bank the money may already be on its way: no rejecting until the bank answers. */}
+            {finance && w.status === 'approved' && w.exported_at && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('payouts', 'not_sent_title')}</h2>
+                    <p className="notice" role="status">{translate('payouts', 'in_bank_file_badge', { batch: String(w.payout_batch_id ?? '').slice(0, 8).toUpperCase() })}</p>
+                    <p className="muted">{translate('payouts', 'not_sent_body')}</p>
+                    {w.not_sent_note && <p className="muted">{translate('payouts', 'not_sent_recorded_line', { note: String(w.not_sent_note) })}</p>}
+                    {w.not_sent_state === 'wait_second' && <p className="notice" role="status">{translate('payouts', 'not_sent_wait_second')}</p>}
+                    {w.not_sent_state === 'wait_owner' && <p className="notice" role="status">{translate('payouts', 'not_sent_wait_owner')}</p>}
+                    {(w.not_sent_state === 'record' || w.not_sent_state === 'confirm') && <ActionForm
+                        action={`/commands/withdrawals/${w.id}/not-sent`}
+                        fields={[{ name: 'note', label: translate('payouts', 'not_sent_note'), type: 'textarea', required: true }]}
+                        submit={translate('payouts', w.not_sent_state === 'confirm' ? 'not_sent_confirm_button' : 'not_sent_save')}
+                    />}
+                </section>
+            )}
+            {finance && w.status === 'approved' && !w.exported_at && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_review_title')}</h2>
                     <ActionForm
@@ -470,7 +529,16 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <p className="muted" role="status">{translate('self_approval', 'wait_second_person')}</p>
                 </section>
             )}
-            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && (
+            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel === 'Office' && (
+                <section className="panel narrow-panel">
+                    <h2>{translate('office_withdrawal', 'hand_over_title')}</h2>
+                    <p className="muted">{translate('office_withdrawal', 'list_body')}</p>
+                    {facts?.blocker && <p className="notice" role="alert"><b>{translate('payouts', 'blocked_title')}</b> {facts.blocker}</p>}
+                    <button type="button" className="button dark" disabled={Boolean(facts?.blocker)} onClick={() => setHandingOver(true)}><Banknote size={17} />{translate('office_withdrawal', 'hand_over')}</button>
+                    {handingOver && <HandOverDialog record={{ id: String(w.id), user_name: String(facts?.partner.name ?? ''), dealer_code: facts?.partner.code ?? null, net_amount: String(w.net_amount ?? w.amount) }} onClose={() => setHandingOver(false)} />}
+                </section>
+            )}
+            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel !== 'Office' && (
                 <section className="panel narrow-panel">
                     <h2>{translate('portal', 'wd_record_title')}</h2>
                     <div className="notice">
@@ -502,9 +570,9 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                         {isCash && <label>{translate('portal', 'pay_fld_received_by')}<input required maxLength={100} placeholder={translate('portal', 'pay_ph_received_by')} value={form.data.received_by} onChange={e => form.setData('received_by', e.target.value)} /></label>}
                         <label>{translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref')}<input required={!isCash} maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
                         <label>{translate('portal', 'wd_paid_at')}<input required type="datetime-local" value={form.data.paid_at} onChange={e => form.setData('paid_at', e.target.value)} /></label>
-                        <ReceiptPicker id="wd-receipt" label={translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')} required={!isCash && !form.data.receipt_later} file={form.data.receipt} onChange={file => form.setData('receipt', file)} />
-                        {!isCash && !form.data.receipt && <label className="hub-choice"><input type="checkbox" checked={form.data.receipt_later} onChange={e => form.setData('receipt_later', e.target.checked)} />{translate('payouts', 'receipt_later')}</label>}
-                        {form.data.receipt_later && <small className="hub-hint">{translate('payouts', 'receipt_later_hint')}</small>}
+                        {/* Owner, 2026-11-21: the screenshot comes first; the partner is shown it as proof. */}
+                        <ReceiptPicker id="wd-receipt" label={isCash ? translate('portal', 'pay_fld_receipt_cash') : translate('office_withdrawal', 'proof_label')} required={!isCash} webp file={form.data.receipt} onChange={file => form.setData('receipt', file)} />
+                        {!isCash && <small className="hub-hint">{translate('office_withdrawal', 'proof_hint')}</small>}
                         {paymentNote.shown && <label>{paymentNote.label(translate('portal', 'wd_payment_note'))}<textarea required={paymentNote.required} maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>}
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
                         <FormErrors errors={form.errors}/>

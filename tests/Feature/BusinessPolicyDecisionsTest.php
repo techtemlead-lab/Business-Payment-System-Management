@@ -282,7 +282,9 @@ class BusinessPolicyDecisionsTest extends TestCase
         $this->actingAs($finance)->postJson('/api/v1/finance/settlements', ['kind' => 'salary', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
         $this->postJson('/api/v1/finance/settlements', ['kind' => 'royalty', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
         // ৳20,000 of earnings plus the ৳5,000 MO reward, paid the moment MO is reached (owner rule).
-        $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '25000.00']);
+        // Rank royalty is four rank funds of 1% each (owner, 2026-11-21): only the MO fund has a holder, so the
+        // AM, SM and ED funds (3%, ৳7,500) go to company profit and the wallet holds ৳17,500.
+        $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '17500.00']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.salary_pool_settled']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.royalty_pool_settled']);
     }

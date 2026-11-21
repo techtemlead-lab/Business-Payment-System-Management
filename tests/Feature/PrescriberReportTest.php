@@ -22,6 +22,8 @@ class PrescriberReportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Clinic sales post to the journal, so they need money posting on.
+        $this->enableFinancialPosting();
         $this->withoutVite();
         $this->travelTo(Carbon::parse('2026-11-15 06:00:00', 'UTC'));
     }

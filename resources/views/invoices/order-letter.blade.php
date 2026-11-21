@@ -415,6 +415,8 @@
             <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}
                 @if (($delivery['kind'] ?? 'none') === 'office')
                     <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery') }} : {{ __('portal.inv_delivery_office') }}</div>
+                @elseif (($delivery['kind'] ?? 'none') === 'office_pending')
+                    <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery') }} : {{ __('order_delivery.collect_from_office') }}</div>
                 @elseif (($delivery['kind'] ?? 'none') === 'courier')
                     @foreach ($delivery['couriers'] as $courier)
                         <div class="delivery-line" style="font-size:11px;font-weight:600;color:#334155;margin-top:3px;white-space:nowrap">{{ __('portal.inv_delivery_courier') }} : {{ $courier['name'] }}@if ($courier['tracking'] !== '') · {{ __('portal.inv_delivery_tracking') }} : {{ $courier['tracking'] }}@endif</div>
@@ -444,6 +446,9 @@
                 <td>{{ $line['sl'] }}</td>
                 <td class="name">
                     <div class="product-title">{{ $line['name'] }}</div>
+                    @if (! empty($line['owed_note']))
+                        <div class="product-meta"><strong>{{ $line['owed_note'] }}</strong></div>
+                    @endif
                     @if (! empty($line['strength']) || ! empty($line['sub_category']))
                         <div class="product-meta">
                             {{ collect([$line['sub_category'], $line['strength']])->filter()->implode(' • ') }}

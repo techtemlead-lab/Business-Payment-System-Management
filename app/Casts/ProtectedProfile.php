@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Crypt;
 /**
  * The account profile JSON, with the most personal details encrypted at rest (LC-05).
  *
- * Date of birth, parents' names, village, post office, birth-certificate number, the office profile addresses and emergency contact are stored as
+ * Date of birth, parents' names, village, post office, birth-certificate number, the office profile addresses,
+ * a partner's permanent (home) address and emergency contact are stored as
  * "enc:<ciphertext>" inside the JSON; every other key (place codes, shop name, permissions …) stays
  * plain so the place and permission queries keep working. Reading through the model gives the
  * plain values back, so screens, PDFs and checks are unchanged. Values written before this cast
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Crypt;
  */
 final class ProtectedProfile implements CastsAttributes
 {
-    public const ProtectedKeys = ['date_of_birth', 'father_name', 'mother_name', 'village', 'post_office', 'birth_certificate_number', 'present_address', 'permanent_address', 'emergency_contact_name', 'emergency_contact_phone'];
+    public const ProtectedKeys = ['date_of_birth', 'father_name', 'mother_name', 'village', 'post_office', 'birth_certificate_number', 'present_address', 'permanent_address', 'emergency_contact_name', 'emergency_contact_phone', 'permanent_division', 'permanent_district', 'permanent_upazila', 'permanent_union', 'permanent_place_id'];
 
     private const Marker = 'enc:';
 

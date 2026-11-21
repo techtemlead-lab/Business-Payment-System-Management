@@ -11,7 +11,8 @@ use Illuminate\Console\Command;
 class SeedPlaceCodes extends Command
 {
     protected $signature = 'madina:seed-place-codes {--dry-run : Show what would be added without saving anything}
-        {--review-csv= : Write the upazilas left without a base place, with the headquarters found in public sources, to this CSV file}';
+        {--review-csv= : Write the upazilas left without a base place, with the headquarters found in public sources, to this CSV file}
+        {--place-list-csv= : Write the rows of the default place list that are not what they look like (metropolitan areas typed as upazila, unions listed twice or under the wrong upazila) to this CSV file}';
 
     protected $description = 'Add the missing places, default place codes (100, 101…, 201…, 1001…, 100001…) and empty base places. Never changes an existing code or base place.';
 
@@ -43,6 +44,19 @@ class SeedPlaceCodes extends Command
             ));
         }
 
+        $changes = array_values(array_filter($summary['fixes'], fn (array $f): bool => in_array($f['status'], ['done', 'referenced', 'skipped'], true)));
+        if ($changes !== []) {
+            $this->warn($dryRun ? 'Corrections of the older place list that WOULD be made:' : 'Corrections of the older place list made:');
+            $this->table(['Step', 'Code', 'Place', 'Status', 'Detail'], array_map(fn (array $f): array => [$f['step'], $f['code'], $f['name'], $f['status'], $f['detail']], $changes));
+        }
+
+        $up = $summary['upazilas'];
+        $this->line(sprintf('Upazilas (real ones only, metropolitan areas excluded): %d in total, %d with a base place, %d without.', $up['real'], $up['with_base'], $up['without_base']));
+        if ($up['reasons'] !== []) {
+            ksort($up['reasons']);
+            $this->table(['Upazilas without a base place: reason', 'Upazilas'], array_map(fn (string $reason, int $count): array => [$reason, $count], array_keys($up['reasons']), $up['reasons']));
+        }
+
         if ($summary['base_empty'] !== []) {
             $reasons = array_count_values(array_column($summary['base_empty'], 'reason'));
             ksort($reasons);
@@ -70,6 +84,21 @@ class SeedPlaceCodes extends Command
         if (is_string($csv) && $csv !== '') {
             $this->writeReviewCsv($csv, $summary['base_empty'], $catalog->headquartersReview());
             $this->info('Review file written: '.$csv);
+        }
+
+        $issuesCsv = $this->option('place-list-csv');
+        if (is_string($issuesCsv) && $issuesCsv !== '') {
+            $handle = fopen($issuesCsv, 'wb');
+            if ($handle === false) {
+                $this->error('Cannot write '.$issuesCsv);
+            } else {
+                fputcsv($handle, ['issue', 'code', 'name', 'parent', 'detail'], ',', '"', '');
+                foreach ($catalog->placeListIssues() as $issue) {
+                    fputcsv($handle, [$issue['issue'], $issue['code'], $issue['name'], $issue['parent'], $issue['detail']], ',', '"', '');
+                }
+                fclose($handle);
+                $this->info('Place list check written: '.$issuesCsv);
+            }
         }
 
         return self::SUCCESS;

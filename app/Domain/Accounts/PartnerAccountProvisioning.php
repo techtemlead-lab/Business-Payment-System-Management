@@ -109,6 +109,15 @@ final class PartnerAccountProvisioning
         if ($role === 'dealer' && $place->level === PlaceCode::LevelManagement) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_management')]);
         }
+        // The form asks the kind of dealer first (division, district, upazila or union dealer); the
+        // place must be of that level, so a district dealer is never seated on an upazila by mistake.
+        $dealerLevel = trim((string) ($input['dealer_level'] ?? ''));
+        if ($role === 'dealer' && $dealerLevel !== '' && $place->level !== $dealerLevel) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_not_dealer_level', [
+                'kind' => in_array($dealerLevel, PlaceCode::AssignmentLevels, true) ? __('portal.acct_dealer_kind_'.$dealerLevel) : $dealerLevel,
+            ])]);
+        }
+        $permanentAddress = $this->permanentAddress($input['permanent_place_id'] ?? null);
 
         if ($role === 'dealer') {
             $taken = AreaDealerAssignment::query()
@@ -168,6 +177,7 @@ final class PartnerAccountProvisioning
             'date_of_birth' => trim((string) ($input['date_of_birth'] ?? '')),
             'extra_contact' => trim((string) ($input['extra_contact'] ?? '')),
             'union_place_code' => $role === 'sub_dealer' ? $place->code : null,
+            ...$permanentAddress,
         ];
         if ($managementReferral) {
             $profile['referred_by'] = ManagementReferral::ProfileFlag;
@@ -263,6 +273,52 @@ final class PartnerAccountProvisioning
             'password_link_sent' => $passwordLinkSent,
             'first_password' => $plainPassword,
             'password_typed' => $typedPassword !== '',
+        ];
+    }
+
+    /**
+     * The partner's permanent (home) address, kept apart from the business area that sets the code.
+     * The office picks the places down to the upazila, or the union; the names are read from the
+     * place list by walking up from the picked place, never down to a base place, so a home on an
+     * upazila is never given a union nobody chose. Nothing chosen: nothing is saved. The account
+     * editor uses the same rule when the office changes a partner's permanent address.
+     *
+     * @return array<string, string> The profile keys to save
+     *
+     * @throws ValidationException when the place is unknown or not an upazila or union
+     */
+    public function permanentAddress(mixed $placeId): array
+    {
+        if ($placeId === null || $placeId === '') {
+            return [];
+        }
+        $place = is_numeric($placeId) ? PlaceCode::query()->whereKey((int) $placeId)->where('is_active', true)->first() : null;
+        if (! $place instanceof PlaceCode) {
+            throw ValidationException::withMessages(['permanent_place_id' => __('portal.acct_val_home_place_unknown')]);
+        }
+        if (! in_array($place->level, [PlaceCode::LevelUpazila, PlaceCode::LevelUnion], true)) {
+            throw ValidationException::withMessages(['permanent_place_id' => __('portal.acct_val_home_place_level')]);
+        }
+
+        $names = [];
+        $cursor = $place;
+        $guard = 0;
+        while ($cursor instanceof PlaceCode && $guard++ < 6) {
+            $names[$cursor->level] ??= trim((string) $cursor->name);
+            $cursor = $cursor->parent_id ? PlaceCode::query()->whereKey($cursor->parent_id)->first() : null;
+        }
+        foreach ([PlaceCode::LevelDivision, PlaceCode::LevelDistrict, PlaceCode::LevelUpazila] as $level) {
+            if (($names[$level] ?? '') === '') {
+                throw ValidationException::withMessages(['permanent_place_id' => __('portal.acct_val_home_place_unknown')]);
+            }
+        }
+
+        return [
+            'permanent_division' => $names[PlaceCode::LevelDivision],
+            'permanent_district' => $names[PlaceCode::LevelDistrict],
+            'permanent_upazila' => $names[PlaceCode::LevelUpazila],
+            'permanent_union' => $names[PlaceCode::LevelUnion] ?? '',
+            'permanent_place_id' => (string) $place->id,
         ];
     }
 

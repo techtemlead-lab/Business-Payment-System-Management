@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Orders\CourierOptions;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\ShipmentTracking;
 use App\Jobs\BookShipmentCourier;
@@ -132,7 +133,7 @@ class CourierDriversAndManualModeTest extends TestCase
         Http::assertSent(fn (Request $request): bool => str_ends_with($request->url(), '/API-Order-Tracking') && $request['ReferenceNumber'] === 'INV-1');
     }
 
-    public function test_a_manual_courier_is_switched_on_without_keys_and_offered_on_the_order_form(): void
+    public function test_a_manual_courier_is_switched_on_without_keys_but_the_dealer_is_not_offered_it(): void
     {
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/purchase')->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('data.courier_choices.0.key', 'company'));
@@ -141,10 +142,12 @@ class CourierDriversAndManualModeTest extends TestCase
             $this->enableManual($courier);
         }
 
+        // Only a courier with a connected booking system is offered to a dealer; staff still send by a manual courier.
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/purchase')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->count('data.courier_choices', 6)
-                ->where('data.courier_choices.0.key', 'sundarban')
-                ->where('data.courier_choices.0.manual', true));
+            ->assertInertia(fn (Assert $page) => $page->count('data.courier_choices', 1)
+                ->where('data.courier_choices.0.key', 'company'));
+        $manual = array_values(array_filter(app(CourierOptions::class)->enabled(), fn (array $option): bool => $option['manual'] ?? false));
+        $this->assertSame(IntegrationCatalog::ManualCouriers, array_column($manual, 'key'));
     }
 
     public function test_approving_a_manual_courier_order_books_nothing_and_asks_staff_to_send_it(): void

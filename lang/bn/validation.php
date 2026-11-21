@@ -248,6 +248,8 @@ return [
         'union' => 'ইউনিয়ন',
         'village' => 'গ্রাম',
         'post_office' => 'ডাকঘর',
+        'permanent_place_id' => 'স্থায়ী ঠিকানা',
+        'dealer_level' => 'ডিলারের ধরন',
         'location' => 'অবস্থান',
         'latitude' => 'অক্ষাংশ',
         'longitude' => 'দ্রাঘিমাংশ',

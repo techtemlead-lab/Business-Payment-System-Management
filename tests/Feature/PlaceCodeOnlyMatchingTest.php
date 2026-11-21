@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Area commissions and the division salary are matched by place code only. Two places can
+ * Area commissions and the dealer's monthly target kind are matched by place code only. Two places can
  * share a name ("Sadar", "Rangpur"), and a partner with no place code never matches by name.
  */
 class PlaceCodeOnlyMatchingTest extends TestCase
@@ -88,38 +88,40 @@ class PlaceCodeOnlyMatchingTest extends TestCase
         $this->assertSame('unassigned_reserve', $share->status);
     }
 
-    public function test_two_divisions_with_the_same_name_do_not_share_the_division_salary(): void
+    public function test_two_divisions_with_the_same_name_share_the_one_nationwide_salary_by_place_code(): void
     {
         $first = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $second = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
-        $dealerInFirst = User::factory()->inPlace($first)->create();
-        $buyerInSecond = User::factory()->inPlace($second)->create();
-        $this->purchase($dealerInFirst, '10000.00', '20000.00');
-        $this->purchase($buyerInSecond, '10000.00', '20000.00');
+        $unionIn = fn (PlaceCode $division): PlaceCode => PlaceCode::factory()->union(PlaceCode::factory()->upazila(PlaceCode::factory()->district($division)->create())->create())->create();
+        $dealerInFirst = User::factory()->inPlace($unionIn($first))->create();
+        $buyerInSecond = User::factory()->inPlace($unionIn($second))->create();
+        $this->purchase($dealerInFirst, '30000.00', '60000.00');
+        $this->purchase($buyerInSecond, '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
-        // Each dealer only shares the 2% salary pool of their own division's orders.
-        $this->assertSame('200.00', $this->salaryPaid($dealerInFirst));
-        $this->assertSame('200.00', $this->salaryPaid($buyerInSecond));
+        // The salary is one fund for the whole country: both union dealers met their ৳30,000 target and share the 2% of both orders.
+        $this->assertSame('600.00', $this->salaryPaid($dealerInFirst));
+        $this->assertSame('600.00', $this->salaryPaid($buyerInSecond));
         $this->assertSame('0.00', $result['total_to_company_profit']);
-        $this->assertCount(2, $result['divisions']);
+        $this->assertCount(1, $result['divisions']);
     }
 
-    public function test_dealers_and_orders_without_a_place_code_never_share_the_division_salary(): void
+    public function test_dealers_without_a_place_code_use_the_no_area_target_not_their_division_name(): void
     {
         $unplacedDealer = User::factory()->create(['division' => 'Rangpur']);
         $unplacedBuyer = User::factory()->create(['division' => 'Rangpur']);
-        $this->purchase($unplacedDealer, '10000.00', '20000.00');
-        $this->purchase($unplacedBuyer, '10000.00', '20000.00');
+        $this->purchase($unplacedDealer, '30000.00', '60000.00');
+        $this->purchase($unplacedBuyer, '29999.00', '59998.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
-        $this->assertSame('0.00', $this->salaryPaid($unplacedDealer));
+        // A dealer with no place code has the ৳30,000 no-area target whatever his division name says.
+        $this->assertSame('1199.98', $this->salaryPaid($unplacedDealer));
         $this->assertSame('0.00', $this->salaryPaid($unplacedBuyer));
-        $this->assertSame('400.00', $result['total_to_company_profit']);
+        $this->assertSame('0.00', $result['total_to_company_profit']);
     }
 
     /**

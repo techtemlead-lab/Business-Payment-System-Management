@@ -120,7 +120,7 @@ final class FundSpending
      * Approves or rejects a spend. The owner decides a spend they recorded themselves, and may
      * add its receipt while doing so.
      */
-    public function review(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt = null): void
+    public function review(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt = null, bool $confirmedNotPaid = false): void
     {
         abort_unless(self::canManage($actor), 403);
         if ($decision === 'approved') {
@@ -129,7 +129,7 @@ final class FundSpending
         $path = $receipt?->storeAs('fund-spend-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         $attached = false;
         try {
-            $this->decide($actor, $id, $decision, $reason, $receipt, $path, $attached);
+            $this->decide($actor, $id, $decision, $reason, $receipt, $path, $attached, $confirmedNotPaid);
         } catch (\Throwable $exception) {
             if ($path !== null) {
                 Storage::disk('local')->delete($path);
@@ -142,7 +142,8 @@ final class FundSpending
     }
 
     /**
-     * Whoever recorded a spend may withdraw it before anyone has reviewed it.
+     * Whoever recorded a spend may withdraw it before anyone has reviewed it; an owner may withdraw
+     * any spend still waiting (for example one left waiting too long).
      */
     public function cancel(User $actor, int $id, string $reason): void
     {
@@ -153,12 +154,13 @@ final class FundSpending
             $row = DB::table('reserve_disbursements')->where('id', $id)->where('program', self::Program)->lockForUpdate()->first();
             abort_unless($row !== null, 404);
             abort_unless(! in_array($row->fund_key, CompanyFunds::OwnerOnly, true) || $actor->owner(), 403);
-            if ($row->status !== 'requested' || $row->created_by !== $actor->id) {
+            $byOwner = (int) $row->created_by !== (int) $actor->id;
+            if ($row->status !== 'requested' || ($byOwner && ! $actor->fresh()->owner())) {
                 throw ValidationException::withMessages(['spend' => __('self_approval.err_cancel_spend')]);
             }
             DB::table('reserve_disbursements')->where('id', $id)->update(['status' => 'cancelled', 'updated_at' => now()]);
             $this->freeReference($id);
-            Audit::record($actor->id, 'fund.spend_cancelled', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reference' => $row->payment_reference, 'reason' => $reason]);
+            Audit::record($actor->id, 'fund.spend_cancelled', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reference' => $row->payment_reference, 'reason' => $reason, ...($byOwner ? ['cancelled_by_owner' => true, 'created_by' => (int) $row->created_by] : [])]);
         }, 3);
     }
 
@@ -182,9 +184,9 @@ final class FundSpending
             || ($amount !== null && app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::FundSpend, $amount));
     }
 
-    private function decide(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt, ?string $path, bool &$attached): void
+    private function decide(User $actor, int $id, string $decision, string $reason, ?UploadedFile $receipt, ?string $path, bool &$attached, bool $confirmedNotPaid): void
     {
-        DB::transaction(function () use ($actor, $id, $decision, $reason, $receipt, $path, &$attached): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $receipt, $path, &$attached, $confirmedNotPaid): void {
             CommissionWallet::lock();
             abort_unless(self::canManage($actor->fresh()), 403);
             $row = DB::table('reserve_disbursements')->where('id', $id)->where('program', self::Program)->lockForUpdate()->first();
@@ -205,6 +207,13 @@ final class FundSpending
                 app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::FundSpend, (string) $row->amount, 'spend');
                 $this->post($actor, $row);
             }
+            // A bank reference or a receipt says the money already left. Refusing it would leave that
+            // payment out of the books without a word, so the checker must say it was never paid;
+            // otherwise approve it and record the money coming back as a correction.
+            $showsPayment = $row->payment_reference !== null || $row->receipt_path !== null;
+            if ($decision === 'rejected' && $showsPayment && ! $confirmedNotPaid) {
+                throw ValidationException::withMessages(['spend' => __('funds.err_reject_paid_spend')]);
+            }
             DB::table('reserve_disbursements')->where('id', $id)->update([
                 'status' => $decision === 'approved' ? 'paid' : 'rejected',
                 'approved_by' => $actor->id,
@@ -215,7 +224,8 @@ final class FundSpending
             if ($decision === 'rejected') {
                 $this->freeReference($id);
             }
-            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reference' => $row->payment_reference, 'reason' => $reason, ...($selfApproved ? ['self_approved' => true] : [])]);
+            Audit::record($actor->id, $decision === 'approved' ? 'fund.spend_approved' : 'fund.spend_rejected', (string) $id, ['fund' => $row->fund_key, 'amount' => (string) $row->amount, 'reference' => $row->payment_reference, 'reason' => $reason, ...($selfApproved ? ['self_approved' => true] : []),
+                ...($decision === 'rejected' && $showsPayment ? ['confirmed_not_paid' => true] : [])]);
         }, 3);
     }
 

@@ -13,6 +13,8 @@ use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Domain\Payouts\WithdrawalMethods;
+use App\Domain\Payouts\WithdrawalWeek;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -33,6 +35,9 @@ class MyMoneyController extends Controller
         $wait = app(WithdrawalSecurityWait::class);
         $opensAt = $wait->opensAt($partner);
         $pending = app(PartnerPendingMoney::class)->for($partner);
+        // Only the ways the owner switched on are offered; saved accounts of a switched-off way stay stored but are not shown.
+        $methods = app(WithdrawalMethods::class)->enabled();
+        $savedAccounts = array_values(array_filter(app(PartnerPayoutAccounts::class)->listFor($partner), fn (array $account): bool => in_array($account['channel'], $methods, true)));
 
         return Inertia::render('MyMoney', [
             'section' => 'my-money',
@@ -45,7 +50,7 @@ class MyMoneyController extends Controller
             'pending' => $pending,
             'benefits' => app(FundSpendPartners::class)->linesFor($partner),
             'salary_notes' => app(PartnerSalaryNotes::class)->for($partner),
-            'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'nid_request' => app(PartnerKycDocuments::class)->nidRequestState($partner), 'saved_accounts' => array_map(fn (array $a): array => ['id' => $a['id'], 'label' => $a['label'], 'is_default' => $a['is_default']], app(PartnerPayoutAccounts::class)->listFor($partner)), 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
+            'withdraw' => ['can' => ! $kycBlock && ! $nidBlock, 'kyc_block' => $kycBlock, 'nid_block' => $nidBlock, 'nid_request' => app(PartnerKycDocuments::class)->nidRequestState($partner), 'saved_accounts' => array_map(fn (array $a): array => ['id' => $a['id'], 'label' => $a['label'], 'is_default' => $a['is_default'], 'channel' => $a['channel']], $savedAccounts), 'methods' => $methods, 'week' => app(WithdrawalWeek::class)->partnerInfo(), 'security_wait' => $opensAt === null ? null : $wait->reason($opensAt), 'minimum' => (string) $settings->withdrawalMinimum()['amount'],
                 'channel_limits' => app(PayoutLimits::class)->settings()['per_channel'],
                 'tin_last4' => trim((string) $partner->tin) === '' ? null : substr((string) $partner->tin, -4)],
             'reserve_receipts' => $receipts->reservePayoutsFor($partner),

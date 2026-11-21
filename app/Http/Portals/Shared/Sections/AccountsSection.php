@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerAccountList;
+use App\Domain\Finance\ClosedAccountBalance;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Staff\ApplicationReviewChecks;
 use App\Models\User;
@@ -58,6 +59,11 @@ final class AccountsSection implements WorkspaceSection
             'state' => [...$table['state'], 'filters' => $this->chosenAccountFilters($filters)],
         ];
         $props['account_areas'] = $areas;
+        // Closed accounts that still hold money, so the owner sees them; moving it is a Super Admin action on the account.
+        $viewer = $request->user();
+        if ($filters['status'] === PartnerAccountList::ClosedStatus && $viewer !== null && ($viewer->owner() || $viewer->allows('finance'))) {
+            $props['closed_with_money'] = app(ClosedAccountBalance::class)->stillHolding($role);
+        }
 
         return $props;
     }

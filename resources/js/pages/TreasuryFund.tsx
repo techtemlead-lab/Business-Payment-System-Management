@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
-import { date, label, money, number } from '../components/UI';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import { FormErrors, date, label, money, number } from '../components/UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import { FundFigures, type FundCardData } from '../components/treasury/FundCard';
-import FundSpendForm, { type FundSpendOptions } from '../components/treasury/FundSpendForm';
+import FundSpendForm, { FUNDS_COMMAND_ROOT, type FundSpendOptions } from '../components/treasury/FundSpendForm';
 import RewardLeaders, { VehiclePoolsPanel, type RewardAward, type RewardLeaderFigures, type RewardLeaderRow } from '../components/treasury/RewardLeaders';
 import { joined, percentText } from '../components/treasury/format';
+import { FundAdvancesPanel, type OpenAdvance } from '../components/treasury/PrizeAdvances';
 import { useT } from '../shared/i18n/t';
 
 type MoneyInRow = {
@@ -27,6 +28,7 @@ type MoneyInRow = {
 };
 
 type MoneyOutRow = {
+    id: string;
     date: string;
     what: string;
     to: string | null;
@@ -38,7 +40,7 @@ type MoneyOutRow = {
 type FundView = 'in' | 'out' | RewardAward;
 
 /** One fund: the same three cards as the Treasury home, then the money that came in or went out. The car and bike fund can also list leaders' progress. */
-export default function TreasuryFund({ card, view, table, spend, leaders }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow | RewardLeaderRow>; spend: FundSpendOptions | null; leaders: RewardLeaderFigures | null }) {
+export default function TreasuryFund({ card, view, table, spend, leaders, advances }: { card: FundCardData; view: FundView; table: MoneyTableData<MoneyInRow | MoneyOutRow | RewardLeaderRow>; spend: FundSpendOptions | null; leaders: RewardLeaderFigures | null; advances?: { open: OpenAdvance[]; can_give: boolean } | null }) {
     const translate = useT();
     const pageUrl = usePage().url;
     const path = pageUrl.split('?')[0];
@@ -97,6 +99,8 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
         { key: 'to', title: translate('treasury', 'col_to'), phone: 'sub', render: (row) => row.to ?? '—' },
         { key: 'amount', title: translate('treasury', 'went_out'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
         { key: 'receipt', title: translate('treasury', 'col_receipt'), phone: 'hide', render: (row) => (row.receipt_url ? <a className="text-link" href={row.receipt_url}>{translate('treasury', 'view')}</a> : '—') },
+        // A paid spend whose money came back is corrected here; the server checks who may.
+        ...(spend ? [{ key: 'correct', title: '', phone: 'hide' as const, render: (row: MoneyOutRow) => (/^s-\d+$/.test(String(row.id)) ? <ReverseSpend spendId={String(row.id).slice(2)} /> : null) }] : []),
     ];
 
     return (
@@ -107,6 +111,7 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
         >
             <FundFigures card={card} />
             {leaders && <VehiclePoolsPanel pools={leaders.pools} shown={leaders.shown} />}
+            {advances && <FundAdvancesPanel advances={advances} fundKey={card.key} />}
             <div className="office-switch" role="group" aria-label={card.name} ref={viewSwitch}>
                 {views.map((option) => (
                     <Link key={option.key} href={option.key === 'in' ? path : `${path}?view=${option.key}`} preserveScroll className={option.key === view ? 'is-active' : undefined} aria-current={option.key === view ? 'true' : undefined}>
@@ -138,5 +143,31 @@ export default function TreasuryFund({ card, view, table, spend, leaders }: { ca
             )}
             {spending && spend && <FundSpendForm card={card} spend={spend} onClose={() => setSpending(false)} />}
         </TreasuryPage>
+    );
+}
+
+/** The correction for a paid spend whose money came back: a reversing entry, with the reason and the day it came back. */
+function ReverseSpend({ spendId }: { spendId: string }) {
+    const translate = useT();
+    const [open, setOpen] = useState(false);
+    const form = useForm({ reason: '', returned_on: new Date().toISOString().slice(0, 10) });
+    if (!open) {
+        return <button type="button" className="button small" onClick={() => setOpen(true)}>{translate('funds', 'reverse_spend')}</button>;
+    }
+
+    return (
+        <form className="action-form" onSubmit={(event) => {
+            event.preventDefault();
+            form.post(`${FUNDS_COMMAND_ROOT}/spends/${spendId}/reverse`, { preserveScroll: true, onSuccess: () => setOpen(false) });
+        }}>
+            <small className="muted">{translate('funds', 'reverse_spend_hint')}</small>
+            <label>{translate('funds', 'reverse_returned_on')}<input type="date" required value={form.data.returned_on} onChange={(event) => form.setData('returned_on', event.target.value)} /></label>
+            <input aria-label={translate('funds', 'fld_reason')} placeholder={translate('funds', 'fld_reason')} required minLength={5} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+            <FormErrors errors={form.errors} />
+            <div className="ops-row is-inline">
+                <button className="button small dark" disabled={form.processing}>{translate('funds', 'reverse_spend_confirm')}</button>
+                <button type="button" className="button small" onClick={() => setOpen(false)}>{translate('funds', 'cancel')}</button>
+            </div>
+        </form>
     );
 }

@@ -72,6 +72,9 @@ class RewardAmountTiedToRuleTest extends TestCase
 
     public function test_a_reward_whose_rule_amount_is_blank_is_refused(): void
     {
+        // The car prize starts at ৳25,00,000 (owner, 2026-11-21); the owner can empty the box, which leaves it blank.
+        $rule = CommissionRuleParameter::getRule('car_bike_incentive');
+        $rule?->update(['parameters' => [...($rule->parameters ?? []), 'car_award_amount' => null]]);
         $this->assertNull(CommissionRuleParameter::getRule('car_bike_incentive')?->parameters['car_award_amount'] ?? null);
 
         try {

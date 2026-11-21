@@ -53,19 +53,24 @@ final class PayrollService
     public function prepare(User $actor, string $month): array
     {
         abort_unless($actor->allows('payroll'), 403);
-        [, $end] = CommissionQualification::period($month);
-        if ($end->isFuture()) {
+        [$monthStart, $monthEnd] = CommissionQualification::period($month);
+        if ($monthEnd->isFuture()) {
             throw ValidationException::withMessages(['period_month' => __('portal.err_payroll_month_open')]);
         }
 
-        $prepared = DB::transaction(function () use ($actor, $month): array {
+        $prepared = DB::transaction(function () use ($actor, $month, $monthStart, $monthEnd): array {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('payroll'), 403);
             $contracts = DB::table('staff_contracts')->where('effective_month', '<=', $month)->orderByDesc('effective_month')->orderByDesc('id')->get()->unique('staff_id');
             $ids = [];
             foreach ($contracts as $contract) {
                 $staff = User::find($contract->staff_id);
-                if (! $staff?->staff() || $staff->status !== 'active' || $staff->role === 'super_admin') {
+                if (! $staff?->staff() || $staff->role === 'super_admin') {
+                    continue;
+                }
+                // Staff suspended or let go before this payroll was prepared still get the days they worked, marked for review.
+                $partMonth = $staff->status === 'active' ? null : app(PayrollActiveDays::class)->forInactive($staff, $monthStart, $monthEnd);
+                if ($staff->status !== 'active' && $partMonth === null) {
                     continue;
                 }
                 $existing = DB::table('payroll_entries')->where('staff_id', $staff->id)->where('period_month', $month)->whereIn('status', ['draft', 'approved', 'paid'])->first();
@@ -77,18 +82,25 @@ final class PayrollService
                 $target = DB::table('staff_targets')->where('staff_id', $staff->id)->where('period_month', $month)->first();
                 $volume = $target ? $this->territories->volume($staff->id, $month, json_decode($target->territories, true, flags: JSON_THROW_ON_ERROR)) : 0;
                 $bonus = $target && $volume >= Money::cents($target->target) ? Money::cents($target->bonus) : 0;
-                $gross = Money::cents($contract->base_salary) + Money::cents($contract->allowance) + $bonus;
+                $pay = Money::cents($contract->base_salary) + Money::cents($contract->allowance);
                 $deduction = Money::cents($contract->deduction);
+                if ($partMonth !== null) {
+                    $pay = PayrollActiveDays::share($pay, $partMonth['active_days'], $partMonth['days_in_month']);
+                    $deduction = PayrollActiveDays::share($deduction, $partMonth['active_days'], $partMonth['days_in_month']);
+                }
+                $gross = $pay + $bonus;
                 if ($gross <= $deduction) {
                     continue;
                 }
                 $id = (string) Str::uuid();
                 DB::table('payroll_entries')->insert(['id' => $id, 'staff_id' => $staff->id, 'contract_id' => $contract->id,
                     'period_month' => $month, 'snapshot' => json_encode(['contract' => (array) $contract, 'target' => $target,
-                        'qualifying_volume' => Money::decimal($volume), 'earned_bonus' => Money::decimal($bonus)], JSON_THROW_ON_ERROR),
+                        'qualifying_volume' => Money::decimal($volume), 'earned_bonus' => Money::decimal($bonus),
+                        ...($partMonth !== null ? ['part_month' => [...$partMonth, 'status' => $staff->status, 'needs_review' => true]] : [])], JSON_THROW_ON_ERROR),
                     'gross' => Money::decimal($gross), 'deduction' => Money::decimal($deduction), 'net' => Money::decimal($gross - $deduction),
                     'prepared_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
-                $this->event($actor, $id, 'prepared', __('portal.payroll_event_prepared'));
+                $this->event($actor, $id, 'prepared', $partMonth === null ? __('portal.payroll_event_prepared')
+                    : __('portal.payroll_event_prepared_part_month', ['days' => $partMonth['active_days'], 'month_days' => $partMonth['days_in_month']]));
                 $ids[] = $id;
             }
 

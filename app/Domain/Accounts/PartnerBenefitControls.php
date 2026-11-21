@@ -7,6 +7,7 @@ use App\Domain\Notifications\SmsText;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\RankLabel;
 use App\Support\ReasonFields;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -100,7 +101,7 @@ final class PartnerBenefitControls
         $summaryIn = function (string $language) use ($controls, $rank): string {
             $enabled = collect([
                 $controls['unconditional_salary'] ? __('portal.pbc_flag_salary', [], $language) : null,
-                $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => strtoupper($rank)], $language) : null,
+                $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => RankLabel::of($rank)], $language) : null,
                 $controls['unconditional_rank_incentive'] ? __('portal.pbc_flag_incentive', [], $language) : null,
             ])->filter()->implode(', ');
 

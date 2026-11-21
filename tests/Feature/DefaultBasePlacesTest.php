@@ -84,8 +84,9 @@ class DefaultBasePlacesTest extends TestCase
         $this->assertSame('no_match', $empty['204']);
         $this->assertSame('no_children', $empty['1008']);
         $this->assertSame('no_match', $empty['1009']);
-        // Two city corporations in one metro area: no way to tell which one is the headquarters.
-        $this->assertSame('no_match', $empty['1004']);
+        // A metropolitan area is not an upazila: it gets no base place and is not counted as missing.
+        $this->assertArrayNotHasKey('1004', $empty);
+        $this->assertArrayNotHasKey('1004', array_column($result['links'], 'base_code', 'code'));
         $this->assertArrayNotHasKey('100', $empty);
         // Each choice names the rule that matched, and the empty list names the candidates.
         $this->assertSame('division_same_name_district', $result['rules']['101']);
@@ -105,7 +106,7 @@ class DefaultBasePlacesTest extends TestCase
         $places = json_decode((string) file_get_contents(database_path('data/bangladesh-place-codes.json')), true, 512, JSON_THROW_ON_ERROR)['places'];
         $expected = array_count_values(array_map(
             fn (array $link): string => collect($places)->firstWhere('code', $link['code'])['level'],
-            (new DefaultBasePlaces)->derive($places)['links'],
+            (new DefaultBasePlaces(app(DefaultPlaceCatalog::class)->headquarters()))->derive($places)['links'],
         ));
         $this->assertSame($expected['upazila'], $summary['by_level']['upazila']['base_set']);
         $this->assertSame(8, $summary['by_level']['division']['base_set']);
@@ -128,10 +129,9 @@ class DefaultBasePlacesTest extends TestCase
         $this->assertContains('upazila_city_corporation_named_like_upazila', $rules);
         $this->assertContains('district_metro_area', $rules);
         $this->assertSame(8 + 64 + $summary['by_level']['upazila']['base_set'], count($summary['base_set_list']));
-        $this->assertNotSame([], collect($summary['base_empty'])->firstWhere('code', '1003')['candidates']);
-        $reasons = array_unique(array_column($summary['base_empty'], 'reason'));
-        sort($reasons);
-        $this->assertSame(['no_children', 'no_match', 'several_pourashavas'], $reasons);
+        // Every real upazila has a base place now (495 of 495); the low-confidence choices are marked in the headquarters file.
+        $this->assertSame(['real' => 495, 'with_base' => 495, 'without_base' => 0, 'reasons' => []], $summary['upazilas']);
+        $this->assertSame([], array_values(array_filter($summary['base_empty'], fn (array $e): bool => $e['level'] === 'upazila')));
 
         $again = app(DefaultPlaceCatalog::class)->load();
         $this->assertSame(0, $again['linked']);

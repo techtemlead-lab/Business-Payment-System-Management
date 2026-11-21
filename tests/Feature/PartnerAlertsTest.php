@@ -38,14 +38,15 @@ class PartnerAlertsTest extends TestCase
 
         Carbon::setTestNow('2026-11-24 12:00:00');
         $this->assertSame(['salary_at_risk'], $this->alertKinds($dealer));
-        $this->assertSame('10000.00', app(PartnerAlerts::class)->forUsers(collect([$dealer]))[$dealer->id]['alerts'][0]['values']['left']);
+        // A dealer with no seat and no appointed place has the rule's minimum (৳30,000) as his one target.
+        $this->assertSame('30000.00', app(PartnerAlerts::class)->forUsers(collect([$dealer]))[$dealer->id]['alerts'][0]['values']['left']);
     }
 
     public function test_waived_salary_and_a_met_target_are_not_at_risk(): void
     {
         Carbon::setTestNow('2026-11-24 12:00:00');
         $bought = User::factory()->dealer()->create();
-        $this->qualifyingPurchase($bought, '10000.00');
+        $this->qualifyingPurchase($bought, '30000.00');
 
         $this->assertSame([], $this->alertKinds($bought));
     }
@@ -57,9 +58,14 @@ class PartnerAlertsTest extends TestCase
         DealerRank::query()->create(['user_id' => $dealer->id, 'current_rank' => 'am', 'achieved_at' => now()->subYear()]);
         $this->qualifyingPurchase($dealer, '10000.00');
 
+        // One monthly target (৳30,000 here) gates both the salary and the royalty, so both are at risk below it.
         $kinds = $this->alertKinds($dealer);
         $this->assertContains('rank_keep_at_risk', $kinds);
-        $this->assertNotContains('salary_at_risk', $kinds);
+        $this->assertContains('salary_at_risk', $kinds);
+        $this->assertSame('20000.00', app(PartnerAlerts::class)->forUsers(collect([$dealer]))[$dealer->id]['alerts'][1]['values']['left']);
+
+        $this->qualifyingPurchase($dealer, '20000.00');
+        $this->assertSame([], $this->alertKinds($dealer));
     }
 
     public function test_rank_close_alert_appears_from_eighty_percent_of_the_mo_target(): void

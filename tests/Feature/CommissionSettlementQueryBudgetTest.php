@@ -19,7 +19,7 @@ use Tests\TestCase;
 
 /**
  * Settling a month must not run extra queries for every active dealer: each
- * dealer's division, the sub-dealer partners and the payees are loaded together.
+ * dealer's kind, the sub-dealer partners and the payees are loaded together. The salary is one nationwide fund, so\n * only the dealers who met their own monthly target (the two Rangpur district dealers) are paid.
  */
 class CommissionSettlementQueryBudgetTest extends TestCase
 {
@@ -63,9 +63,9 @@ class CommissionSettlementQueryBudgetTest extends TestCase
         $sub = User::factory()->create(['role' => 'sub_dealer']);
         $this->addOutsideDealers(1);
         $this->assertSame(3, User::query()->where('role', 'dealer')->where('status', 'active')->count());
-        $this->purchase($rangpurA, '10000.00', '20000.00');
-        $this->purchase($rangpurB, '10000.00', '20000.00');
-        $this->purchase($sub, '12000.00', '20000.00');
+        $this->purchase($rangpurA, '100000.00', '200000.00');
+        $this->purchase($rangpurB, '100000.00', '200000.00');
+        $this->purchase($sub, '40000.00', '66000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         [$september, $withThreeDealers] = $this->countQueries(fn (): array => app(CommissionService::class)->settleMonthlySalaryPool('2026-09'));
@@ -73,16 +73,16 @@ class CommissionSettlementQueryBudgetTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 2));
         $this->addOutsideDealers(6);
         $this->assertSame(9, User::query()->where('role', 'dealer')->where('status', 'active')->count());
-        $this->purchase($rangpurA, '10000.00', '20000.00');
-        $this->purchase($rangpurB, '10000.00', '20000.00');
-        $this->purchase($sub, '12000.00', '20000.00');
+        $this->purchase($rangpurA, '100000.00', '200000.00');
+        $this->purchase($rangpurB, '100000.00', '200000.00');
+        $this->purchase($sub, '40000.00', '66000.00');
         $this->travelTo(now()->setDate(2026, 11, 1));
 
         [$october, $withNineDealers] = $this->countQueries(fn (): array => app(CommissionService::class)->settleMonthlySalaryPool('2026-10'));
 
         $this->assertSame('settled', $september['status']);
         $paid = fn (array $result): array => collect($result['distributed'])->pluck('amount', 'user_id')->sortKeys()->all();
-        $this->assertSame([$rangpurA->id => '200.00', $rangpurB->id => '200.00', $sub->id => '360.00'], $paid($september));
+        $this->assertSame([$rangpurA->id => '2400.00', $rangpurB->id => '2400.00', $sub->id => '1200.00'], $paid($september));
         $this->assertSame($paid($september), $paid($october));
         $this->assertSame($september['total_to_company_profit'], $october['total_to_company_profit']);
         $this->assertSame($withThreeDealers, $withNineDealers, 'Settlement queries must not grow with the number of dealers.');
@@ -92,13 +92,15 @@ class CommissionSettlementQueryBudgetTest extends TestCase
     {
         $rangpurA = $this->assignedDealer($this->rangpurDistrict);
         $this->addOutsideDealers(2);
-        $this->purchase($rangpurA, '10000.00', '20000.00');
+        // ৳1,00,000 is a district dealer's monthly target, so he qualifies and takes the whole nationwide fund.
+        $this->purchase($rangpurA, '100000.00', '200000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
 
         [$smallPlan, $withThreeDealers] = $this->countQueries(fn (): array => app(CommissionSettlement::class)->salaryPlan('2026-09'));
         $this->addOutsideDealers(6);
         [$largePlan, $withNineDealers] = $this->countQueries(fn (): array => app(CommissionSettlement::class)->salaryPlan('2026-09'));
 
+        $this->assertCount(1, $smallPlan['dealers']);
         $this->assertSame($smallPlan['dealers'], $largePlan['dealers']);
         $this->assertSame($withThreeDealers, $withNineDealers, 'The salary preview queries must not grow with the number of dealers.');
     }

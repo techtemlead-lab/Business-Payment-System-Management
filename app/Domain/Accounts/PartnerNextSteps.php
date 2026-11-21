@@ -4,6 +4,8 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\DealerKinds;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\DashboardManagement;
@@ -58,7 +60,8 @@ final class PartnerNextSteps
         if (PartnerBenefitControls::waivesSalaryVolume($user)) {
             return ['kind' => 'salary_waived', 'values' => []];
         }
-        $target = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
+        $target = MonthlyTargets::dealerTarget($rules, app(DealerKinds::class)->of((int) $user->id));
         $volume = $this->qualification->monthlyVolume((int) $user->id, CommissionQualification::currentMonth());
         if ($volume >= $target) {
             return ['kind' => 'salary_met', 'values' => []];

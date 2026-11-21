@@ -358,17 +358,19 @@ class OrderPaymentMethodsTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/orders/'.$order->id)->assertOk()->assertInertia(fn (Assert $page) => $page->where('refund.to_account', '200.00'));
     }
 
-    public function test_a_part_refund_returns_only_that_part(): void
+    public function test_a_part_refund_is_refused_and_the_whole_payment_goes_back_to_the_account(): void
     {
         $dealer = $this->dealerWithBalance('500.00');
         $finance = User::factory()->staff('finance')->create();
         $this->order($dealer, $this->product(), 2)->assertSessionHasNoErrors();
         $order = Order::where('user_id', $dealer->id)->sole();
 
-        $this->refundWithSecondPerson($finance, $order, '150.00', 'Part of the goods are unavailable');
+        // No credit buying: cancelling the order gives back all of it, never a part.
+        $this->assertThrows(fn () => app(OrderRefund::class)->refund($finance, $order, '150.00', 'Part of the goods are unavailable'), ValidationException::class);
+        $this->refundWithSecondPerson($finance, $order, '200.00', 'Goods are unavailable');
 
-        $this->assertSame('450.00', $this->usable($dealer));
-        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '150.00', 'to_account' => '150.00']);
+        $this->assertSame('500.00', $this->usable($dealer));
+        $this->assertDatabaseHas('order_refunds', ['order_id' => $order->id, 'amount' => '200.00', 'to_account' => '200.00']);
         $this->assertBooksAgree();
     }
 

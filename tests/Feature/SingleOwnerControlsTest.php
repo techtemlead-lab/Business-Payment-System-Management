@@ -329,7 +329,7 @@ class SingleOwnerControlsTest extends TestCase
         $this->assertAudited('fund.spend_approved');
     }
 
-    public function test_recorder_can_cancel_their_own_unreviewed_spend_and_nobody_else_can(): void
+    public function test_recorder_can_cancel_their_own_unreviewed_spend_and_other_staff_cannot(): void
     {
         $this->openMoneyGate();
         $this->allocation('company_profit_fund', '500.00');
@@ -337,7 +337,8 @@ class SingleOwnerControlsTest extends TestCase
         $staff = User::factory()->enterOnly()->create();
         $id = $funds->request($staff, $this->spend('company_profit'), null);
 
-        $this->assertRefused(fn () => $funds->cancel($this->owner, $id, self::Reason), 'spend', __('self_approval.err_cancel_spend'));
+        // An owner may withdraw any spend still waiting (2026-11-21); other finance staff still may not.
+        $this->assertRefused(fn () => $funds->cancel(User::factory()->staff('finance')->create(), $id, self::Reason), 'spend', __('self_approval.err_cancel_spend'));
         $funds->cancel($staff, $id, self::Reason);
 
         $this->assertDatabaseHas('reserve_disbursements', ['id' => $id, 'status' => 'cancelled']);

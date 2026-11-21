@@ -10,7 +10,9 @@ use App\Domain\Orders\DeliveredMoney;
 use App\Domain\Orders\OrderLines;
 use App\Domain\Orders\OrderListFigures;
 use App\Domain\Orders\OrderListFilter;
+use App\Domain\Orders\OrderReturns;
 use App\Domain\Orders\OverdueDeliveries;
+use App\Domain\Orders\OwedItems;
 use App\Domain\Orders\ShipmentTracking;
 use App\Models\Order;
 use App\Support\Money;
@@ -127,6 +129,10 @@ final class OrdersSection implements WorkspaceSection
             if ($context->isStaff) {
                 $totals = $props['order_totals'];
                 $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $totals['orders'], 'capped' => false, 'sums' => $this->tableSums($totals)], ['buyer_role', 'branch_id']);
+                // Finished orders still holding paid money for the partner, under the other filters on screen.
+                $props['money_back_count'] = app(OrderListFilter::class)
+                    ->apply(clone $context->orders, $request->duplicate([...$request->except('status'), 'status' => OrderReturns::MoneyBackFilter]), $context->section, $context->isStaff)
+                    ->toBase()->reorder()->count();
             }
         }
         if ($context->section === 'deliveries') {
@@ -139,6 +145,8 @@ final class OrdersSection implements WorkspaceSection
                 $orderIds = (clone $context->orders)->toBase()->reorder()->select('orders.id');
                 $props['courier_board'] = app(CourierBoard::class)->for($request, clone $orderIds);
                 $props['delivery_view'] = $deliveryView;
+                // Goods owed to partners who paid in full: sent with their next order or refunded.
+                $props['owed_items'] = app(OwedItems::class)->open();
                 $props['parcel_stages'] = $this->parcelStages(clone $orderIds);
                 if ($deliveryView === 'send') {
                     $props['orders_table'] = $this->tableFacts($request, $sorts, $sort, $direction, ['count' => $props['orders']->total(), 'capped' => false, 'sums' => null], ['status', 'buyer_role', 'branch_id']);

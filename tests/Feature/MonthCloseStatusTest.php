@@ -45,17 +45,17 @@ class MonthCloseStatusTest extends TestCase
         return $order;
     }
 
-    public function test_an_older_month_waits_for_a_person_and_the_page_offers_to_close_it(): void
+    public function test_an_older_month_is_also_closed_automatically_and_the_page_still_lets_a_person_close_it(): void
     {
         $this->purchase(User::factory()->dealer()->create(['status' => 'active']));
-        // September is four months back in January: too old for the hourly job.
+        // September is four months back in January: every ended month is still closed by the automatic run.
         $this->travelTo(now()->setDate(2027, 1, 5)->setTime(10, 0));
         $owner = User::factory()->create(['role' => 'super_admin']);
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/settlements')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.settlement_state.close_status.waiting', fn ($waiting): bool => collect($waiting)
-                    ->contains(fn (array $row): bool => $row['month'] === '2026-09' && $row['kind'] === 'salary' && $row['automatic'] === false))
+                    ->contains(fn (array $row): bool => $row['month'] === '2026-09' && $row['kind'] === 'salary' && $row['automatic'] === true))
                 ->where('data.settlement_state.close_status.month_options.0.value', '2027-01'));
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/commissions/settle-salary', ['period_month' => '2026-09', 'request_key' => (string) Str::uuid()])

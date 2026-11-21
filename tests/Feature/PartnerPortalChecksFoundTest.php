@@ -40,11 +40,12 @@ class PartnerPortalChecksFoundTest extends TestCase
         $this->assertMatchesRegularExpression('/shownInTree\?\.has|shownInTree\.has/', $tree);
     }
 
-    public function test_partner_lists_show_at_most_six_columns(): void
+    public function test_partner_lists_keep_a_short_column_set(): void
     {
         $orders = $this->source('components/office/sections/Orders.tsx');
         $this->assertSame(1, preg_match('/const partnerColumns=\[(.*?)\n\s*\];/s', $orders, $partner), 'The partner order list has its own short column set.');
-        $this->assertLessThanOrEqual(6, preg_match_all("/\{key:'/", $partner[1]));
+        // The client asked for Branch, Items, MRP and Discount % in the partner list (2026-11-21): ten columns at most.
+        $this->assertLessThanOrEqual(10, preg_match_all("/\{key:'/", $partner[1]));
 
         $network = $this->source('components/NetworkTreeExplorer.tsx');
         $this->assertSame(1, preg_match('/\/\* Table View \*\/(.*?)data=\{filteredDealers\}/s', $network, $team));

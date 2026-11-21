@@ -9,14 +9,17 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
+use App\Domain\Finance\PayrollVoids;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
+use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\PdfPaper;
+use App\Support\RankLabel;
 use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
 use App\Support\TableWorkbook;
@@ -83,6 +86,15 @@ class FinanceOperationsController extends Controller
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('staff.payroll_review', 1000, 5)]);
         $payroll->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null));
+
+        return $this->done($request);
+    }
+
+    /** Undoes an approved salary that was not paid yet, with a reversing journal. */
+    public function payrollVoid(Request $request, string $id, PayrollVoids $voids): Response
+    {
+        $data = $request->validate(['reason' => 'required|string|min:5|max:1000']);
+        $voids->void($request->user(), $id, trim($data['reason']));
 
         return $this->done($request);
     }
@@ -509,7 +521,7 @@ class FinanceOperationsController extends Controller
             return __('portal.rpt_val_award', ['id' => $award[1]]);
         }
         if (preg_match('/^rank_(mo|am|sm|me)$/D', $value, $rank) === 1) {
-            return __('portal.rpt_val_rank_award', ['rank' => strtoupper($rank[1])]);
+            return __('portal.rpt_val_rank_award', ['rank' => RankLabel::of($rank[1])]);
         }
         foreach (['portal.status_', 'portal.rpt_val_', 'portal.settle_kind_', 'portal.report_cat_', 'portal.reward_program_', 'accounting.account_'] as $prefix) {
             $key = $prefix.$value;
@@ -519,7 +531,7 @@ class FinanceOperationsController extends Controller
             }
         }
 
-        return Str::headline($value);
+        return CommissionCodeLabel::fromCode($value);
     }
 
     /** Signed amount in cents; report rows (e.g. reversals) may legitimately be negative. */

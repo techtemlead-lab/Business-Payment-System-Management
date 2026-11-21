@@ -190,6 +190,7 @@ class PublicController extends Controller
     {
         return [
             ...$p->only(['id', 'name', 'sku', 'category', 'description', 'unit']),
+            'group' => ProductFacts::groupForVisitor($p),
             'price' => $p->mrp,
             'mrp' => $p->mrp,
             'stock_status' => $p->stockStatus(),

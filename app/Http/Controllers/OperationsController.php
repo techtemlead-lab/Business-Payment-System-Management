@@ -11,13 +11,17 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Finance\PrizeAdvances;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Finance\StaleHoldings;
 use App\Domain\Finance\VehiclePools;
 use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Finance\WithdrawalSecurityWait;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Payouts\PayoutLimits;
+use App\Domain\Payouts\WithdrawalMethods;
+use App\Domain\Payouts\WithdrawalWeek;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Product;
@@ -144,7 +148,7 @@ class OperationsController extends Controller
             $data['special'] = app(SpecialRateModel::class)->build($actor, $person);
         }
         if ($section === 'reserve-payouts') {
-            $tables['reserve_requests'] = DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id')->leftJoin('payout_receipts as pr', 'pr.reserve_disbursement_id', '=', 'r.id')
+            $tables['reserve_requests'] = DB::table('reserve_disbursements as r')->whereNotIn('r.program', [FundSpending::Program, PrizeAdvances::Program])->leftJoin('users as u', 'u.id', '=', 'r.user_id')->leftJoin('payout_receipts as pr', 'pr.reserve_disbursement_id', '=', 'r.id')
                 ->select(['r.id', 'r.program', 'u.name', 'r.user_id', 'r.payee_name', 'r.amount', 'r.status', 'r.created_by', 'r.approved_by', 'r.payment_reference', 'r.reason', 'pr.id as payout_receipt_id', 'pr.number as payout_receipt_number', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])->orderByDesc('r.id');
             $tables['reserve_clawbacks'] = DB::table('reserve_expense_clawbacks')->orderByDesc('id');
             $tables['clawback_recoveries'] = DB::table('reserve_recoveries')->select(['id', 'clawback_id', 'amount', 'payment_reference', 'paid_at', DB::raw('true AS has_receipt')])->orderByDesc('id');
@@ -176,12 +180,15 @@ class OperationsController extends Controller
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
             $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
             $data['startupMode'] = app(IntegrationSettings::class)->startupMode();
+            $data['staleHoldings'] = app(StaleHoldings::class)->report($actor);
             $tables['opening_reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at', 'fresh_start'])->orderByDesc('id');
         }
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
             $data['withdrawalSecurityWait'] = [...app(WithdrawalSecurityWait::class)->settings(), 'default' => WithdrawalSecurityWait::DefaultHours, 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['payoutLimits'] = [...app(PayoutLimits::class)->settings(), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
+            $data['withdrawalMethods'] = [...app(WithdrawalMethods::class)->settings(), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
+            $data['withdrawalWeek'] = [...app(WithdrawalWeek::class)->settings(), 'day_names' => array_map(fn (int $day): string => app(WithdrawalWeek::class)->dayName($day), array_combine(range(1, 7), range(1, 7))), 'can_edit' => $actor->owner() && $actor->canAct('finance', 'edit')];
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->role === 'super_admin'];
             $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->role === 'super_admin'];

@@ -17,6 +17,8 @@ return [
     'label_appointment' => 'Appointed as',
     'label_chamber' => 'Hospital / diagnostic centre / chamber name',
     'label_address' => 'Address',
+    'label_permanent_address' => 'Permanent address',
+    'label_business_area' => 'Business area',
     'label_mobile' => 'Mobile',
     'label_code_dealer' => 'Dealer code',
     'label_code_sub_dealer' => 'Sub-dealer code',

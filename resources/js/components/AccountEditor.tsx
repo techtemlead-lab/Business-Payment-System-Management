@@ -1,16 +1,35 @@
 import { useEffect, useState } from 'react';
-import { router, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+import { PRIZE_ADVANCES_PAGE } from './treasury/PrizeAdvances';
 import { Row, label, FormErrors } from './UI';
 import PartnerCommissionOverride from './PartnerCommissionOverride';
 import PartnerBenefitControls from './PartnerBenefitControls';
 import PartnerProfileLock from './PartnerProfileLock';
 import PartnerPrescriberControls from './PartnerPrescriberControls';
 import PartnerAccountDelete from './PartnerAccountDelete';
+import ClosedAccountBalanceMove from './ClosedAccountBalanceMove';
 import NidReview from './NidReview';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
+import PlacePickers, { loadPlaceList, placeLevels, usePlaceChain, type PlaceField, type PlaceLevel, type PlaceOption } from './PlacePickers';
+
+/** The Super Admin's way to pay this active dealer's or sub-dealer's bike or car prize in advance, in an emergency. */
+function PrizeAdvanceLink({ account }: { account: Row }) {
+    const translate = useT();
+    const { auth } = usePage<any>().props;
+    if (String(auth?.user?.role) !== 'super_admin' || !['dealer', 'sub_dealer'].includes(String(account.role)) || String(account.status) !== 'active') {
+        return null;
+    }
+
+    return <p><Link className="button small" href={`${PRIZE_ADVANCES_PAGE}?partner=${account.id}`}>{translate('prize_advances', 'give_button')}</Link></p>;
+}
+
+/** One list of the permanent address, in the editor's plain label style. */
+const EditorField: PlaceField = ({ text, error, hint, children }) => (
+    <label>{text}{children}{hint && !error && <small className="muted">{hint}</small>}{error && <span className="field-error">{error}</span>}</label>
+);
 
 /** Plain labels for the editable profile fields; the create form keys carry a required marker, so editing uses its own. */
 const profileFieldLabelKeys: Record<string, string> = { name_bn: 'acct_edit_name_bn', father_name: 'acct_edit_father_name', mother_name: 'acct_edit_mother_name', village: 'acct_village', post_office: 'acct_post_office', upazila: 'acct_upazila', union: 'acct_union' };
@@ -75,8 +94,31 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         directory_visible: account.directory_visible ? '1' : '0',
         status: account.status,
         profile: Object.fromEntries(profileFields.map(field => [field, account.profile?.[field] ?? (field === 'shop_name' ? (account.profile?.pharmacy ?? '') : '')])),
+        // A new permanent address, only when the office picks one; empty keeps the saved one.
+        permanent_place_id: '',
         reason: '',
     });
+    const [homeDivisions, setHomeDivisions] = useState<PlaceOption[]>([]);
+    const placeListFailed = translate('portal', 'acct_request_failed');
+    const home = usePlaceChain(homeDivisions, (level, parentId) => loadPlaceList(level, parentId, placeListFailed));
+    const [homeError, setHomeError] = useState('');
+    const homeNow = (['union', 'upazila', 'district', 'division'] as const).map(level => account.profile?.[`permanent_${level}`]).filter(Boolean).join(', ');
+    useEffect(() => {
+        if (!isPartner || !canEditDetails) {
+            return;
+        }
+        let cancelled = false;
+        loadPlaceList('division', '', placeListFailed)
+            .then((list) => { if (!cancelled) setHomeDivisions(list); })
+            .catch(() => { if (!cancelled) setHomeError(placeListFailed); });
+        return () => { cancelled = true; };
+    }, [isPartner, canEditDetails]);
+    const pickHome = (level: PlaceLevel, value: string) => {
+        const ids = home.choose(level, value);
+        setHomeError('');
+        form.clearErrors('permanent_place_id');
+        form.setData('permanent_place_id', ids.union || ids.upazila || ids.district || ids.division);
+    };
     const kyc = useForm({
         kind: 'nid_front',
         note: '',
@@ -117,13 +159,19 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     return <>
         {canEditDetails && <form className="action-form" onSubmit={event => {
             event.preventDefault();
+            // A new permanent address goes at least down to the upazila, as on the add-partner form.
+            if (home.ids.division && !home.ids.upazila) {
+                setHomeError(translate('portal', 'acct_val_home_place_level'));
+                return;
+            }
             form.transform((data) => {
                 const profile = { ...data.profile };
                 // One shop name for dealers and sub-dealers; the older pharmacy field just follows it.
                 if (isPartner) {
                     profile.pharmacy = profile.shop_name;
                 }
-                return { ...data, profile };
+                const { permanent_place_id: homePlaceId, ...rest } = data;
+                return isPartner && homePlaceId ? { ...rest, profile, permanent_place_id: homePlaceId } : { ...rest, profile };
             });
             form.patch(`/commands/accounts/${account.id}`, { onSuccess: onDone });
         }}>
@@ -158,6 +206,18 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} />
                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                     </label>
+                    <div className="full">
+                        <b>{translate('portal', 'acct_step_home')}</b>
+                        <p className="muted">{translate('portal', 'acct_home_now', { place: homeNow || translate('portal', 'acct_home_not_given') })} {translate('portal', 'acct_home_change_hint')}</p>
+                    </div>
+                    <PlacePickers
+                        chain={home}
+                        levels={placeLevels}
+                        onPick={pickHome}
+                        Field={EditorField}
+                        errors={{ upazila: homeError || form.errors.permanent_place_id }}
+                        hints={{ union: translate('portal', 'acct_home_union_hint') }}
+                    />
                 </> : <>
                     <label>{translate('portal', 'acct_division')}
                         <input value={form.data.division} onChange={event => form.setData('division', event.target.value)} />
@@ -181,7 +241,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {(account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
-            <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude']}/>
+            <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude', 'permanent_place_id']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
             {isPartner && <a className="button" href={`/exports/partner-registration-form/${account.id}`} title={translate('partner_form', 'download_hint')}>{translate('partner_form', 'download_form')}</a>}
         </form>}
@@ -288,6 +348,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         <PartnerBenefitControls account={account} />
         <PartnerProfileLock account={account} />
         <PartnerPrescriberControls account={account} />
+        <PrizeAdvanceLink account={account} />
+        <ClosedAccountBalanceMove account={account} />
         <PartnerAccountDelete account={account} onDone={onDone} />
     </>;
 }

@@ -20,6 +20,8 @@ return [
     'label_appointment' => 'দায়িত্ব',
     'label_chamber' => 'হাসপাতাল / ডায়াগনস্টিক / চেম্বারের নাম',
     'label_address' => 'ঠিকানা',
+    'label_permanent_address' => 'স্থায়ী ঠিকানা',
+    'label_business_area' => 'ব্যবসার এলাকা',
     'label_mobile' => 'মোবাইল',
     'label_code_dealer' => 'ডিলার কোড',
     'label_code_sub_dealer' => 'সাব-ডিলার কোড',

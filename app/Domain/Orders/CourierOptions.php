@@ -26,7 +26,7 @@ final class CourierOptions
         'ecourier' => 'https://ecourier.com.bd/tracking?tracking_no=:tracking',
     ];
 
-    /** @var list<array{key: string, label: string}>|null */
+    /** @var list<array{key: string, label: string, manual?: bool, tracking_url?: string, api_ready?: bool}>|null */
     private ?array $enabled = null;
 
     public function __construct(private readonly IntegrationSettings $settings) {}
@@ -34,7 +34,7 @@ final class CourierOptions
     /**
      * Couriers switched on by the owner, read once per request.
      *
-     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string}>
+     * @return list<array{key: string, label: string, manual?: bool, tracking_url?: string, api_ready?: bool}>
      */
     public function enabled(): array
     {
@@ -42,13 +42,28 @@ final class CourierOptions
     }
 
     /**
-     * What the order form offers: the switched-on couriers, then "the company decides".
+     * The couriers whose booking system is connected: switched on, not a manual courier, and
+     * every API detail saved. Only these can take a parcel by themselves.
+     *
+     * @return list<array{key: string, label: string, api_ready?: bool}>
+     */
+    public function apiConnected(): array
+    {
+        return array_values(array_filter($this->enabled(), fn (array $option): bool => ! ($option['manual'] ?? false) && ($option['api_ready'] ?? false)));
+    }
+
+    /**
+     * What the order form offers a dealer: the couriers with a connected booking system, then
+     * "the company decides". Manual couriers and half-set-up ones are not offered.
      *
      * @return list<array{key: string, label: string}>
      */
     public function choices(?string $locale = null): array
     {
-        return [...$this->enabled(), ['key' => self::CompanyDecides, 'label' => __('courier.company_decides', [], $locale)]];
+        return [
+            ...array_map(fn (array $option): array => ['key' => $option['key'], 'label' => $option['label']], $this->apiConnected()),
+            ['key' => self::CompanyDecides, 'label' => __('courier.company_decides', [], $locale)],
+        ];
     }
 
     /** @return list<string> */

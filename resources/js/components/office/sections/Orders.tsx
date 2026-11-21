@@ -4,13 +4,18 @@ import {ArrowUpRight,Download} from 'lucide-react';
 import {OfficeListTable,SavedFilterMenu} from '../../OfficeListTools';
 import {Row,Pagination,Badge,money,number,date,label} from '../../UI';
 import {useT} from '../../../shared/i18n/t';
+import {orderDiscountPercent,orderMrpTotal} from '../../orderLineDiscount';
 import {AgingPill,Filter,OrderSentCell,PartnerTypeCell,StatusTabs,SummaryFigures,countedTotalLabel,deliveredFooter,notYetSendable,orderDue,orderItemCount,orderSentCount,orderStatuses,ordersExportHref,pageTotalLabel,usePortalSection,type PortalSectionProps} from '../portalShared';
 export function OrderTable({page,empty,emptyBody,tools=true,searchable=true,report=false,overdue=false,listKey}:{page:Row,empty?:string,emptyBody?:string,tools?:boolean,searchable?:boolean,report?:boolean,overdue?:boolean,listKey?:string}){const translate=useT();const {portalBase:base,portal,auth}=usePage<any>().props;const staff=portal==='manage'||portal==='sadmin'||auth?.user?.workspace_mode==='staff';const [opened,setOpened]=useState<Row|null>(null);
  const statusCell=(r:Row)=><><Badge status={r.came_back?'returned':r.status}/>{['rejected','cancelled'].includes(r.status)&&r.decision_reason&&<small className="cell-sub" data-testid="order-closed-reason">{r.decision_reason}</small>}</>;
  /** A partner's list stays short; the row opens the side panel with the rest. */
  const partnerColumns=[
   {key:'number',title:translate('portal','col_order'),render:(r:Row)=><><Link className="record-link" href={`${base}/orders/${r.id}`} onClick={(event)=>event.stopPropagation()}>{r.number}</Link><small className="cell-sub">{date(r.created_at)}</small></>},
+  {key:'branch',title:translate('portal','col_branch'),render:(r:Row)=>r.fulfillment_branch?.name||'—'},
+  {key:'lines',title:translate('portal','col_items'),align:'right' as const,sortValue:orderItemCount,render:(r:Row)=>number(orderItemCount(r))},
   {key:'delivered',title:translate('portal','col_delivered'),align:'right' as const,sortValue:(r:Row)=>orderItemCount(r)?orderSentCount(r)/orderItemCount(r):0,render:(r:Row)=>notYetSendable.includes(r.status)?'—':<OrderSentCell row={r}/>},
+  {key:'mrp',title:translate('office_orders','col_mrp'),money:true,sortValue:(r:Row)=>orderMrpTotal(r.lines??[]),render:(r:Row)=>orderMrpTotal(r.lines??[])>0?money(orderMrpTotal(r.lines??[])):'—'},
+  {key:'discount_pct',title:translate('portal','col_discount_pct'),align:'right' as const,sortValue:(r:Row)=>orderDiscountPercent(r.lines??[])??0,render:(r:Row)=>{const percent=orderDiscountPercent(r.lines??[]);return percent===null?'—':`${number(percent)}%`;}},
   {key:'total',title:translate('portal','col_order_value'),money:true,footer:report?deliveredFooter('delivered_value'):undefined,render:(r:Row)=><><b>{money(r.total)}</b><span className="orders-status-on-phone is-in-list"><Badge status={r.came_back?'returned':r.status}/></span></>},
   {key:'paid',title:translate('portal','col_paid'),money:true,footer:report?deliveredFooter('delivered_paid'):undefined,render:(r:Row)=>money(r.paid)},
   {key:'due',title:translate('portal','col_due'),money:true,total:report,sortValue:orderDue,render:(r:Row)=>money(orderDue(r))},

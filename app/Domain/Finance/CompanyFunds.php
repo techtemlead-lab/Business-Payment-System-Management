@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Geography\ManagementReferral;
 use App\Models\Prescription;
 use App\Support\Money;
@@ -117,7 +118,10 @@ final class CompanyFunds
             'COALESCE(SUM(manufacturer_share), 0) AS manufacturer, COALESCE(SUM(GREATEST(clinic_fund, 0)), 0) AS clinic_in, COALESCE(SUM(GREATEST(-clinic_fund, 0)), 0) AS clinic_below_cost',
         )->first();
         $totals['company_share']['money_in'] = self::cents($batches->company_share) + self::cents($clinic->manufacturer);
-        $totals['benefits']['money_in'] = self::cents($batches->benefits);
+        // The Commission extra fund also takes the paisa left over by the month close's equal splits (own rows).
+        $totals['benefits']['money_in'] = self::cents($batches->benefits) + self::cents(DB::table('commission_allocations')
+            ->where('category', RetainedFundLedger::BenefitsCategory)->where('status', '!=', 'reversed')
+            ->where('metadata->source', CommissionSettlement::SplitRemainder)->sum('amount'));
         $totals['clinic']['money_in'] = self::cents($clinic->clinic_in);
         $totals['clinic']['money_out'] = self::cents($clinic->clinic_below_cost);
 
@@ -131,6 +135,12 @@ final class CompanyFunds
                 $totals[$spend->fund_key]['pending'] += self::cents($spend->total);
             } elseif (in_array($spend->fund_key, self::LedgerFunds, true)) {
                 $totals[$spend->fund_key]['money_out'] += self::cents($spend->total);
+            }
+        }
+        // A paid spend whose money came back stays paid; its correction gives the amount back.
+        foreach (FundSpendReversals::reversedByFund() as $fund => $reversed) {
+            if (in_array($fund, self::LedgerFunds, true)) {
+                $totals[$fund]['money_out'] -= $reversed;
             }
         }
 

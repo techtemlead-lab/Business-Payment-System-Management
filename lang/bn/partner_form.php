@@ -9,7 +9,8 @@ return [
 
     'section_account' => 'অ্যাকাউন্ট',
     'section_personal' => 'ব্যক্তিগত তথ্য',
-    'section_address' => 'ঠিকানা',
+    'section_permanent_address' => 'স্থায়ী ঠিকানা',
+    'section_business_area' => 'ব্যবসার এলাকা',
     'section_business' => 'ব্যবসা',
 
     'f_role' => 'পার্টনারের ধরন',
@@ -31,7 +32,7 @@ return [
     'f_district' => 'জেলা',
     'f_upazila' => 'উপজেলা',
     'f_union' => 'ইউনিয়ন',
-    'f_village' => 'গ্রাম / সড়ক',
+    'f_village' => 'গ্রাম / সড়ক / বাড়ি',
     'f_post_office' => 'ডাকঘর',
     'f_place_code' => 'এলাকা কোড',
     'f_shop' => 'ফার্মেসি / দোকানের নাম',

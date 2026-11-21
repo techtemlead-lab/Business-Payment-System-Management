@@ -12,8 +12,10 @@ return [
     'type_sub_dealer' => 'Sub-dealer',
 
     'sec_identity' => 'Who this is',
-    'sec_contact' => 'Contact and address',
-    'sec_place' => 'Place codes',
+    'sec_contact' => 'Contact',
+    'sec_home' => 'Permanent address',
+    'home_missing' => 'The division, district and upazila of the permanent address are not given yet.',
+    'sec_place' => 'Business area and codes',
     'sec_kyc' => 'Identity papers',
     'sec_network' => 'Team and rank',
     'sec_money' => 'Money and payouts',
