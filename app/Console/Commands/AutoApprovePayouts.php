@@ -77,6 +77,7 @@ class AutoApprovePayouts extends Command
         $sweeps = app(UnownedShareSweeps::class);
         $summary['held_for_active_partners'] = $this->attempt(fn () => 'released '.$sweeps->releaseHeldForActivePartners()['released_count']);
         $summary['closed_account_holds'] = $this->attempt(fn () => $sweeps->closedAccountHoldsToCompanyProfit()['status']);
+        $summary['suspended_holds'] = $this->attempt(fn () => $sweeps->suspendedHoldsToCompanyProfit()['status']);
 
         // Month close for the sub-dealer additional-rank fund (last month, plus one for a missed run).
         $current = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth());

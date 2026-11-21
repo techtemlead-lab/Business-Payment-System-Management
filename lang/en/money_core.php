@@ -134,4 +134,9 @@ return [
     'cb_list_line' => ':count closed accounts still hold ৳:total. Open an account to move its money to the company.',
     'cb_list_more' => 'The :shown biggest are shown here.',
     'cb_closed_on' => 'Closed on',
+
+    // Commission held for a suspended partner waits only the owner's limit in months (2026-11-21).
+    'reason_suspended_hold_expired' => 'Commission held for a suspended partner waited longer than the owner\'s limit, so it went to company profit.',
+    'notice_suspended_hold_title' => 'Held commission went to the company',
+    'notice_suspended_hold_body' => 'Your account was not active for more than :months months, so ৳:amount of commission held for you went to the company.',
 ];

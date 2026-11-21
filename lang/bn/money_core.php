@@ -134,4 +134,9 @@ return [
     'cb_list_line' => ':countটি বন্ধ অ্যাকাউন্টে এখনো ৳:total আছে। অ্যাকাউন্ট খুলে টাকা কোম্পানিতে নিতে পারেন।',
     'cb_list_more' => 'সবচেয়ে বড় :shownটি এখানে দেখানো হলো।',
     'cb_closed_on' => 'বন্ধ হয়েছে',
+
+    // Commission held for a suspended partner waits only the owner's limit in months (2026-11-21).
+    'reason_suspended_hold_expired' => 'স্থগিত পার্টনারের আটকে থাকা কমিশন মালিকের ঠিক করা সময়ের বেশি পড়ে ছিল, তাই কোম্পানির লাভে গেছে।',
+    'notice_suspended_hold_title' => 'আটকে থাকা কমিশন কোম্পানিতে গেছে',
+    'notice_suspended_hold_body' => 'আপনার অ্যাকাউন্ট :months মাসের বেশি চালু ছিল না, তাই আপনার জন্য আটকে থাকা ৳:amount কমিশন কোম্পানিতে গেছে।',
 ];
