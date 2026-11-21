@@ -238,7 +238,7 @@ class EnforceStaffActions
             'CommissionController' => [['finance'], $method === 'updatePolicy' ? 'edit' : 'approve'],
             'FinancialPreviewController' => [['finance'], 'view'],
             'CommissionPageController' => [['finance'], $method === 'split' ? 'view' : 'create'],
-            'WithdrawalController' => [['finance'], $method === 'limits' ? 'edit' : 'approve'],
+            'WithdrawalController' => [['finance'], in_array($method, ['limits', 'methods', 'week'], true) ? 'edit' : 'approve'],
             'InventoryController' => [['inventory'], 'create'],
             'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {

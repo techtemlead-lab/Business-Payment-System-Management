@@ -10,6 +10,7 @@ use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Domain\Payouts\PayoutLimits;
 use App\Domain\Payouts\PayoutReceipts;
+use App\Domain\Payouts\WithdrawalMethods;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
@@ -36,13 +37,17 @@ class WithdrawalController extends Controller
     {
         abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
         CommissionWallet::requireActive();
-        // V3: a partner with saved payout accounts picks one; its channel and number are read from the saved record, never typed.
+        // "Office withdrawal" (cash at the office) needs no account. Otherwise, V3: a partner with saved payout accounts
+        // picks one; its channel and number are read from the saved record, never typed.
+        $office = $r->input('channel') === WithdrawalMethods::Office;
         $saved = app(PartnerPayoutAccounts::class);
-        $hasSaved = $saved->listFor($r->user()) !== [];
+        $hasSaved = ! $office && $saved->listFor($r->user()) !== [];
         $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'payout_account_id' => [$hasSaved ? 'required' : 'nullable', 'integer'],
-            'channel' => [$hasSaved ? 'nullable' : 'required', 'in:'.implode(',', PaymentAccounts::channels())],
-            'destination' => [$hasSaved ? 'nullable' : 'required', 'string', 'min:6', 'max:200'], 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
-        if ($hasSaved) {
+            'channel' => [$hasSaved ? 'nullable' : 'required', 'in:'.implode(',', WithdrawalMethods::all())],
+            'destination' => [$hasSaved || $office ? 'nullable' : 'required', 'string', 'min:6', 'max:200'], 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
+        if ($office) {
+            $data['destination'] = WithdrawalMethods::OfficeDestination;
+        } elseif ($hasSaved) {
             $data = [...$data, ...$saved->asWithdrawal($r->user(), (int) $data['payout_account_id'])];
         }
         ['id' => $id, 'created' => $created] = $service->submit($r->user(), $data);
@@ -54,7 +59,7 @@ class WithdrawalController extends Controller
                 'withdrawal.requested',
                 SmsText::make('sms.withdrawal_requested', [
                     'amount' => $data['amount'],
-                    'channel' => $data['channel'],
+                    'channel' => $this->smsChannel((string) $data['channel']),
                 ]),
             );
         }
@@ -70,12 +75,13 @@ class WithdrawalController extends Controller
         $w = DB::table('withdrawals')->where('id', $id)->first();
         $finance = $r->user()->allows('finance');
         abort_unless($w && ($w->user_id === $r->user()->id || $finance), 404);
-        $destination = decrypt($w->destination);
+        // An office withdrawal has no account number: the partner takes the cash at the office.
+        $destination = $w->channel === WithdrawalMethods::Office ? (string) __('office_withdrawal.destination_office') : decrypt($w->destination);
         if ($finance) {
             Audit::record($r->user()->id, 'withdrawal.destination_viewed', $id);
         }
 
-        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), ...$this->timing($w)],
+        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => $w->channel === WithdrawalMethods::Office ? $destination : str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), ...$this->timing($w)],
             'paymentAccounts' => $finance ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
             'facts' => $finance && in_array($w->status, ['requested', 'approved'], true) ? $service->reviewFacts($r->user(), $id) : null,
@@ -180,6 +186,20 @@ class WithdrawalController extends Controller
         return $r->expectsJson() ? response()->json(['data' => $limits->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
     }
 
+    /** Owners only: which ways of taking money out partners may choose (office cash, bKash, Nagad, Rocket, bank). */
+    public function methods(Request $r, WithdrawalMethods $methods): JsonResponse|RedirectResponse
+    {
+        $d = $r->validate([
+            'enabled' => 'required|array',
+            ...array_fill_keys(array_map(fn (string $method): string => 'enabled.'.$method, WithdrawalMethods::all()), 'sometimes|boolean'),
+            'version' => 'required|integer|min:0',
+            'reason' => ReasonFields::rule('money.withdrawal_minimum', 1000, 5),
+        ]);
+        $methods->save($r->user(), $d['enabled'], (int) $d['version'], ReasonFields::text($d['reason'] ?? null));
+
+        return $r->expectsJson() ? response()->json(['data' => $methods->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
+    }
+
     /**
      * How long the request has waited, who pays it and by when (MA-06).
      *
@@ -225,9 +245,15 @@ class WithdrawalController extends Controller
             'withdrawal.'.$event,
             SmsText::make($template, [
                 'amount' => $withdrawal->amount,
-                'channel' => $withdrawal->channel,
+                'channel' => $this->smsChannel((string) $withdrawal->channel),
             ]),
         );
+    }
+
+    /** The way of payment inside an SMS: "অফিস" for an office withdrawal, the service name (bKash, Bank…) otherwise. */
+    private function smsChannel(string $channel): string
+    {
+        return $channel === WithdrawalMethods::Office ? SmsText::label('office_withdrawal.sms_channel_office', $channel) : $channel;
     }
 
     public function receipt(Request $r, string $id): StreamedResponse

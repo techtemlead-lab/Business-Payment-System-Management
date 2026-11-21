@@ -28,6 +28,12 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
     const requestKey = useRef(randomUuid());
 
     const saved = withdraw.saved_accounts ?? [];
+    // Older pages without the list keep every way; the server refuses a way that is switched off.
+    const methods = withdraw.methods ?? ['Office', 'Bank', 'bKash', 'Nagad', 'Rocket'];
+    const officeOn = methods.includes('Office');
+    const onlineChannels = methods.filter((method) => method !== 'Office');
+    const [way, setWay] = useState<'office' | 'online'>(officeOn ? 'office' : 'online');
+    const takeLabel = onlineChannels.length === 0 ? translate('office_withdrawal', 'take_money_office') : officeOn ? translate('office_withdrawal', 'take_money_any') : translate('my_money', 'take_money');
     const usable = Number(available);
     const budgetAmount = Number(plainDigits(budget));
     const budgetIsFine = Number.isFinite(budgetAmount) && budgetAmount > 0 && budgetAmount <= usable;
@@ -51,7 +57,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
 
     const titles: Record<Step, string> = {
         choose: translate('my_money', 'withdraw'),
-        take: translate('my_money', 'take_money'),
+        take: takeLabel,
         order: translate('my_money', 'order_with_money'),
     };
 
@@ -64,7 +70,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                     <button type="button" className="mm-choice" disabled={takeRefusal !== null} onClick={() => setStep('take')}>
                         <Landmark size={22} aria-hidden="true" />
                         <span>
-                            <b>{translate('my_money', 'take_money')}</b>
+                            <b>{takeLabel}</b>
                             {takeRefusal && <small>{takeRefusal}</small>}
                         </span>
                     </button>
@@ -78,8 +84,37 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                 </div>
             )}
 
+            {/* Only the ways the owner switched on; "Office withdrawal" (cash at the office) is chosen first. */}
+            {step === 'take' && officeOn && onlineChannels.length > 0 && (
+                <fieldset className="mm-methods">
+                    <legend>{translate('office_withdrawal', 'choose_method')}</legend>
+                    <label className="hub-choice">
+                        <input type="radio" name="wd-method" checked={way === 'office'} onChange={() => setWay('office')} />
+                        <span><b>{translate('office_withdrawal', 'method_office')}</b> <small>{translate('office_withdrawal', 'method_office_hint')}</small></span>
+                    </label>
+                    <label className="hub-choice">
+                        <input type="radio" name="wd-method" checked={way === 'online'} onChange={() => setWay('online')} />
+                        <span><b>{translate('office_withdrawal', 'other_methods')}</b> <small>{onlineChannels.map((channel) => translate('portal', `pay_channel_${channel.toLowerCase()}`)).join(', ')}</small></span>
+                    </label>
+                </fieldset>
+            )}
+
+            {step === 'take' && way === 'office' && (
+                <>
+                    <p className="muted">{translate('office_withdrawal', 'method_office')} · {translate('office_withdrawal', 'method_office_hint')}</p>
+                    <ActionForm
+                        action="/commands/withdrawals"
+                        defaults={{ idempotency_key: requestKey.current, channel: 'Office' }}
+                        submit={translate('portal', 'request_withdrawal')}
+                        fields={[
+                            { name: 'amount', type: 'number', label: translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) }), required: true },
+                        ]}
+                    />
+                </>
+            )}
+
             {/* V3: with saved accounts the partner picks one; its channel and number are read from the saved record. */}
-            {step === 'take' && saved.length > 0 && (
+            {step === 'take' && way === 'online' && saved.length > 0 && (
                 <>
                     <ActionForm
                         action="/commands/withdrawals"
@@ -94,7 +129,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                 </>
             )}
 
-            {step === 'take' && saved.length === 0 && (
+            {step === 'take' && way === 'online' && saved.length === 0 && (
                 <>
                 <p className="muted">{translate('leftovers_partner', 'pa_none_withdraw')} <Link className="text-link" href={`${base}/profile`}>{translate('leftovers_partner', 'pa_manage_link')}</Link></p>
                 <ActionForm
@@ -104,7 +139,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                     fields={[
                         { name: 'amount', type: 'number', label: translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) }), required: true },
                         // Each method shows its own most-per-withdrawal, so nobody asks bKash for ৳9 crore (MA-08).
-                        { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: ['Bank', 'bKash', 'Nagad', 'Rocket'].map((channel) => {
+                        { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: onlineChannels.map((channel) => {
                             const limit = withdraw.channel_limits?.[channel];
                             const name = translate('portal', `pay_channel_${channel.toLowerCase()}`);
                             return { value: channel, label: limit ? `${name} · ${translate('payouts', 'withdraw_limit_hint', { limit: money(limit) })}` : name };

@@ -51,6 +51,8 @@
         <env name="MADINA_SMS_DRIVER" value="array" force="true"/>
         <!-- Older order tests place an order first and pay later. FullPaymentWhenOrderingTest switches the owner setting on itself. -->
         <env name="MADINA_FULL_PAYMENT_WHEN_ORDERING" value="false" force="true"/>
+        <!-- Older withdrawal tests ask for bKash or bank money. Real installs start with only "Office withdrawal" on; WithdrawalMethodsTest checks that. -->
+        <env name="MADINA_WITHDRAWAL_METHODS" value="Office,Bank,bKash,Nagad,Rocket" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

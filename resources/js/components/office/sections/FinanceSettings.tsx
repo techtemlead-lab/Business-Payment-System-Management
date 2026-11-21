@@ -10,7 +10,7 @@ import SettingsForm, { settingsBack, type SettingsField } from './SettingsForm';
 const root = '/commands/operations';
 
 /** Owner and finance money rules: one column, one thin line between the forms, each with its own reason and Save. */
-export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering, autoReleaseMatured, payoutLimits }: Row) {
+export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering, autoReleaseMatured, payoutLimits, withdrawalMethods }: Row) {
     const translate = useT();
     const { auth, financeActive, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -57,6 +57,14 @@ export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityW
                     ownerOnly={translate('portal', 'kyc_wd_owner_only')}
                     place={'money.kyc_before_withdrawal'}
                 />}
+                {withdrawalMethods && (
+                    <section className="set-block" data-tour="withdrawal-methods">
+                        <h2>{translate('office_withdrawal', 'methods_title')}</h2>
+                        <p className="set-line">{translate('office_withdrawal', 'methods_body')}</p>
+                        <p className="set-line">{translate('office_withdrawal', 'methods_online_note')}</p>
+                        <WithdrawalMethodsForm setting={withdrawalMethods} />
+                    </section>
+                )}
                 {withdrawalSecurityWait && (
                     <section className="set-block" data-tour="withdrawal-security-wait">
                         <h2>{translate('withdrawal_wait', 'wait_title')}</h2>
@@ -202,6 +210,31 @@ function PayoutLimitsForm({ setting }: { setting: Row }) {
             {reason.shown && <label>{reason.label(translate('portal', 'ops_fld_reason'))}<textarea rows={2} required={reason.required} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} /></label>}
             {Object.values(form.errors).map((error) => <span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
             <button className="button dark set-save" disabled={form.processing}>{form.processing ? translate('portal', 'saving') : translate('payouts', 'limits_save')}</button>
+        </form>
+    );
+}
+
+/** One on/off switch per way of taking money out; only the owner changes them, everyone else reads where they stand. */
+function WithdrawalMethodsForm({ setting }: { setting: Row }) {
+    const translate = useT();
+    const methods = Object.keys(setting.enabled ?? {});
+    const initial = () => ({ enabled: { ...(setting.enabled ?? {}) }, version: setting.version ?? 0, reason: '' });
+    const form = useForm<Row>(initial());
+    const canEdit = Boolean(setting.can_edit);
+    // After a save the page brings the new switches and version; keep the form in step with them.
+    useEffect(() => { form.setData(initial()); }, [setting.version]);
+    const name = (method: string) => method === 'Office' ? translate('office_withdrawal', 'method_office') : translate('portal', `pay_channel_${method.toLowerCase()}`);
+
+    return (
+        <form className="auto-approval-panel" aria-label={translate('office_withdrawal', 'methods_save')} onSubmit={(event) => { event.preventDefault(); form.post(`${root}/settings/withdrawal-methods`, { preserveScroll: true, onSuccess: () => form.setData('reason', '') }); }}>
+            {methods.map((method) => (
+                <label key={method} className="aa-switch">
+                    <input type="checkbox" role="switch" disabled={!canEdit} checked={Boolean(form.data.enabled[method])} onChange={(event) => form.setData('enabled', { ...form.data.enabled, [method]: event.target.checked })} />
+                    <span><b>{name(method)}</b><small>{form.data.enabled[method] ? translate('office_withdrawal', 'method_on') : translate('office_withdrawal', 'method_off')}{method === 'Office' ? ` · ${translate('office_withdrawal', 'method_office_hint')}` : ''}</small></span>
+                </label>
+            ))}
+            {!canEdit && <p className="aa-note">{translate('office_withdrawal', 'methods_owner_only')}</p>}
+            {canEdit && <ReasonAndSave place={'money.withdrawal_minimum'} value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}
         </form>
     );
 }

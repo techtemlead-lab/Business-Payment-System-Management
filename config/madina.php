@@ -123,6 +123,9 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+    // Owner, 2026-11-21: withdrawals are paid as cash at the office for now. These are only the starting values;
+    // the owner switches each method on or off in Finance settings (WithdrawalMethods).
+    'withdrawal_methods_default' => array_values(array_filter(array_map('trim', explode(',', (string) env('MADINA_WITHDRAWAL_METHODS', 'Office'))))),
 
     // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.
     'agreement_required_default' => (bool) env('MADINA_AGREEMENT_REQUIRED_DEFAULT', true),

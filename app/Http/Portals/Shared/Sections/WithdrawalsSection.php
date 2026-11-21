@@ -8,6 +8,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Domain\Payouts\PayoutLimits;
+use App\Domain\Payouts\WithdrawalMethods;
 use App\Support\Money;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
@@ -48,7 +49,7 @@ final class WithdrawalsSection implements WorkspaceSection
         $followUp = self::followUpSql($dueDays);
         $otherFilters = [
             new MoneyTableFilter('follow_up', (string) __('payouts.filter_follow_up'), $followUp, array_map(fn (string $state): array => ['value' => $state, 'label' => (string) __('payouts.follow_up_'.$state)], ['overdue', 'on_hold', 'receipt_due'])),
-            new MoneyTableFilter('channel', (string) __('portal.pay_col_method'), 'withdrawals.channel', array_map(fn (string $channel): array => ['value' => $channel, 'label' => (string) __('portal.pay_channel_'.strtolower($channel))], PaymentAccounts::channels())),
+            new MoneyTableFilter('channel', (string) __('portal.pay_col_method'), 'withdrawals.channel', array_map(fn (string $channel): array => ['value' => $channel, 'label' => (string) __('portal.pay_channel_'.strtolower($channel))], WithdrawalMethods::all())),
             new MoneyTableFilter('buyer_role', (string) __('treasury.filter_buyer_role'), 'users.role', [
                 ['value' => 'dealer', 'label' => (string) __('portal.acct_role_dealer')],
                 ['value' => 'sub_dealer', 'label' => (string) __('portal.acct_role_sub_dealer')],
@@ -135,7 +136,7 @@ final class WithdrawalsSection implements WorkspaceSection
             'withheld_amount' => $row->withheld_amount,
             'net_amount' => $row->net_amount,
             'channel' => $row->channel,
-            'destination_masked' => $this->maskedDestination(is_string($row->destination) ? $row->destination : null),
+            'destination_masked' => $row->channel === WithdrawalMethods::Office ? (string) __('office_withdrawal.destination_office') : $this->maskedDestination(is_string($row->destination) ? $row->destination : null),
             'status' => $row->status,
             'reason' => $row->reason,
             'payment_reference' => $row->payment_reference,
