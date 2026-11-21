@@ -1382,6 +1382,7 @@ return [
     'col_dispatched' => 'পাঠানো',
     'col_remaining' => 'বাকি',
     'unit_price' => 'প্রতি পিসের দাম',
+    'col_discount_pct' => 'ছাড় %',
     'col_total' => 'মোট',
     'payment_claims' => 'পাঠানো পেমেন্ট',
     'review_note' => 'যাচাই নোট',

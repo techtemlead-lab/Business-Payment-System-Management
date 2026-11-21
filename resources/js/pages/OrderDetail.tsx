@@ -15,6 +15,7 @@ import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import OrderMoneyBreakdown, { type OrderMoneyBreakdownData } from '../components/OrderMoneyBreakdown';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
 import { returnedByLine } from '../components/office/portalShared';
+import { orderLineDiscountPercent } from '../components/orderLineDiscount';
 
 /** Units of a line still to send: not sent and not closed by a cancel. */
 const unsentOf = (line: Row) => Math.max(0, Number(line.quantity) - Number(line.dispatched) - Number(line.closed ?? 0));
@@ -214,7 +215,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ...(anyGivenBack ? [{ key: 'given_back', title: translate('orders_stock', 'kind_return'), align: 'right' as const, render: (line: Row) => number(line.returned ?? 0) }] : []),
                 ...(anyClosed ? [{ key: 'closed', title: translate('orders_stock', 'kind_cancel'), align: 'right' as const, render: (line: Row) => number(line.closed ?? 0) }] : []),
                 { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(unsentOf(line)) },
-                { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) }, { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
+                { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) },
+                { key: 'discount_pct', title: translate('portal', 'col_discount_pct'), align: 'right', render: line => {
+                    const percent = orderLineDiscountPercent(line);
+                    return percent === null ? '—' : `${number(percent)}%`;
+                } },
+                { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
             ]} />
             {itemsLeft && open && <p className="muted">
                 <b>{translate('portal', 'supply_eta_label')}:</b> {order.supply_eta ? date(order.supply_eta) : translate('portal', 'supply_eta_unknown')}
