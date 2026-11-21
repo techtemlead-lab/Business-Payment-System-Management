@@ -432,7 +432,7 @@ final class DefaultPlaceCatalog
 
         // The honest count: only real upazilas (not the metropolitan areas typed as upazila in the list).
         foreach ($payload['places'] as $place) {
-            if ($place['level'] !== PlaceCode::LevelUpazila || ($place['kind'] ?? 'upazila') !== 'upazila') {
+            if ($place['level'] !== PlaceCode::LevelUpazila || $place['kind'] !== 'upazila') {
                 continue;
             }
             $placeId = $idBySource[$place['code']] ?? null;
