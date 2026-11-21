@@ -28,6 +28,9 @@ final class DefaultBasePlaces
 
     public const ReasonNoChildren = 'no_children';
 
+    /** Every union under the upazila is listed twice or under the wrong upazila (PlaceListChecks). */
+    public const ReasonUnionsNeedReview = 'unions_need_review';
+
     /** Chosen, but worth a look: the only child, or one of several places carrying the upazila's name. */
     public const NoteOnlyChild = 'only_child';
 
@@ -66,6 +69,8 @@ final class DefaultBasePlaces
             }
         }
 
+        $checks = new PlaceListChecks;
+        $excluded = $checks->excludedUnionCodes($checks->review($places));
         $links = [];
         $empty = [];
         $rules = [];
@@ -73,12 +78,28 @@ final class DefaultBasePlaces
             if (! in_array($place['level'], [PlaceCode::LevelDivision, PlaceCode::LevelDistrict, PlaceCode::LevelUpazila], true)) {
                 continue;
             }
+            // Metropolitan areas are typed upazila in the list but are not upazilas: no base place for them.
+            if ($place['level'] === PlaceCode::LevelUpazila && ($place['kind'] ?? 'upazila') !== 'upazila') {
+                continue;
+            }
             $kids = $children[$place['code']] ?? [];
+            $allKids = $kids;
+            if ($place['level'] === PlaceCode::LevelUpazila) {
+                // Unions that are listed twice or under the wrong upazila are never chosen (see PlaceListChecks).
+                $kids = array_values(array_filter($kids, fn (array $k): bool => ! isset($excluded[$k['code']])));
+            }
             [$base, $reason] = match ($place['level']) {
                 PlaceCode::LevelDivision => $this->divisionBase($place, $kids),
                 PlaceCode::LevelDistrict => $this->districtBase($place, $kids),
                 default => $this->upazilaBase($place, $kids),
             };
+            $someLeftOut = count($kids) !== count($allKids);
+            if ($reason === self::ReasonNoChildren && $allKids !== []) {
+                $reason = self::ReasonUnionsNeedReview;
+            } elseif ($someLeftOut && $base !== null && in_array($reason, [self::NoteOnlyChild, self::NoteOnlyPourashava], true)) {
+                // Only child / only municipality is not certain when listed-twice unions were left out.
+                [$base, $reason] = [null, self::ReasonUnionsNeedReview];
+            }
             if ($base !== null) {
                 $links[] = ['code' => $place['code'], 'base_code' => $base['code']];
                 $rules[$place['code']] = $this->ruleLabel($place, $base, $reason);

@@ -111,7 +111,7 @@ class BasePlacesRemainingRulesTest extends TestCase
         $catalog = app(DefaultPlaceCatalog::class);
         $review = $catalog->headquartersReview();
         $places = json_decode((string) file_get_contents(database_path('data/bangladesh-place-codes.json')), true, 512, JSON_THROW_ON_ERROR)['places'];
-        $upazilas = array_column(array_filter($places, fn (array $p): bool => $p['level'] === 'upazila'), 'name', 'code');
+        $upazilas = array_column(array_filter($places, fn (array $p): bool => $p['level'] === 'upazila' && $p['kind'] === 'upazila'), 'name', 'code');
         foreach ($review as $code => $row) {
             $this->assertArrayHasKey($code, $upazilas, 'Unknown upazila code '.$code);
             $this->assertContains($row['confidence'], ['high', 'medium', 'low']);

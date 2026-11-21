@@ -84,8 +84,9 @@ class DefaultBasePlacesTest extends TestCase
         $this->assertSame('no_match', $empty['204']);
         $this->assertSame('no_children', $empty['1008']);
         $this->assertSame('no_match', $empty['1009']);
-        // Two city corporations in one metro area: no way to tell which one is the headquarters.
-        $this->assertSame('no_match', $empty['1004']);
+        // A metropolitan area is not an upazila: it gets no base place and is not counted as missing.
+        $this->assertArrayNotHasKey('1004', $empty);
+        $this->assertArrayNotHasKey('1004', array_column($result['links'], 'base_code', 'code'));
         $this->assertArrayNotHasKey('100', $empty);
         // Each choice names the rule that matched, and the empty list names the candidates.
         $this->assertSame('division_same_name_district', $result['rules']['101']);
@@ -131,7 +132,7 @@ class DefaultBasePlacesTest extends TestCase
         $this->assertNotSame([], collect($summary['base_empty'])->firstWhere('code', '1003')['candidates']);
         $reasons = array_unique(array_column($summary['base_empty'], 'reason'));
         sort($reasons);
-        $this->assertSame(['no_children', 'no_match', 'several_pourashavas'], $reasons);
+        $this->assertSame(['no_children', 'no_match', 'several_pourashavas', 'unions_need_review'], $reasons);
 
         $again = app(DefaultPlaceCatalog::class)->load();
         $this->assertSame(0, $again['linked']);
