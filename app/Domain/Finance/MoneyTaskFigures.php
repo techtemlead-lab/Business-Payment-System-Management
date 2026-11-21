@@ -51,6 +51,22 @@ final class MoneyTaskFigures
         return app(PayableRemittances::class)->stale();
     }
 
+    /**
+     * Fund spends still waiting for a checker after the owner's limit (7 days by default). A waiting
+     * spend holds its amount out of what the fund can spend, so it should not wait for ever.
+     *
+     * @return array{count: int, amount: string, days: int}
+     */
+    public function staleSpends(): array
+    {
+        $days = max(1, (int) config('madina.fund_spend_stale_days', 7));
+        $row = DB::table('reserve_disbursements')->where('program', FundSpending::Program)->where('status', 'requested')
+            ->where('created_at', '<', now()->subDays($days))
+            ->selectRaw('COUNT(*) AS spends, COALESCE(SUM(amount), 0) AS total')->first();
+
+        return ['count' => (int) $row->spends, 'amount' => Money::decimal(Money::cents((string) $row->total)), 'days' => $days];
+    }
+
     /** How many automatic month closes failed and have not worked since. */
     public function failedCloses(): int
     {

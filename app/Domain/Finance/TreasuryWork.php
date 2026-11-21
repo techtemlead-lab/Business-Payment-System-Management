@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\MoneyTable;
 use App\Support\MoneyTableFilter;
 use App\Support\MoneyTableSpec;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -93,8 +94,10 @@ final class TreasuryWork
         $held = $figures->held();
         $failedCloses = $figures->failedCloses();
         $stalePayables = $figures->stalePayables();
+        $staleSpends = $figures->staleSpends();
 
         return array_values(array_filter([
+            $staleSpends['count'] > 0 ? $this->tile('spends_overdue', '/treasury/work', $staleSpends['count'], $staleSpends['amount'], (string) __('money_core.task_spends_overdue', ['days' => $staleSpends['days']]), true) : null,
             $stalePayables['count'] > 0 ? $this->tile('payables_overdue', '/operations/accounting', $stalePayables['count'], $stalePayables['amount'], (string) __('money_core.task_payables_overdue', ['days' => $stalePayables['days']]), true) : null,
             $ready['count'] > 0 ? $this->tile('ready_to_pay', '/settlements', $ready['count'], $ready['amount'], (string) __('money_core.task_ready_to_pay')) : null,
             $held['count'] > 0 ? $this->tile('holds', '/operations/commission-holds', $held['count'], $held['amount'], (string) __('money_core.task_held')) : null,
@@ -122,7 +125,7 @@ final class TreasuryWork
             ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->leftJoin('users as maker', 'maker.id', '=', 'r.created_by')
             ->where('r.program', FundSpending::Program)->where('r.status', 'requested')->whereIn('r.fund_key', $visible)
-            ->select(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.expense_head_id', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt'),
+            ->select(['r.id', 'r.fund_key', 'r.amount', 'r.spent_on', 'r.expense_head_id', 'r.payee_name', 'r.payment_method', 'r.payment_reference', 'r.reason', 'r.created_by', 'r.created_at', 'h.name_en', 'h.name_bn', 'maker.name as maker_name', DB::raw('r.receipt_path IS NOT NULL AS has_receipt'),
                 DB::raw('(SELECT COUNT(*) FROM fund_spend_partners fp WHERE fp.disbursement_id = r.id) AS for_partners')]);
 
         $table = MoneyTable::make($request, $query, new MoneyTableSpec(
@@ -140,7 +143,9 @@ final class TreasuryWork
             defaultPeriod: null,
         ));
         $ownerDecidesOwn = app(SelfApproval::class)->ownerFinishesAlone($actor);
-        $table['rows']->through(fn (object $row): array => [...(array) $row, 'can_review' => FundSpending::approverOf((string) $row->fund_key, (string) $row->amount)($actor) && ($row->created_by !== $actor->id || $ownerDecidesOwn), 'can_cancel' => $row->created_by === $actor->id,
+        $table['rows']->through(fn (object $row): array => [...(array) $row, 'can_review' => FundSpending::approverOf((string) $row->fund_key, (string) $row->amount)($actor) && ($row->created_by !== $actor->id || $ownerDecidesOwn), 'can_cancel' => $row->created_by === $actor->id || $actor->owner(),
+            'waiting_days' => (int) floor(CarbonImmutable::parse((string) $row->created_at, 'UTC')->diffInDays(now(), true)),
+            'shows_payment' => $row->payment_reference !== null || (bool) $row->has_receipt,
             // CR-16: say who must act. Only an owner for the owners' fund or a spend at or above the owner's limit; otherwise another finance approver.
             'waits_for_owner' => ! $actor->owner() && FundSpending::ownerOnly((string) $row->fund_key, (string) $row->amount),
             'waits_for_staff' => ! FundSpending::ownerOnly((string) $row->fund_key, (string) $row->amount) && ($row->created_by === $actor->id ? ! $ownerDecidesOwn : ! FundSpending::approverOf((string) $row->fund_key)($actor)),

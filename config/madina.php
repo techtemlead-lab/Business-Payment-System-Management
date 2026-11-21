@@ -67,6 +67,8 @@ return [
     'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
     // Withheld tax or salary deductions owed longer than this show on Money tasks and the office home.
     'payable_stale_days' => (int) env('MADINA_PAYABLE_STALE_DAYS', 45),
+    // A fund spend still waiting for its checker after this many days shows on Money tasks and the office home.
+    'fund_spend_stale_days' => (int) env('MADINA_FUND_SPEND_STALE_DAYS', 7),
     // Run app:backup-restore-drill on the 2nd of every month at 05:00 Dhaka (needs CREATEDB for the app's DB user).
     'restore_drill_monthly' => (bool) env('MADINA_RESTORE_DRILL_MONTHLY', false),
     // Where serious problems are sent (OP-02). Off until a Telegram bot + chat or an email address is set.

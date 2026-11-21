@@ -236,6 +236,10 @@ final class StaffDashboardSummary
         if ($failedCloses > 0) {
             $tasks[] = ['key' => 'month_close_failed', 'count' => $failedCloses, 'section' => 'settlements', 'label' => (string) __('money_core.task_close_failed'), 'alert' => true];
         }
+        $staleSpends = $figures->staleSpends();
+        if ($staleSpends['count'] > 0) {
+            $tasks[] = ['key' => 'spends_overdue', 'count' => $staleSpends['count'], 'section' => 'treasury/work', 'label' => (string) __('money_core.task_spends_overdue', ['days' => $staleSpends['days']]), 'amount' => $staleSpends['amount'], 'alert' => true];
+        }
         $stalePayables = $figures->stalePayables();
         if ($stalePayables['count'] > 0) {
             $tasks[] = ['key' => 'payables_overdue', 'count' => $stalePayables['count'], 'section' => 'operations/accounting', 'label' => (string) __('money_core.task_payables_overdue', ['days' => $stalePayables['days']]), 'amount' => $stalePayables['amount'], 'alert' => true];

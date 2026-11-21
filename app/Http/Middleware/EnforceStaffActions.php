@@ -227,7 +227,7 @@ class EnforceStaffActions
             },
             'IdentityReviewController' => [['finance'], 'edit'],
             'FundSpendingController' => match ($method) {
-                'review' => [['finance'], 'approve'],
+                'review', 'reverse' => [['finance'], 'approve'],
                 'storeHead', 'updateHead', 'saveBudget' => [['finance'], 'edit'],
                 default => [['finance'], 'create'],
             },

@@ -133,6 +133,12 @@ final class CompanyFunds
                 $totals[$spend->fund_key]['money_out'] += self::cents($spend->total);
             }
         }
+        // A paid spend whose money came back stays paid; its correction gives the amount back.
+        foreach (FundSpendReversals::reversedByFund() as $fund => $reversed) {
+            if (in_array($fund, self::LedgerFunds, true)) {
+                $totals[$fund]['money_out'] -= $reversed;
+            }
+        }
 
         // MA-26: a "no commission" row counts the whole commission, including what partners still owe
         // because their wallet was short. That part is not spendable until it is recovered.
