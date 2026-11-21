@@ -20,4 +20,10 @@ return [
     'err_not_paid' => 'Goods can be owed only on an order paid in full. No goods on credit.',
     'err_nothing_left' => 'Nothing is left to send on this line.',
     'err_order_cannot_take' => 'This order cannot take more goods now.',
+    'dashboard_label' => 'Goods still owed to partners',
+    'col_partner' => 'Partner',
+    'col_product' => 'Product × pcs',
+    'col_value' => 'Value (already paid)',
+    'col_order' => 'From order',
+    'col_since' => 'Owed since',
 ];

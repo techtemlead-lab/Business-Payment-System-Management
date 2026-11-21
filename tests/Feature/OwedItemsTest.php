@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Inventory\StockService;
 use App\Domain\Orders\OrderService;
 use App\Domain\Orders\OwedItems;
+use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
@@ -70,6 +71,8 @@ class OwedItemsTest extends TestCase
         $this->assertDatabaseCount('order_refunds', 0);
         $this->assertSame('dispatched', $order->fresh()->status, 'Nothing is left to send on the source order.');
         $this->assertDatabaseHas('audit_events', ['action' => 'order.owed_recorded', 'subject' => $order->id]);
+        $queue = collect(app(StaffDashboardSummary::class)->for($this->owner)['work_queue'])->keyBy('key');
+        $this->assertSame(1, $queue['owed_items_open']['count']);
     }
 
     public function test_an_unpaid_order_cannot_owe_goods(): void
@@ -89,6 +92,14 @@ class OwedItemsTest extends TestCase
 
         $this->actingAs($this->dealer)->onPortal('dealer')->get('/orders/'.$order->id)->assertOk()
             ->assertInertia(fn (Assert $page) => $page->has('owedItems', 1)->where('owedItems.0.quantity', 2)->where('owedItems.0.source_number', $order->number));
+    }
+
+    public function test_staff_see_open_owed_goods_on_the_deliveries_screen(): void
+    {
+        $this->owedOrder();
+
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/deliveries')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('data.owed_items', 1)->where('data.owed_items.0.quantity', 2));
     }
 
     public function test_owed_goods_go_with_the_next_order_once_and_stock_drops_once(): void

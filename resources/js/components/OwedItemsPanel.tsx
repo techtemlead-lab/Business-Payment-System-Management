@@ -1,4 +1,5 @@
-import { Row, money, number, ActionForm } from './UI';
+import { Link } from '@inertiajs/react';
+import { Row, Table, money, number, date, ActionForm } from './UI';
 import { useT } from '../shared/i18n/t';
 
 export type OwedItem = { id: number; partner_id: number; partner: string; product: string; quantity: number; value: string; source_order_id: string; source_number: string; note: string | null; created_at: string };
@@ -36,4 +37,19 @@ export default function OwedItemsPanel({ order, owedItems, owner, canSendGoods, 
             <ActionForm action={`/commands/orders/${order.id}/owed`} defaults={{ line_id: line.id }} fields={[{ name: 'note', label: translate('owed_items', 'record_note'), required: true }]} submit={translate('owed_items', 'record_button')} />
         </div>)}
     </div>;
+}
+
+/** Staff list of every open owed item, on the deliveries screen. */
+export function OwedItemsList({ items }: { items: OwedItem[] }) {
+    const translate = useT();
+
+    return <section className="panel" data-testid="owed-items-list"><h2>{translate('owed_items', 'list_heading')}</h2>
+        <Table rows={items as unknown as Row[]} columns={[
+            { key: 'partner', title: translate('owed_items', 'col_partner') },
+            { key: 'product', title: translate('owed_items', 'col_product'), render: (item: Row) => `${item.product} × ${number(item.quantity)}` },
+            { key: 'value', title: translate('owed_items', 'col_value'), align: 'right' as const, render: (item: Row) => money(item.value) },
+            { key: 'source_number', title: translate('owed_items', 'col_order'), render: (item: Row) => <Link href={`/orders/${item.source_order_id}`}>#{item.source_number}</Link> },
+            { key: 'created_at', title: translate('owed_items', 'col_since'), render: (item: Row) => date(item.created_at) },
+        ]} />
+    </section>;
 }
