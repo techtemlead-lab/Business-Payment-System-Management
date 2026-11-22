@@ -26,4 +26,8 @@ return [
     'over_confirm_hint' => 'বাকি অংশের মাল স্টকে এলে তবেই পাঠানো হবে। টাকা দেওয়া থাকলেও অপেক্ষা করতে হতে পারে।',
     'reorder_more' => 'আরও :count টি পণ্য',
     'reorder_total' => 'মোট :amount',
+    'mobile_more_show' => 'আগের অর্ডার ও চলমান স্কিম দেখুন',
+    'mobile_more_hide' => 'আগের অর্ডার ও স্কিম লুকান',
+    'mobile_total' => 'মোট দিতে হবে',
+    'mobile_send' => 'অর্ডার পাঠান',
 ];
