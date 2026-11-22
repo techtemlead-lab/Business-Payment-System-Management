@@ -1,0 +1,355 @@
+/* =========================================================================
+   Phone controls (390 px first): one place for form fields, buttons and tap targets.
+   Phones only; at 768 px and wider nothing here applies, so the desktop and tablet
+   screens stay exactly as they were.
+
+   Why a separate sheet and why `!important` on sizes: the panels carry about 160 fixed
+   heights (30 to 40 px) and 13 to 15 px field sizes set in component rules with high
+   specificity (filter bars, order filters, table tools, editors). A phone-only sheet
+   that must beat all of them at once can only do that with `!important` on the size
+   properties; colours, borders and radii stay untouched so the design is the same.
+
+   Rules of this sheet
+   - Fields: 16 px text (iOS Safari zooms the page on focus below 16 px) and 44 px high.
+   - Buttons and icon buttons: at least 44 x 44 px. Links and tiny controls inside a
+     sentence get a 44 px hit area with an invisible ::after, so the text does not move.
+   - At least 8 px between neighbouring tap targets.
+   - Bangla line height 1.5 or more, secondary text 14 px or more.
+   ========================================================================= */
+@media (max-width: 767px) {
+
+  /* ---- 1. Tokens: every rule that reads the control height follows ------ */
+  :root :is(.app-shell, .company-auth) {
+    --ds-control-h: 44px;
+    --ds-control-h-sm: 44px;
+  }
+
+  /* Dealer and sub-dealer screens are zoomed 1.15 already; lift only the smallest
+     text tokens so secondary lines reach about 14 px on screen. Staff and owner
+     tokens are already 13 to 16 px (screens-office-shell.css). */
+  :root .app-shell:is(.dealer-shell, .subdealer-shell) {
+    --ds-fs-2xs: 12px;
+    --ds-fs-xs: 13px;
+    --ds-fs-sm: 14px;
+  }
+
+  /* ---- 2. Text fields, selects, textareas: 16 px, 44 px high ------------ */
+  :is(.app-shell, .company-auth, .notice-sheet-layer, .ss-panel, .global-search-layer, .pcart-sheet)
+    :is(
+      input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"], [type="submit"], [type="button"], [type="reset"], [type="image"]),
+      select,
+      textarea
+    ):not(.pcart-stepper *) {
+    font-size: max(16px, var(--ds-fs-sm, 16px)) !important;
+  }
+
+  /* Height: inputs and selects (a textarea is already taller). Inputs that live inside
+     a bordered wrapper keep the wrapper's height, the wrapper itself is sized below. */
+  :is(.app-shell, .company-auth, .notice-sheet-layer, .ss-panel, .global-search-layer, .pcart-sheet)
+    :is(
+      input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"], [type="submit"], [type="button"], [type="reset"], [type="image"]),
+      select
+    ):not(
+      .search-input *, .pc-code-prefix *, .sidebar-menu-search *, .portal-site-search *, .stock-search *,
+      .global-search-input *, .ppm-stepper *, .pcart-stepper *
+    ) {
+    min-height: 44px !important;
+  }
+
+  /* Wrappers that draw the field's border (search boxes, code prefix, date field). */
+  :is(.app-shell, .company-auth) :is(.search-input, .pc-code-prefix, .date-input-wrapper, .sidebar-menu-search, .portal-site-search, .stock-search) {
+    min-height: 44px !important;
+  }
+
+  /* Search-select trigger and its pop-up list. */
+  :is(.app-shell, .company-auth) .ss .ss-trigger,
+  .ss-panel .ss-option {
+    min-height: 44px !important;
+  }
+  .ss-panel .ss-option {
+    padding-block: 10px;
+    font-size: max(14px, var(--ds-fs-sm, 14px));
+  }
+
+  /* Native date, time and month fields: readable and 44 px on iOS (which collapses
+     them without a min height). The native picker stays; the browser decides the
+     order of day and month, DateInput (dd/mm/yyyy) is the way to force it. */
+  :is(.app-shell, .company-auth) :is(input[type="date"], input[type="time"], input[type="month"], input[type="week"], input[type="datetime-local"]) {
+    min-height: 44px !important;
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 12px;
+    line-height: 1.4;
+  }
+  :is(.app-shell, .company-auth) :is(input[type="date"], input[type="time"], input[type="month"], input[type="week"], input[type="datetime-local"])::-webkit-date-and-time-value {
+    min-height: 1.5em;
+    text-align: left;
+  }
+  :is(.app-shell, .company-auth) :is(input[type="date"], input[type="time"], input[type="month"], input[type="week"], input[type="datetime-local"])::-webkit-calendar-picker-indicator {
+    width: 24px;
+    height: 24px;
+    padding: 10px;
+    margin-inline-end: -8px;
+    cursor: pointer;
+  }
+
+  /* The dd/mm/yyyy field: room for a 44 px calendar button on the right. */
+  :root :is(.app-shell, .company-auth) .date-input-wrapper input.date-input-field {
+    padding-right: 52px;
+  }
+  :root :is(.app-shell, .company-auth) .date-input-wrapper .date-picker-btn {
+    right: 2px;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  :root :is(.app-shell, .company-auth) .date-input-wrapper .date-native-picker {
+    right: 2px;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Native file picker: a clear, full-size button (the label text follows the phone's
+     language; the browser does not let CSS change it). Hidden pickers stay hidden. */
+  :root :is(.app-shell, .company-auth) input[type="file"]:not(.file-picker *, label.partner-home-avatar-upload *) {
+    width: 100%;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 6px 8px;
+    font-size: max(14px, var(--ds-fs-sm, 14px));
+    line-height: 1.4;
+  }
+  :root :is(.app-shell, .company-auth) input[type="file"]:not(.file-picker *, label.partner-home-avatar-upload *)::file-selector-button {
+    min-height: 44px;
+    margin-inline-end: 12px;
+    padding: 10px 16px;
+    border: 1px solid var(--ds-brand, #006a4e);
+    border-radius: var(--ds-r-md, 8px);
+    background: var(--ds-brand-soft, #e3f1eb);
+    color: var(--ds-brand-text, #00694d);
+    font: inherit;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+  }
+
+  /* ---- 3. Checkboxes and radios: a 24 px box in a 44 px row ------------- */
+  :root :is(.app-shell, .company-auth) :is(input[type="checkbox"], input[type="radio"]):not(.sr-only, .file-picker *) {
+    flex: none;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px;
+    min-height: 24px !important;
+    margin: 0;
+  }
+  :root :is(.app-shell, .company-auth) label:has(> input[type="checkbox"], > input[type="radio"]) {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  /* ---- 4. Buttons ------------------------------------------------------- */
+  /* Every button, link-button and the app's button classes: 44 px high, with
+     comfortable side padding. Visual hidden helpers and overlay hit areas are left out. */
+  :is(.app-shell, .company-auth, .notice-sheet-layer, .ss-panel, .global-search-layer, .pcart-sheet)
+    :is(button, input[type="submit"], input[type="button"], input[type="reset"], [role="button"], .button, a.button, .btn, a.btn):not(
+      .sr-only, .ss-proxy, .mt-row-open, [hidden], [aria-hidden="true"][tabindex="-1"]
+    ) {
+    min-height: 44px !important;
+  }
+  :root :is(.app-shell, .company-auth) :is(.button, a.button, button.button, .btn, a.btn):not(.icon-button) {
+    padding-inline: 16px;
+  }
+  :root :is(.app-shell, .company-auth) :is(.button.small, .button.small.dark, .button.small.light, .button.small.danger) {
+    padding-inline: 14px;
+    font-size: max(14px, var(--ds-fs-xs, 14px));
+  }
+  :root :is(.app-shell, .company-auth) summary {
+    min-height: 44px;
+    align-content: center;
+    cursor: pointer;
+  }
+
+  /* Icon-only and small controls: the box itself grows to 44 x 44 (the icon, radius,
+     colours and border are unchanged). */
+  :is(.app-shell, .company-auth, .notice-sheet-layer, .global-search-layer)
+    :is(
+      .icon-button,
+      td .icon-button,
+      .workspace-menu-button,
+      .global-search-trigger,
+      .text-size-toggle,
+      .text-size-switch button,
+      .language-switcher button,
+      .clear-search-btn,
+      .onboarding-close-btn,
+      .notice-panel-close,
+      .notice-panel-mark-all,
+      .ed-icon-btn,
+      .ed-icon-btn.is-sm,
+      .ppm-icon-btn,
+      .ppm-stepper > button,
+      .pcart-x,
+      .pcart-step,
+      .profile-menu-trigger
+    ) {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  :is(.app-shell, .company-auth) :is(.notice-panel-close, .clear-search-btn, .onboarding-close-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* The notification panel only shows its X on phones. */
+  .notice-panel-close {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  /* Language switch (EN / বাং): two 44 px buttons with a clear gap. */
+  :root :is(.app-shell, .company-auth) .language-switcher {
+    gap: 8px;
+    padding: 3px;
+  }
+  :root :is(.app-shell, .company-auth) .language-switcher button {
+    font-size: 14px;
+    padding-inline: 10px;
+  }
+  :root :is(.app-shell, .company-auth) .language-switcher.compact button {
+    font-size: 14px;
+    padding-inline: 10px;
+  }
+
+  /* Branch switcher (staff header and its list). */
+  :root .app-shell .branch-workspace-select {
+    min-height: 44px !important;
+    height: auto;
+  }
+  :root .app-shell .branch-workspace-trigger {
+    min-height: 42px !important;
+    height: auto;
+    font-size: max(14px, var(--ds-fs-sm, 14px));
+  }
+  :root .app-shell .branch-workspace-menu button {
+    min-height: 44px !important;
+    padding-block: 10px;
+    font-size: 14px;
+  }
+
+  /* Search button beside a search box, table-tool buttons, tabs. */
+  :root .app-shell :is(.odt-search .button, .odt-pages .button, .table-tools .button.small, .order-filters .button.small) {
+    min-height: 44px !important;
+    height: auto;
+  }
+  :root .app-shell .odt-tab {
+    min-height: 44px !important;
+  }
+
+  /* ---- 5. Pagination ---------------------------------------------------- */
+  :root .app-shell .pagination .page-link,
+  :root .pagination .page-link {
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+  :root .pagination .pagination-links {
+    gap: 8px;
+  }
+  :root .pagination .page-gap {
+    padding-inline: 6px;
+  }
+
+  /* ---- 6. Chips, view switches, quick-add pills and steppers ------------ */
+  :root .fc .fc-chip,
+  :root .app-shell .mt-view,
+  :root .app-shell .mt-lang,
+  :root .app-shell .mt-chip,
+  :root .app-shell button.ppm-chip {
+    min-height: 44px !important;
+    height: auto;
+    padding-block: 8px;
+    padding-inline: 14px;
+    font-size: max(14px, var(--ds-fs-sm, 14px));
+  }
+  :root .fc,
+  :root .fc .fc-row {
+    gap: 8px;
+  }
+  :root .app-shell .mt-views {
+    gap: 8px;
+  }
+  :root .app-shell .ppm-stepper > button {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+  :root .app-shell .ppm-stepper > input,
+  :root .app-shell .ppm-stepper > input:focus {
+    width: 56px;
+    height: 44px;
+    min-height: 44px !important;
+    font-size: 16px !important;
+  }
+  :root .app-shell .ppm-qty-row {
+    gap: 12px;
+  }
+
+  /* ---- 7. Links: invisible 44 px hit area, text stays where it is ------- */
+  :where(.app-shell, .company-auth) :where(.text-link, .record-link) {
+    position: relative;
+  }
+  :is(.app-shell, .company-auth) :is(a.record-link, .text-link, .record-link)::after {
+    content: "";
+    position: absolute;
+    inset: -12px -6px;
+  }
+  /* The "back" link above a page and links that are already laid out as a row. */
+  :root .app-shell .office-back {
+    min-height: 44px;
+  }
+  :root .app-shell td :is(a.record-link, .text-link) {
+    padding-block: 2px;
+  }
+
+  /* ---- 8. Space between neighbouring tap targets ------------------------ */
+  :where(.app-shell, .company-auth)
+    :where([class*="-actions"], [class*="-toolbar"], .toolbar-end, .button-row, .table-tools, .filter-bar, .pcart-sizes-row, .pcart-size-row) {
+    gap: 8px;
+  }
+  :root :is(.app-shell, .company-auth) .header-actions {
+    gap: 8px;
+  }
+  :root :is(.app-shell, .company-auth) .odt-row {
+    gap: 8px;
+  }
+
+  /* ---- 9. Text size and line height -------------------------------------- */
+  /* Paragraph text and list lines breathe: Bangla matras and conjuncts need 1.5 or more. */
+  :root :is(.app-shell, .company-auth) :is(p, li, dd, dt, small, .cell-sub, .step-desc, .field-error) {
+    line-height: 1.55;
+  }
+  /* Secondary text never drops below 14 px. */
+  :is(.app-shell, .company-auth) :is(small:not(.badge *), p.muted, .cell-sub, .step-desc, .field-error) {
+    font-size: max(14px, var(--ds-fs-xs, 14px)) !important;
+  }
+
+  /* ---- 10. Focus rings stay visible on every control -------------------- */
+  :root :is(.app-shell, .company-auth, .notice-sheet-layer, .ss-panel) :is(a, button, summary, [role="button"], .text-link, .record-link):focus-visible {
+    outline: 2px solid var(--ds-focus, #006a4e);
+    outline-offset: 2px;
+  }
+  :root :is(.app-shell, .company-auth) :is(input, select, textarea):focus-visible {
+    outline: 2px solid var(--ds-focus, #006a4e);
+    outline-offset: 1px;
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  :is(.app-shell, .company-auth) :is(.button, button, .fc-chip) {
+    transition: none;
+  }
+}
