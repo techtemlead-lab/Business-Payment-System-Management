@@ -2,6 +2,7 @@ import '../css/reference-motion.css';
 import './reference-motion';
 import { bindLocaleSwitchForms } from './shared/localeSwitch';
 import { bindThemeToggles } from './shared/theme';
+import { initAnnouncementTickers } from './shared/announcementTicker';
 
 bindThemeToggles();
 bindLocaleSwitchForms();
@@ -695,6 +696,7 @@ function reportPageSeen() {
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        initAnnouncementTickers();
         initScrollReveal();
         initFaqAccordions();
         initMdMessageToggles();
@@ -704,6 +706,7 @@ if (document.readyState === 'loading') {
         reportPageSeen();
     });
 } else {
+    initAnnouncementTickers();
     initScrollReveal();
     initFaqAccordions();
     initMdMessageToggles();

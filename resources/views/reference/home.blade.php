@@ -88,7 +88,12 @@
             @endif
         </div>
     </section>
-    <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null) }}</span></div></div>
+    @php
+        $announcementText = $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null);
+        // First guess of the time one pass takes (about 45 px a second); reference-home.ts replaces it with the measured width.
+        $announcementSeconds = max(8, (int) round(mb_strlen($announcementText) * 0.17));
+    @endphp
+    <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div class="ref-announcement-viewport"><div class="ref-announcement-track" data-ref-ticker style="--ref-ticker-seconds: {{ $announcementSeconds }}s"><span class="ref-announcement-item">{{ $announcementText }}</span><span class="ref-announcement-item" aria-hidden="true">{{ $announcementText }}</span></div></div></div>
     @if($publicPageEnabled['dealers'] ?? true)
     <section class="ref-dealer-network-banner" aria-label="{{ $chrome('dealer_banner_title') }}">
         <div class="ref-dealer-banner-inner">
