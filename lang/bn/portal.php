@@ -6918,7 +6918,7 @@ return [
     'ops_chk_fund_balances' => 'তহবিলের জমা ও খরচ মিলেছে, কোনো তহবিল শূন্যের নিচে নেই',
     'ops_chk_withdrawal_journals' => 'দেওয়া ও ফেরত আসা প্রতিটি উত্তোলনের টাকা হিসাবে উঠেছে',
     'ops_chk_payroll_journals' => 'বেতনের অনুমোদন ও পরিশোধ হিসাবে উঠেছে',
-    'ops_chk_benefits_fund_batches' => 'মালিকদের সুবিধা তহবিলের টাকা প্রতিটি অর্ডারের বাকি অংশের সাথে মিলেছে',
+    'ops_chk_benefits_fund_batches' => 'কমিশন এক্সট্রা ফান্ডের টাকা প্রতিটি অর্ডারের বাকি অংশের সাথে মিলেছে',
     'cs_param_division_target' => 'বিভাগ ডিলারের মাসিক টার্গেট (৳)',
     'cs_param_district_target' => 'জেলা ডিলারের মাসিক টার্গেট (৳)',
     'cs_param_upazila_target' => 'উপজেলা ডিলারের মাসিক টার্গেট (৳)',

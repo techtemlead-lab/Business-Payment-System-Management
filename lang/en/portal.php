@@ -6918,7 +6918,7 @@ return [
     'ops_chk_fund_balances' => 'Fund money in and out agrees, no fund is below zero',
     'ops_chk_withdrawal_journals' => 'Every paid or returned withdrawal is recorded in the accounts',
     'ops_chk_payroll_journals' => 'Approved and paid salaries are recorded in the accounts',
-    'ops_chk_benefits_fund_batches' => 'Owners\' benefits fund matches what each order left over',
+    'ops_chk_benefits_fund_batches' => 'The Commission extra fund matches what each order left over',
     'cs_param_division_target' => 'Monthly target, division dealer (৳)',
     'cs_param_district_target' => 'Monthly target, district dealer (৳)',
     'cs_param_upazila_target' => 'Monthly target, upazila dealer (৳)',
