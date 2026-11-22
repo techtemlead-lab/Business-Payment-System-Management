@@ -28,6 +28,7 @@ import PrerequisiteHelper from './PrerequisiteHelper';
 import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
 import FilePicker from './FilePicker';
+import { ProofLink, proofKindOf } from './ProofViewer';
 import '../../css/partner-hub.css';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
@@ -535,9 +536,9 @@ function AttachmentLink({ ticket }: { ticket: Row }) {
     }
     return (
         <p>
-            <a className="button small" href={`/commands/support-tickets/${ticket.id}/attachment`} target="_blank" rel="noopener">
+            <ProofLink className="button small" href={`/commands/support-tickets/${ticket.id}/attachment`} kind={proofKindOf(String(ticket.attachment_name ?? ''))}>
                 <FileText size={15} aria-hidden="true" />{translate('portal', 'support_open_attachment', { name: String(ticket.attachment_name ?? '') })}
-            </a>
+            </ProofLink>
         </p>
     );
 }

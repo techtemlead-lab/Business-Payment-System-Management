@@ -4,6 +4,7 @@ import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import { ImagePlus, Search, Send, X } from 'lucide-react';
 import { dateTime, label, Modal, Pagination, type Row } from './UI';
 import OfficePage from './office/OfficePage';
+import { ProofLink } from './ProofViewer';
 import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
 
@@ -32,9 +33,9 @@ function Thread({ messages, mine, officeName }: { messages: ChatMessage[]; mine:
                     <li key={message.id} className={`chat-bubble ${own ? 'is-own' : 'is-other'} side-${message.side}`}>
                         {!own && who && <b className="chat-who">{who}</b>}
                         {message.has_photo && (
-                            <a href={`/commands/messages/${message.id}/photo`} target="_blank" rel="noopener noreferrer" className="chat-photo">
+                            <ProofLink href={`/commands/messages/${message.id}/photo`} kind="image" className="chat-photo">
                                 <img src={`/commands/messages/${message.id}/photo`} alt={translate('portal', 'chat_photo_alt')} loading="lazy" />
-                            </a>
+                            </ProofLink>
                         )}
                         {message.body && <p>{message.body}</p>}
                         <small>{message.created_at ? dateTime(message.created_at) : ''}</small>

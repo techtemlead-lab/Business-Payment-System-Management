@@ -1398,7 +1398,7 @@ class CommandController extends Controller
         $this->permit($r, 'identity_write');
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
 
-        return $documents->download($r->user(), $user, $document);
+        return $documents->download($r->user(), $user, $document, $r);
     }
 
     public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse
@@ -1709,7 +1709,7 @@ class CommandController extends Controller
 
     public function supportTicketAttachment(Request $r, string $id, SupportTickets $tickets): StreamedResponse
     {
-        return $tickets->openAttachment($r->user(), $id);
+        return $tickets->openAttachment($r->user(), $id, $r);
     }
 
     public function completeTour(Request $r, string $page, TourGuide $tours): RedirectResponse|JsonResponse

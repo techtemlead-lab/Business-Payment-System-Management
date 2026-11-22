@@ -72,9 +72,14 @@ class PartnerKycDocumentsTest extends TestCase
         $this->assertSame('nid_front', $list[0]['kind']);
 
         $this->assertDatabaseMissing('audit_events', ['action' => 'account.kyc_document_viewed']);
-        $this->actingAs($staff)->onPortal('manage')
+        $opened = $this->actingAs($staff)->onPortal('manage')
             ->get('/commands/accounts/'.$partner->id.'/kyc-documents/'.$list[0]['id'])
             ->assertOk();
+        $this->assertStringStartsWith('inline', (string) $opened->headers->get('Content-Disposition'));
+        $saved = $this->actingAs($staff)->onPortal('manage')
+            ->get('/commands/accounts/'.$partner->id.'/kyc-documents/'.$list[0]['id'].'?download=1')
+            ->assertOk();
+        $this->assertStringStartsWith('attachment', (string) $saved->headers->get('Content-Disposition'));
         $this->assertDatabaseHas('audit_events', [
             'actor_id' => $staff->id,
             'action' => 'account.kyc_document_viewed',

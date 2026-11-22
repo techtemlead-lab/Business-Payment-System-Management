@@ -73,6 +73,95 @@ class PaymentProofTest extends TestCase
             ->get('/commands/operations/receipts/payment/'.$claim->id)->assertNotFound();
     }
 
+    public function test_the_screenshot_opens_in_the_browser_and_is_saved_only_when_asked(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $order = $this->order($dealer);
+        $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
+            'channel' => 'Nagad', 'reference' => 'TRX-OPEN-1', 'amount' => '500.00',
+            'proof' => UploadedFile::fake()->image('nagad.png'),
+        ])->assertCreated();
+        $claim = DB::table('payment_claims')->where('reference', 'TRX-OPEN-1')->first();
+        $url = '/commands/operations/receipts/payment/'.$claim->id;
+        $finance = User::factory()->staff('finance')->create();
+
+        $picture = $this->actingAs($finance)->onPortal('sadmin')->get($url)->assertOk();
+        $this->assertStringStartsWith('inline', (string) $picture->headers->get('Content-Disposition'));
+        $this->assertSame('image/png', $picture->headers->get('Content-Type'));
+        $this->assertSame('nosniff', $picture->headers->get('X-Content-Type-Options'));
+        $this->assertStringContainsString('no-store', (string) $picture->headers->get('Cache-Control'));
+
+        $saved = $this->actingAs($finance)->onPortal('sadmin')->get($url.'?download=1')->assertOk();
+        $this->assertStringStartsWith('attachment', (string) $saved->headers->get('Content-Disposition'));
+
+        // The refusal for everybody else is the same whichever way the file is asked for.
+        $stranger = User::factory()->dealer()->create();
+        $this->actingAs($stranger)->onPortal('dealer')->get($url)->assertNotFound();
+        $this->actingAs($stranger)->onPortal('dealer')->get($url.'?download=1')->assertNotFound();
+        $this->actingAs($dealer)->onPortal('dealer')->get($url)->assertNotFound();
+    }
+
+    public function test_a_pdf_proof_opens_in_the_browser_too(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $order = $this->order($dealer);
+        $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
+            'channel' => 'Bank', 'reference' => 'TRX-PDF-1', 'amount' => '500.00',
+            'proof' => UploadedFile::fake()->create('slip.pdf', 20, 'application/pdf'),
+        ])->assertCreated();
+        $claim = DB::table('payment_claims')->where('reference', 'TRX-PDF-1')->first();
+
+        $pdf = $this->actingAs(User::factory()->staff('finance')->create())->onPortal('sadmin')->get('/commands/operations/receipts/payment/'.$claim->id)->assertOk();
+        $this->assertStringStartsWith('inline', (string) $pdf->headers->get('Content-Disposition'));
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+    }
+
+    public function test_a_stored_file_that_is_not_a_picture_or_pdf_is_never_opened_as_a_page(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $order = $this->order($dealer);
+        $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
+            'channel' => 'Nagad', 'reference' => 'TRX-SVG-1', 'amount' => '500.00',
+            'proof' => UploadedFile::fake()->image('nagad.png'),
+        ])->assertCreated();
+        $claim = DB::table('payment_claims')->where('reference', 'TRX-SVG-1')->first();
+        $finance = User::factory()->staff('finance')->create();
+        $contents = [
+            'svg' => '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+            'html' => '<!doctype html><html><body><script>alert(1)</script></body></html>',
+        ];
+
+        foreach ($contents as $extension => $body) {
+            Storage::disk('local')->put('payment-proofs/trick.'.$extension, $body);
+            DB::table('payment_claims')->where('id', $claim->id)->update(['proof_path' => 'payment-proofs/trick.'.$extension]);
+
+            $response = $this->actingAs($finance)->onPortal('sadmin')->get('/commands/operations/receipts/payment/'.$claim->id)->assertOk();
+            $this->assertStringStartsWith('attachment', (string) $response->headers->get('Content-Disposition'), $extension);
+        }
+
+        // A web page saved under a picture's name is still judged by what it holds, not by its name.
+        Storage::disk('local')->put('payment-proofs/trick.png', $contents['html']);
+        DB::table('payment_claims')->where('id', $claim->id)->update(['proof_path' => 'payment-proofs/trick.png']);
+        $response = $this->actingAs($finance)->onPortal('sadmin')->get('/commands/operations/receipts/payment/'.$claim->id)->assertOk();
+        $this->assertStringStartsWith('attachment', (string) $response->headers->get('Content-Disposition'));
+    }
+
+    public function test_the_order_page_gives_the_office_a_link_to_the_screenshot_and_nobody_else(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $order = $this->order($dealer);
+        $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
+            'channel' => 'Bank', 'reference' => 'TRX-PAGE-1', 'amount' => '500.00',
+            'proof' => UploadedFile::fake()->image('bank.jpg'),
+        ])->assertCreated();
+
+        $this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/orders/'.$order->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('claims.0.has_proof', true)
+                ->where('claims.0.proof_mime', 'image/jpeg')
+                ->missing('claims.0.proof_path'));
+    }
+
     public function test_the_payments_list_shows_that_a_screenshot_exists_without_exposing_its_path(): void
     {
         $dealer = User::factory()->dealer()->create();
