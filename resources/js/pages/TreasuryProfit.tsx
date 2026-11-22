@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { router } from '@inertiajs/react';
-import { Empty, date, money, number } from '../components/UI';
+import { DateInput, Empty, date, money, number } from '../components/UI';
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import Figures from '../components/office/Figures';
 import { isNegative } from '../components/treasury/format';
@@ -85,8 +85,8 @@ function PeriodPicker({ say, month, period }: { say: Say; month: string | null; 
     return (
         <form className="tsy-block-tools tsy-month" onSubmit={show}>
             <label>{say('pick_month')}<input type="month" value={month ?? ''} onChange={(event) => event.target.value && router.get('/treasury/profit', { month: event.target.value }, { preserveScroll: true })} /></label>
-            <label>{say('pick_from')}<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-            <label>{say('pick_to')}<input type="date" value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label>
+            <label>{say('pick_from')}<DateInput value={from} onChange={(event) => setFrom(event.target.value)} /></label>
+            <label>{say('pick_to')}<DateInput value={to} min={from || undefined} onChange={(event) => setTo(event.target.value)} /></label>
             <button type="submit" className="button small" disabled={!from || !to}>{say('pick_show')}</button>
         </form>
     );
@@ -102,6 +102,7 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
     const loss = isNegative(figures.profit);
     const profitWord = say(loss ? 'line_loss' : 'line_profit');
     const unposted = warnings.no_commission_yet;
+    const warningCount = warnings.missing_cost.length + warnings.over_margin.length + (unposted.orders > 0 ? 1 : 0);
 
     return (
         <TreasuryPage title={say('title')} subtitle={say('subtitle', { from: date(report.period.from), to: date(report.period.to) })} showTabs>
@@ -110,6 +111,9 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
                 <PeriodPicker key={`${report.period.from}-${report.period.to}`} say={say} month={month} period={report.period} />
             </div>
 
+            {warningCount > 0 && report.orders.count > 0 && <a className="tsy-warn-link" href="#tsy-warnings">{say('warn_short', { count: warningCount })}</a>}
+
+            <div id="tsy-warnings" className="tsy-warns">
             {warnings.missing_cost.length > 0 && (
                 <div className="notice warning" role="alert">
                     <b>{say('warn_missing_title')}</b>
@@ -165,6 +169,7 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
             )}
 
             {unposted.orders > 0 && <div className="notice warning" role="status">{say('warn_unposted', { orders: unposted.orders, amount: money(unposted.sales) })}</div>}
+            </div>
 
             {report.orders.count === 0 ? (
                 <Empty title={say('empty_title')} body={say('empty_body')} />
