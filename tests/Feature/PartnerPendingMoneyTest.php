@@ -410,7 +410,7 @@ class PartnerPendingMoneyTest extends TestCase
     }
 
     /**
-     * Owner's rule of 2026-11-22: the Dealer Acquisition Target Bonus is one nationwide fund shared equally by every dealer who
+     * Owner's rule of 2026-11-22: the Salary is one nationwide fund shared equally by every dealer who
      * qualifies in the month, so a dealer is shown no amount and no estimate before the month closes, not in a line and
      * not in the pending total. The month close still pays his share as before.
      */

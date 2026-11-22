@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  * Every figure comes from the code that later pays the money: monthly volume and rank-keeping from
  * CommissionQualification, bike and car from CommissionQualification::milestone(), the tour balance from
  * ReserveService. Every target is read from the live commission rules, so changing a rule changes the pop-up at once.
- * A dealer's Dealer Acquisition Target Bonus has no amount here: it is shared equally among all qualifying dealers of
+ * A dealer's Salary has no amount here: it is shared equally among all qualifying dealers of
  * the country at month end, so no figure is honest before then (owner's rule of 2026-11-22).
  */
 final class PartnerProgress

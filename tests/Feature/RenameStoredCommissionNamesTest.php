@@ -39,9 +39,18 @@ class RenameStoredCommissionNamesTest extends TestCase
         $this->assertSame('Team income (2nd and 3rd step)', $this->nameOf('d2d_multitier'));
         $this->assertSame('Staff commission', $this->nameOf('direct_referral'));
         $this->assertSame('Doctor Honorarium', $this->nameOf('own_dealer_cashback'));
-        $this->assertSame('Dealer Acquisition Target Bonus', $this->nameOf('dealer_monthly_salary'));
+        $this->assertSame('Salary', $this->nameOf('dealer_monthly_salary'));
         $this->assertSame('Our summer tour', $this->nameOf('sub_dealer_tour'), 'A name typed by a person is never touched.');
         $this->assertSame('1.00', (string) DB::table('commission_rule_parameters')->where('rule_key', 'direct_referral')->value('percentage'));
+    }
+
+    public function test_the_earlier_dealer_bonus_name_becomes_salary(): void
+    {
+        $this->store('dealer_monthly_salary', 'Dealer Acquisition Target Bonus');
+
+        $this->artisan('madina:rename-stored-commission-names')->assertSuccessful();
+
+        $this->assertSame('Salary', $this->nameOf('dealer_monthly_salary'));
     }
 
     public function test_dry_run_writes_nothing_and_a_second_run_changes_nothing(): void

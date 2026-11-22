@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  *
  *  - an area share held because the area target is not met (allocation held, reason "quota"),
  *  - a sub-dealer's salary set aside for the month (allocation pending, paid when the month closes),
- *  - a dealer's Dealer Acquisition Target Bonus (the nationwide `dealer_monthly_salary_pool`): a line with NO amount.
+ *  - a dealer's Salary (the nationwide `dealer_monthly_salary_pool`): a line with NO amount.
  *    The fund is shared equally among every dealer of the country who meets the target, and that number changes until
  *    the last day, so no figure is shown before the month closes (owner's rule of 2026-11-22).
  *
@@ -202,7 +202,7 @@ final class PartnerPendingMoney
 
     /**
      * The month-end salary: a sub-dealer's amount set aside so far (one line per month, his own purchases decide it), or
-     * for a dealer one line per open month of the nationwide Dealer Acquisition Target Bonus with no amount: how many
+     * for a dealer one line per open month of the nationwide Salary with no amount: how many
      * dealers qualify is known only when the month ends, so any figure before that could be wrong.
      *
      * @return list<array{id: string, head: string, what: string, month: string, amount: ?string, order_number: ?string, reason: string, estimate: bool}>

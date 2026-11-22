@@ -12,7 +12,7 @@ return [
     'head_area_district' => 'এরিয়া ডিলার আয় · জেলা',
     'head_area_upazila' => 'এরিয়া ডিলার আয় · উপজেলা',
     'head_area_union' => 'এরিয়া ডিলার আয় · ইউনিয়ন / পৌরসভা',
-    'head_salary' => 'ডিলার একুইজিশন টার্গেট বোনাস',
+    'head_salary' => 'স্যালারি',
     'head_salary_sub' => 'সাব-ডিলার স্যালারি',
     'head_rank_mo' => 'র‍্যাঙ্ক আয় · MO',
     'head_rank_am' => 'র‍্যাঙ্ক আয় · AM',

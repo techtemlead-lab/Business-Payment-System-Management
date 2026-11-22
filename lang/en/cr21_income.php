@@ -12,7 +12,7 @@ return [
     'head_area_district' => 'Area dealer income · District',
     'head_area_upazila' => 'Area dealer income · Upazila',
     'head_area_union' => 'Area dealer income · Union / Pourashava',
-    'head_salary' => 'Dealer Acquisition Target Bonus',
+    'head_salary' => 'Salary',
     'head_salary_sub' => 'Sub-dealer salary',
     'head_rank_mo' => 'Rank income · MO',
     'head_rank_am' => 'Rank income · AM',

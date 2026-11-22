@@ -97,7 +97,7 @@ return [
 
     // Month-end items (owner's rule, 2026-11-22): rank royalty, the salary or bonus and the area income of new orders are worked out on the same day.
     'month_end_heading' => 'Worked out at month end (together, on the same day)',
-    'month_end_intro' => 'Rank royalty, the Dealer Acquisition Target Bonus and area dealer income: these three are worked out on the same day at the end of every month; only those who meet the conditions get them. Everyone else\'s share goes to the company fund.',
+    'month_end_intro' => 'Rank royalty, the Salary and area dealer income: these three are worked out on the same day at the end of every month; only those who meet the conditions get them. Everyone else\'s share goes to the company fund.',
     'month_end_intro_sub' => 'Sub-dealer salary and rank royalty are worked out on the same day at the end of every month; only those who meet the conditions get them.',
     'month_end_no_amount' => 'Known at month end',
     'pending_reason_month_end_area' => 'Worked out at month end. If you meet your monthly target it is added to your balance; if not, it goes to the company fund.',
