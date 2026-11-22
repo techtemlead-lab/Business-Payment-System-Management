@@ -9,6 +9,7 @@ import PartnerPrescriberControls from './PartnerPrescriberControls';
 import PartnerAccountDelete from './PartnerAccountDelete';
 import ClosedAccountBalanceMove from './ClosedAccountBalanceMove';
 import NidReview from './NidReview';
+import { ProofLink, proofKindOf } from './ProofViewer';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
@@ -325,9 +326,9 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     <ul className="aed-docs">
                         {docs.map(doc => (
                             <li key={doc.id}>
-                                <a className="text-link" href={`/commands/accounts/${account.id}/kyc-documents/${doc.id}`}>
+                                <ProofLink className="text-link" href={`/commands/accounts/${account.id}/kyc-documents/${doc.id}`} kind={proofKindOf(doc.mime ?? doc.original_name)} title={translate('portal', `kyc_kind_${doc.kind}`)}>
                                     {translate('portal', `kyc_kind_${doc.kind}`)} · {doc.original_name}
-                                </a>
+                                </ProofLink>
                                 {doc.note ? <span className="muted"> — {doc.note}</span> : null}
                                 {doc.review_status === 'rejected' && <span className="muted"> — {translate('leftovers_partner', 'review_rejected_label')}{doc.review_note ? `: ${doc.review_note}` : ''}</span>}
                                 {doc.review_status === 'pending' && <NidReview accountId={account.id} doc={doc} onDone={() => fetch(`/commands/accounts/${account.id}/kyc-documents`, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' }).then(response => response.json()).then(json => setDocs(json.data || [])).catch(() => setDocsError(translate('portal', 'kyc_load_failed')))} />}
