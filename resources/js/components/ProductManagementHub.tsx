@@ -294,7 +294,7 @@ export default function ProductManagementHub({
                         <Eye size={14} aria-hidden="true" /> {t('view_homepage')}
                     </a>
                     {(auth.capabilities.includes('inventory') || auth.capabilities.includes('catalog')) && (
-                        <span className="ops-row" role="group" aria-label={translate('product_list_print', 'button')}>
+                        <span className="ops-row is-wrap" role="group" aria-label={translate('product_list_print', 'button')}>
                             <a href="/exports/product-list" className="button small" title={translate('product_list_print', 'hint_with_pictures')}>
                                 <Download size={14} aria-hidden="true" /> {translate('product_list_print', 'button')}: {translate('product_list_print', 'button_with_pictures')}
                             </a>
