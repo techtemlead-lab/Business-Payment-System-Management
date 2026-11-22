@@ -880,12 +880,6 @@ final class CommissionSettlement
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
-    {
-        $this->recordPayout($fund, $userId, $amount, $month, $kind);
-        $this->creditPayout($fund, $userId, $amount, $month, $kind, $payee);
-    }
-
     /** The wallet side of a payout: one journal entry and one wallet credit, so one line in the partner's statement. */
     private function creditPayout(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
     {
