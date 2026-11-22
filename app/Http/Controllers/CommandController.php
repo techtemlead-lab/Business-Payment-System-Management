@@ -25,6 +25,7 @@ use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Finance\UnownedShareSweeps;
 use App\Domain\Geography\ManagementReferral;
+use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockService;
@@ -173,6 +174,12 @@ class CommandController extends Controller
                 // The deepest place of the permanent (home) address: an upazila or a union. Required here
                 // (client, 2026-11-21); imports and approved applications may still add a partner without it.
                 'permanent_place_id' => 'required|integer',
+                // The four area places, picked one by one for every partner (client, 2026-11-22): the
+                // area commission of the partner's own purchases goes to these places.
+                'area_division_id' => 'required|integer',
+                'area_district_id' => 'required|integer',
+                'area_upazila_id' => 'required|integer',
+                'area_union_id' => 'required|integer',
                 'dealer_code' => 'nullable|string|max:40',
                 'reference_code' => 'nullable|string|max:40',
                 'phone' => 'required|string|max:30',
@@ -185,7 +192,17 @@ class CommandController extends Controller
                 // The first password, typed by the office. Empty: one is made and shown once.
                 'password' => 'nullable|string|min:8|max:64',
                 'reason' => ReasonFields::rule('partner.account_create', 1000),
-            ], ['permanent_place_id.required' => __('portal.acct_val_home_place_level')]);
+            ], [
+                'permanent_place_id.required' => __('portal.acct_val_home_place_level'),
+                'area_division_id.required' => __('portal.acct_val_area_division_required'),
+                'area_district_id.required' => __('portal.acct_val_area_district_required'),
+                'area_upazila_id.required' => __('portal.acct_val_area_upazila_required'),
+                'area_union_id.required' => __('portal.acct_val_area_union_required'),
+                'area_division_id.integer' => __('portal.acct_val_area_place_unknown'),
+                'area_district_id.integer' => __('portal.acct_val_area_place_unknown'),
+                'area_upazila_id.integer' => __('portal.acct_val_area_place_unknown'),
+                'area_union_id.integer' => __('portal.acct_val_area_place_unknown'),
+            ]);
             $media = [];
             foreach (PartnerKycDocuments::Kinds as $kind) {
                 if ($r->hasFile('kyc_'.$kind)) {
@@ -373,7 +390,12 @@ class CommandController extends Controller
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30',
             // A new permanent (home) address for a partner: the deepest place picked, an upazila or a union.
-            'permanent_place_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer']]);
+            'permanent_place_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer'],
+            // A new area chain for a partner's own purchases: all four places, or none to keep the saved one.
+            'area_division_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer'],
+            'area_district_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer'],
+            'area_upazila_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer'],
+            'area_union_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer']]);
         if ($r->has('sponsor_id')) {
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
             if ($newSponsorId) {
@@ -441,17 +463,27 @@ class CommandController extends Controller
                 }
             }
         }
+        // The four area places are changed together and checked against the seat the partner will have.
+        $areaInput = array_intersect_key($d, array_flip(PartnerAccountProvisioning::AreaChainFields));
+        $d = array_diff_key($d, $areaInput);
+        $newAreaChain = null;
+        if ($isPartner && array_filter($areaInput, fn (mixed $value): bool => filled($value)) !== []) {
+            $seat = ($placeCode !== '' ? PlaceCode::findByCode($placeCode) : null) ?? $partners->seatPlaceOf($user);
+            $newAreaChain = $partners->areaChain($areaInput, $seat);
+            $d['profile'] = [...(is_array($d['profile'] ?? null) ? $d['profile'] : ($user->profile ?? [])), PlaceGeographyResolver::AreaChainKey => $newAreaChain];
+        }
         $statusChange = null;
         $sponsorChange = null;
         $directoryChange = null;
         $phoneChange = null;
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, $newHome, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange) {
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, $newHome, $newAreaChain, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange) {
             CommissionWallet::lock();
             $reason = ReasonFields::text($d['reason'] ?? null);
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $homePlaces = static fn (array $home): array => array_intersect_key($home, array_flip(['division', 'district', 'upazila', 'union']));
             $homeBefore = $homePlaces(PartnerProfileCard::permanentAddress(PartnerProfileLock::profileOf($locked)));
+            $areaBefore = data_get(PartnerProfileLock::profileOf($locked), PlaceGeographyResolver::AreaChainKey);
             $previousStatus = (string) $locked->status;
             $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
             $previousDirectoryVisible = (bool) $locked->directory_visible;
@@ -521,6 +553,9 @@ class CommandController extends Controller
                 if ($homeAfter !== $homeBefore) {
                     Audit::record($r->user()->id, 'account.permanent_address_updated', (string) $user->id, ['before' => $homeBefore, 'after' => $homeAfter, 'reason' => $reason]);
                 }
+            }
+            if ($newAreaChain !== null && $newAreaChain !== $areaBefore) {
+                Audit::record($r->user()->id, 'account.area_chain_updated', (string) $user->id, ['before' => is_array($areaBefore) ? $areaBefore : null, 'after' => $newAreaChain, 'reason' => $reason]);
             }
             if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
                 $statusChange = [

@@ -118,6 +118,7 @@ abstract class TestCase extends BaseTestCase
         url()->forceRootUrl($root);
         $parameters = $this->solveLoginCaptcha($method, $uri, $parameters);
         $parameters = $this->givePartnerAPermanentAddress($method, $uri, $parameters);
+        $parameters = $this->givePartnerAnAreaChain($method, $uri, $parameters);
 
         return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
     }
@@ -139,6 +140,45 @@ abstract class TestCase extends BaseTestCase
         }
 
         return [...$parameters, 'permanent_place_id' => $this->permanentHomeUpazila()->id];
+    }
+
+    /**
+     * Adding a dealer or sub-dealer requires the four area places (client, 2026-11-22). Posts that
+     * mention none of them get the chain through the posted place code: its own place and the
+     * places above it, and below it the base place, else the first coded place, else a coded test
+     * place made for it. Tests about the area chain pass their own fields and are left alone.
+     *
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    private function givePartnerAnAreaChain(string $method, string $uri, array $parameters): array
+    {
+        $path = parse_url($uri, PHP_URL_PATH);
+        $fields = ['division' => 'area_division_id', 'district' => 'area_district_id', 'upazila' => 'area_upazila_id', 'union' => 'area_union_id'];
+        if (strtoupper($method) !== 'POST' || ! is_string($path) || ! preg_match('#/commands/accounts$#', $path)
+            || ! in_array($parameters['role'] ?? null, ['dealer', 'sub_dealer'], true) || array_intersect_key($parameters, array_flip($fields)) !== []) {
+            return $parameters;
+        }
+        $place = PlaceCode::findByCode(trim((string) ($parameters['place_code'] ?? '')));
+        if (! $place instanceof PlaceCode || ! array_key_exists((string) $place->level, $fields)) {
+            // No usable place: the place code check answers first, so any number does here.
+            return [...$parameters, ...array_fill_keys(array_values($fields), 0)];
+        }
+        $chain = [];
+        for ($cursor = $place; $cursor instanceof PlaceCode; $cursor = $cursor->parent_id ? PlaceCode::query()->find($cursor->parent_id) : null) {
+            $chain[$cursor->level] = $cursor->id;
+        }
+        $levels = array_keys($fields);
+        $below = $place;
+        foreach (array_slice($levels, array_search($place->level, $levels, true) + 1) as $level) {
+            $children = PlaceCode::query()->where('parent_id', $below->id)->where('level', $level)->where('is_active', true)->orderBy('id')->get()
+                ->filter(fn (PlaceCode $child): bool => $child->isReadyForAssignment());
+            $below = $children->firstWhere('id', $below->base_place_id) ?? $children->first()
+                ?? PlaceCode::factory()->state(['level' => $level, 'parent_id' => $below->id, 'name' => 'Test Area '.ucfirst($level).' '.$below->id, 'code' => PlaceCode::normalizeCode((string) fake()->unique()->numberBetween(7000000, 7999999))])->create();
+            $chain[$level] = $below->id;
+        }
+
+        return [...$parameters, ...array_map(fn (string $level): int => (int) ($chain[$level] ?? 0), array_flip($fields))];
     }
 
     /**
