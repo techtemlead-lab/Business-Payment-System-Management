@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     Check,
     Clock,
@@ -104,6 +104,8 @@ export default function TransactionProgressStepper({
     className = '',
 }: TransactionProgressStepperProps) {
     const translate = useT();
+    // Phones show one line with the current step; the full list opens on tap (stylesheet mobile-office.css).
+    const [expanded, setExpanded] = useState(false);
     const t = (k: string, fallback: string) => {
         const val = translate('portal', k);
         return val !== k ? val : fallback;
@@ -352,7 +354,7 @@ export default function TransactionProgressStepper({
 
     return (
         <section
-            className={`panel transaction-progress-stepper tps-panel ${className}`}
+            className={`panel transaction-progress-stepper tps-panel${expanded ? ' is-expanded' : ''} ${className}`}
             data-tour="order-progress-stepper"
         >
             <style>{`
@@ -598,6 +600,18 @@ export default function TransactionProgressStepper({
                     </strong>
                 </div>
             </div>
+
+            {(() => {
+                const current = steps.find((step) => ['active', 'warning', 'failed'].includes(step.state)) ?? steps[steps.length - 1];
+                return (
+                    <button type="button" className="tps-summary" aria-expanded={expanded} onClick={() => setExpanded((open) => !open)}>
+                        <span className="tps-summary-step">{translate('orders_stock', 'tps_summary_step', { n: String(current.stepNumber), total: String(steps.length) })}</span>
+                        <b className="tps-summary-name">{current.title}</b>
+                        <span className={`step-badge state-${current.state}`}>{current.statusBadge}</span>
+                        <span className="tps-summary-toggle">{translate('orders_stock', expanded ? 'tps_hide' : 'tps_show')}</span>
+                    </button>
+                );
+            })()}
 
             <div className="stepper-track">
                 {steps.map((step) => (
