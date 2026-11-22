@@ -127,4 +127,10 @@
   .order-number { overflow-wrap: anywhere; }
   .order-number .order-number-prefix { font-size: .8em !important; color: var(--ds-text-muted, #455364) !important; }
   :is(.dealer-shell, .subdealer-shell) .inline-actions .button.small { min-height: 44px; }
+
+  /* The empty order list: its one cell is a flex row in the card layout, so the dashed box ran past
+     the right edge and cut the words. One plain block, no second frame. */
+  :root .app-shell .ppm-cart tr:has(.ppm-empty) { padding: 0; border: 0; background: transparent; }
+  :root .app-shell .ppm-cart td:has(> .ppm-empty) { display: block; text-align: center; }
+  :root .app-shell .ppm-cart .hub-empty.ppm-empty { box-sizing: border-box; width: 100%; margin: 0; padding: 28px 12px; }
 }
