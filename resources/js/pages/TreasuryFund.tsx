@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useForm, usePage } from '@inertiajs/react';
-import { FormErrors, date, label, money, number } from '../components/UI';
+import { DateInput, FormErrors, date, label, money, number } from '../components/UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
 import { FundFigures, type FundCardData } from '../components/treasury/FundCard';
@@ -161,7 +161,7 @@ function ReverseSpend({ spendId }: { spendId: string }) {
             form.post(`${FUNDS_COMMAND_ROOT}/spends/${spendId}/reverse`, { preserveScroll: true, onSuccess: () => setOpen(false) });
         }}>
             <small className="muted">{translate('funds', 'reverse_spend_hint')}</small>
-            <label>{translate('funds', 'reverse_returned_on')}<input type="date" required value={form.data.returned_on} onChange={(event) => form.setData('returned_on', event.target.value)} /></label>
+            <label>{translate('funds', 'reverse_returned_on')}<DateInput required value={form.data.returned_on} onChange={(event) => form.setData('returned_on', event.target.value)} /></label>
             <input aria-label={translate('funds', 'fld_reason')} placeholder={translate('funds', 'fld_reason')} required minLength={5} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
             <FormErrors errors={form.errors} />
             <div className="ops-row is-inline">
