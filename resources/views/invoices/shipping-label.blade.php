@@ -16,7 +16,9 @@
         .sender { font-size: 14px; border-top: 1px dashed #777; padding-top: 12px; margin-bottom: 12px; }
         dl { display: grid; grid-template-columns: 140px 1fr; gap: 3px 10px; margin: 0; border-top: 1px dashed #777; padding-top: 12px; }
         dt { color: #444; } dd { margin: 0; font-weight: 600; }
-        @media print { body { background: #fff; } .label { margin: 0; max-width: none; border-width: 1px; } }
+        /* Margin 0 removes the browser's own date, title and address lines; the body padding keeps the label off the paper edge. */
+        @page { margin: 0; }
+        @media print { body { background: #fff; padding: 10mm; } .label { margin: 0; max-width: none; border-width: 1px; } }
     </style>
 </head>
 <body>
