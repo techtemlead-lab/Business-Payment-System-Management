@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\RankRoyaltyFunds;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Finance\TreasuryFunds;
 use App\Domain\Orders\OrderService;
@@ -318,7 +319,7 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         $this->purchase($dealerMo, '30000.00');
         $this->purchase($subMo, '30000.00');
         $this->purchase($subMoShort, '29999.00');
-        $pool = (int) CommissionAllocation::where('category', 'rank_royalty_pool')->get()->sum(fn ($fund): int => Money::cents((string) $fund->amount));
+        $pool = (int) CommissionAllocation::whereIn('category', RankRoyaltyFunds::Categories)->get()->sum(fn ($fund): int => Money::cents((string) $fund->amount));
 
         $result = $this->closeMonth('royalty');
 

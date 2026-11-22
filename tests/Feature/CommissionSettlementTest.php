@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Commissions\RankRoyaltyFunds;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Orders\OrderService;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -320,19 +321,19 @@ class CommissionSettlementTest extends TestCase
             $sum += Money::cents($tier['allocated']) + Money::cents($tier['rolled_to_reserve']);
         }
 
-        // The 4% fund is ৳13.33: four ৳3.33 rank funds, and the one paisa that does not divide goes to the Commission extra fund.
+        // The 4% of ৳333.33 is ৳13.3332: the order posts four equal ৳3.33 rank funds; the paisa that does not divide
+        // went to the Commission extra fund with the order's surplus when the order was posted, so the close has none.
         $this->assertSame(1332, $sum);
-        $this->assertSame('0.01', $result['total_to_commission_extra_fund']);
+        $this->assertSame('0.00', $result['total_to_commission_extra_fund']);
         $this->assertSame('empty_pool', app(CommissionService::class)->settleRankRoyaltyPool('2026-09')['status']);
-        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'rank_royalty_pool', 'status' => 'settled']);
+        foreach (RankRoyaltyFunds::Categories as $category) {
+            $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => $category, 'status' => 'settled', 'amount' => '3.33']);
+        }
+        $this->assertDatabaseMissing('commission_allocations', ['order_id' => $order->id, 'category' => RankRoyaltyFunds::LegacyCategory]);
         $this->assertSame(333, Money::cents((string) DB::table('commission_settlement_payouts')->where('user_id', $leader->id)->where('kind', 'royalty')->sum('amount')));
-        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'company_commission_benefits_fund', 'status' => 'reserved', 'amount' => '0.01']);
-        $this->assertDatabaseHas('commission_allocations', [
-            'order_id' => $order->id,
-            'category' => 'company_profit_fund',
-            'status' => 'reserved',
-            'amount' => '9.99',
-        ]);
+        // The AM, SM and ED funds had no holder: one ৳3.33 company profit row each.
+        $this->assertSame(3, DB::table('commission_allocations')->where('order_id', $order->id)->where('category', 'company_profit_fund')
+            ->where('status', 'reserved')->where('amount', '3.33')->count());
         $this->assertSame('9.99', $result['total_to_company_profit']);
     }
 
@@ -354,9 +355,10 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('30000000.00', $royalty['total_to_company_profit']);
         $this->assertSame('20000000.00', $salary['total_pool']);
         $this->assertSame(Money::cents('20000000.00'), Money::cents($salary['total_distributed']) + Money::cents($salary['total_to_company_profit']));
-        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'company_profit_fund',
-            'amount' => '30000000.00', 'original_amount' => '30000000.00', 'status' => 'reserved']);
-        $this->assertDatabaseMissing('commission_allocations', ['order_id' => $order->id, 'category' => 'rank_royalty_pool', 'status' => 'pending']);
+        // One ৳1 crore company profit row for each of the AM, SM and ED funds.
+        $this->assertSame(3, DB::table('commission_allocations')->where('order_id', $order->id)->where('category', 'company_profit_fund')
+            ->where('metadata->settlement_kind', 'royalty')->where('amount', '10000000.00')->where('original_amount', '10000000.00')->where('status', 'reserved')->count());
+        $this->assertDatabaseMissing('commission_allocations', ['order_id' => $order->id, 'category' => 'rank_royalty_mo_pool', 'status' => 'pending']);
         $this->assertTrue(app(FinancialReadiness::class)->inspect()['checks']['allocation_totals']);
     }
 
@@ -539,11 +541,9 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('0.00', $result['total_distributed']);
         $this->assertSame('400.00', $result['total_to_company_profit']);
         $this->assertDatabaseMissing('commission_settlement_payouts', ['user_id' => $leader->id]);
-        $this->assertDatabaseHas('commission_allocations', [
-            'category' => 'company_profit_fund',
-            'status' => 'reserved',
-            'amount' => '400.00',
-        ]);
+        // Each of the four ৳100 rank funds goes to company profit on its own row.
+        $this->assertSame(4, DB::table('commission_allocations')->where('category', 'company_profit_fund')->where('status', 'reserved')
+            ->where('metadata->settlement_kind', 'royalty')->where('amount', '100.00')->count());
     }
 
     public function test_mo_requires_five_lakh_in_qualifying_own_purchases(): void
