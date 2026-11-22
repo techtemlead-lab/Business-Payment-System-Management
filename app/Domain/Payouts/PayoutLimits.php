@@ -24,7 +24,8 @@ final class PayoutLimits
     /** Mobile money default: what one transfer to a personal account can carry. Bank has no limit of its own. */
     public const DefaultPerChannel = ['Bank' => null, 'bKash' => '30000.00', 'Nagad' => '30000.00', 'Rocket' => '30000.00'];
 
-    public const DefaultOfficeCash = '200000.00';
+    /** ৳1 crore (client, 2026-11-22; it was ৳2 lakh). The owner changes it in Finance settings. */
+    public const DefaultOfficeCash = '10000000.00';
 
     public const DefaultDueDays = 3;
 
