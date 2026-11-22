@@ -67,7 +67,8 @@ class User extends Authenticatable implements HasLocalePreference
                 $user->nid_hash = IdentityKeys::key(IdentityKeys::Nid, $user->nid);
             }
             if (! $user->exists || $user->isDirty('profile')) {
-                $user->birth_certificate_hash = IdentityKeys::key(IdentityKeys::BirthCertificate, ($user->profile ?? [])['birth_certificate_number'] ?? null);
+                $profile = $user->getAttribute('profile');
+                $user->birth_certificate_hash = IdentityKeys::key(IdentityKeys::BirthCertificate, is_array($profile) ? ($profile['birth_certificate_number'] ?? null) : null);
             }
             if ($user->exists && ($user->isDirty('password') || $user->isDirty('phone'))) {
                 $user->credentials_changed_at = now();
