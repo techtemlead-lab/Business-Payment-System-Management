@@ -3,13 +3,14 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\IdentityKeys;
+use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * One person, one account (client, 2026-11-22): the same mobile number, email, NID number or birth-certificate
- * number cannot open a second account.
+ * One person, one account, when the owner switches it on (it is OFF by default, owner 2026-11-22): the same mobile
+ * number, email, NID number or birth-certificate number cannot open a second account. While it is off, they can.
  */
 class AccountDuplicateIdentityTest extends TestCase
 {
@@ -40,9 +41,28 @@ class AccountDuplicateIdentityTest extends TestCase
         return User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
     }
 
+    private function switchOn(User $owner): void
+    {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($owner, true, 0);
+    }
+
+    public function test_with_the_switch_off_the_same_details_can_open_more_accounts(): void
+    {
+        $admin = $this->admin();
+        $this->assertFalse(IdentityKeys::enforced());
+        $this->actingAs($admin)->post('/commands/accounts', $this->payload('MNHC102'))->assertSessionHasNoErrors();
+
+        // The same mobile number, email and NID on a second account.
+        $this->actingAs($admin)->post('/commands/accounts', $this->payload('MNHC103'))->assertSessionHasNoErrors();
+
+        $this->assertSame(2, User::query()->where('email', 'rafiq.one@gmail.com')->count());
+        $this->assertSame(2, User::query()->where('phone', '01712345678')->count());
+    }
+
     public function test_the_same_number_email_nid_or_birth_certificate_cannot_open_a_second_account(): void
     {
         $admin = $this->admin();
+        $this->switchOn($admin);
         $this->actingAs($admin)->post('/commands/accounts', $this->payload('MNHC102'))->assertSessionHasNoErrors();
         $this->assertSame(1, User::query()->where('email', 'rafiq.one@gmail.com')->count());
 
@@ -62,6 +82,7 @@ class AccountDuplicateIdentityTest extends TestCase
     public function test_the_same_birth_certificate_number_cannot_open_a_second_account(): void
     {
         $admin = $this->admin();
+        $this->switchOn($admin);
         $birth = ['identity_type' => 'birth_certificate', 'birth_certificate_number' => '20051234567890123', 'nid' => ''];
         $this->actingAs($admin)->post('/commands/accounts', $this->payload('MNHC102', $birth))->assertSessionHasNoErrors();
 
@@ -73,6 +94,7 @@ class AccountDuplicateIdentityTest extends TestCase
     public function test_an_account_keeps_its_own_number_when_edited_but_cannot_take_anothers(): void
     {
         $admin = $this->admin();
+        $this->switchOn($admin);
         $first = User::factory()->create(['role' => 'dealer', 'nid' => '19851234567890123']);
         $second = User::factory()->create(['role' => 'dealer', 'nid' => '29851234567890124']);
 

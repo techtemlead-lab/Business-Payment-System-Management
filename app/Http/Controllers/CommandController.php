@@ -254,7 +254,7 @@ class CommandController extends Controller
             'role' => ['required', Rule::in($roles)],
             'dealer_code' => ['nullable', 'string', 'max:40', 'unique:users,dealer_code'],
             'name' => 'required|string|max:150',
-            'email' => 'required|email|max:254|unique:users,email',
+            'email' => ['required', 'email', 'max:254', IdentityKeys::enforced() ? Rule::unique('users', 'email') : 'nullable'],
             'phone' => 'required|string|max:30',
             'division' => 'nullable|string|max:80',
             'district' => 'nullable|string|max:80',
