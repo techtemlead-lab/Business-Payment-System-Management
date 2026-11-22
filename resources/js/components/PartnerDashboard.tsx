@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Building2, CalendarDays, Hash, Landmark, Mail, MapPin, Users } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
@@ -7,6 +7,7 @@ import { date, money, number, type Row } from './UI';
 import type { CompanyBenefits as CompanyBenefitsData, IncomeCard } from './mymoney/types';
 import CompanyBenefitsList from './mymoney/CompanyBenefits';
 import { useT } from '../shared/i18n/t';
+import { useIsPhone } from '../shared/useIsPhone';
 import AppointmentPill from './AppointmentPill';
 
 /** One line of the profile card: a small icon, a word and the value. */
@@ -24,12 +25,17 @@ function CardLine({ icon, label, children }: { icon: React.ReactNode; label: str
 function ProfileCard({ card }: { card: Row }) {
     const translate = useT();
     const type = card.type === 'sub_dealer' ? 'type_sub_dealer' : 'type_dealer';
+    const [moreOpen, setMoreOpen] = useState(false);
+    const isPhone = useIsPhone();
 
     return (
-        <aside className="pd-card pd-profile" data-tour="home-profile" aria-label={String(card.name ?? '')}>
+        <aside className={`pd-card pd-profile${moreOpen ? ' is-open' : ''}`} data-tour="home-profile" aria-label={String(card.name ?? '')}>
             <div className="pd-photo"><ProfilePhoto src={card.photo_url} initial={card.initial || '?'} variant="cover" /></div>
             <h2 className="pd-name">{card.name}</h2>
             <p className="pd-type"><AppointmentPill appointment={card.appointment} fallback={translate('cr_partner', type)} testId="home-appointment" /></p>
+            {isPhone && <button type="button" className="button small pd-more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>
+                {translate('cr_partner', moreOpen ? 'card_less' : 'card_more')}
+            </button>}
             <dl className="pd-lines">
                 {card.code && <CardLine icon={<Hash size={16} />} label={translate('cr21_identity', card.type === 'sub_dealer' ? 'label_code_sub_dealer' : 'label_code_dealer')}>{card.code}</CardLine>}
                 {card.type === 'sub_dealer' && <CardLine icon={<Building2 size={16} />} label={translate('cr21_identity', 'label_chamber')}>{card.shop_name || translate('cr21_identity', 'not_given')}</CardLine>}

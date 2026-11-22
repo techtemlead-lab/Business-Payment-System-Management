@@ -16,6 +16,7 @@ import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../shared/productSizes';
 import { amountInWords } from '../shared/orderAmountWords';
 import { useOrderCart } from '../shared/usePartnerCart';
+import { useIsPhone } from '../shared/useIsPhone';
 import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
 interface Props {
@@ -389,6 +390,8 @@ export default function ProductPurchaseMatrix({
     // The confirm step: refresh the account figure first, so the split shown is the one the server will use.
     // R2: emptying the whole cart asks first, so one slip of the finger does not lose a long order.
     const [clearAsk, setClearAsk] = useState(false);
+    const [moreOpen, setMoreOpen] = useState(false);
+    const isPhone = useIsPhone();
     const [confirm, setConfirm] = useState<null | { before: number; status: 'checking' | 'ready' | 'failed' }>(null);
     const askToConfirm = (e: React.FormEvent) => {
         e.preventDefault();
@@ -482,8 +485,18 @@ export default function ProductPurchaseMatrix({
                 </div>
             )}
 
-            <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />
-            <SchemeNotices schemes={runningSchemes} cartQuantities={Object.fromEntries(cart.map(item => [Number(item.product.id), item.quantity]))} />
+            {/* On a phone the reorder cards and running schemes fold under one row, so the order form comes first. */}
+            <div className={`ppm-more${moreOpen ? ' is-open' : ''}`}>
+                {isPhone && (repeatOrders.length > 0 || runningSchemes.length > 0) && (
+                    <button type="button" className="button ppm-more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>
+                        {page(moreOpen ? 'mobile_more_hide' : 'mobile_more_show')}
+                    </button>
+                )}
+                <div className="ppm-more-body">
+                    <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />
+                    <SchemeNotices schemes={runningSchemes} cartQuantities={Object.fromEntries(cart.map(item => [Number(item.product.id), item.quantity]))} />
+                </div>
+            </div>
             {repeatNotes.length > 0 && (
                 <div className="notice warning" role="status">
                     <ul>{repeatNotes.map(note => <li key={note}>{note}</li>)}</ul>
@@ -973,7 +986,7 @@ export default function ProductPurchaseMatrix({
                         </div>
 
                         {/* Payment & Submission */}
-                        <form onSubmit={askToConfirm} className="action-form">
+                        <form onSubmit={askToConfirm} className="action-form" id="ppm-order-form">
                             <h4 className="ppm-pay-title">
                                 {translate('portal', 'ppm_confirm_title')}
                             </h4>
@@ -1146,7 +1159,7 @@ export default function ProductPurchaseMatrix({
                                 </>}
                             </div>
 
-                            <fieldset className="ppm-sizes" data-testid="delivery-method">
+                            <fieldset className="ppm-sizes ppm-delivery" data-testid="delivery-method">
                                 <legend className="ops-field-label">{translate('order_delivery', 'method_label')}</legend>
                                 {(['courier', 'office'] as const).map(method => (
                                     <label key={method} className={`ppm-size${f.data.delivery_method === method ? ' is-on' : ''}`}>
@@ -1194,7 +1207,7 @@ export default function ProductPurchaseMatrix({
                             {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
                             <FormErrors errors={f.errors} className="error ppm-error" besideFields={['payment_account_id', 'proof', 'courier_choice', 'account_amount', 'delivery_method']} />
 
-                            <div className="ops-row is-end ops-mt-3">
+                            <div className="ops-row is-end ops-mt-3 ppm-submit-row">
                                 <button
                                     type="submit"
                                     className="button dark ppm-submit"
@@ -1214,6 +1227,19 @@ export default function ProductPurchaseMatrix({
                     </div>
                 )}
             </section>
+
+            {/* Phone only (hidden by CSS elsewhere): the total and the send button stay above the bottom tab bar. */}
+            {isPhone && cart.length > 0 && (
+                <div className="ppm-sticky-bar" data-testid="order-sticky-bar">
+                    <div className="ppm-sticky-total">
+                        <small>{page('mobile_total')}</small>
+                        <strong>{money(cartSummary.totalPayable)}</strong>
+                    </div>
+                    <button type="submit" form="ppm-order-form" className="button dark" disabled={f.processing || walletPartProblem !== null}>
+                        {f.processing ? translate('portal', 'submitting') : page('mobile_send')}
+                    </button>
+                </div>
+            )}
 
             {clearAsk && (
                 <Modal

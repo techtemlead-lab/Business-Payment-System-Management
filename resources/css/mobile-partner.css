@@ -1,0 +1,130 @@
+/*
+ * Dealer and sub-dealer pages on a phone (390 px). Every rule is inside the phone media query, so the
+ * desktop and tablet screens are untouched. Partner screens are zoomed 1.15 by default (screens-text-size.css):
+ * heights below are CSS pixels, so 44 px here is at least 44 real pixels.
+ * The bottom tab bar height comes from `--chrome-bottom-h` (set on `.app-shell` by the shell stylesheet).
+ */
+@media (max-width: 767px) {
+  /* ---------- /purchase: the order form comes first, the sticky bar keeps the total and the send button in reach ---------- */
+  .b2b-purchase-container { padding-bottom: 96px; }
+  .b2b-purchase-container > .ppm-hero { order: 0; padding: 12px 14px; }
+  .b2b-purchase-container .ppm-hero-sub { display: none; }
+  .b2b-purchase-container .ppm-hero .ppm-hero-title { margin: 0; font-size: 1.1rem; }
+  .b2b-purchase-container > [data-testid="order-with-money"] { order: 1; }
+  .b2b-purchase-container > .ppm-added { order: 2; }
+  .b2b-purchase-container > .ppm-builder { order: 3; }
+  .b2b-purchase-container > .ppm-panel:not(.ppm-builder) { order: 4; }
+  .b2b-purchase-container > .ppm-more { order: 5; display: flex; flex-direction: column; gap: 12px; }
+  .b2b-purchase-container > .notice.warning { order: 5; }
+  .ppm-more:not(.is-open) .ppm-more-body { display: none; }
+  .ppm-more-body { display: flex; flex-direction: column; gap: 12px; }
+  .ppm-more-toggle { width: 100%; justify-content: center; min-height: 48px; font-weight: 700; }
+
+  /* Text boxes at 16 px so a phone does not zoom in when one is touched. */
+  .b2b-purchase-container :is(input, select, textarea) { font-size: 16px; }
+  .app-shell .b2b-purchase-container :is(select, input).ppm-control { min-height: 48px; height: 48px; }
+
+  /* Quick-add chips and the quantity stepper: finger size. */
+  .app-shell .b2b-purchase-container button.ppm-chip { min-height: 44px; min-width: 44px; padding: 4px 14px; font-size: 15px; }
+  .app-shell .b2b-purchase-container .ppm-stepper > button { width: 44px; height: 44px; font-size: 18px; }
+  .app-shell .b2b-purchase-container .ppm-stepper > input,
+  .app-shell .b2b-purchase-container .ppm-stepper > input:focus { height: 44px; min-height: 44px; width: 52px; font-size: 16px; }
+  .app-shell .b2b-purchase-container button.ppm-icon-btn { min-width: 44px; min-height: 44px; }
+  .app-shell .b2b-purchase-container .ppm-clear { min-height: 44px; display: inline-flex; align-items: center; }
+
+  /* Delivery choice: two equal boxes side by side (courier / office), 52 px high. */
+  .app-shell .b2b-purchase-container fieldset.ppm-delivery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app-shell .b2b-purchase-container fieldset.ppm-delivery legend { grid-column: 1 / -1; }
+  .app-shell .b2b-purchase-container fieldset.ppm-delivery label.ppm-size { min-width: 0; min-height: 52px; align-items: center; justify-content: center; text-align: center; }
+
+  /* The send button inside the form is replaced by the sticky bar. */
+  .b2b-purchase-container .ppm-submit-row { display: none; }
+  .ppm-sticky-bar {
+    position: fixed; left: 0; right: 0; z-index: 44;
+    bottom: calc(var(--chrome-bottom-h, 56px) + env(safe-area-inset-bottom));
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 16px; background: var(--ds-surface, #fff); border-top: 1px solid var(--ds-line, #dfe5e0);
+    box-shadow: 0 -6px 18px rgba(11, 31, 51, .12);
+  }
+  .ppm-sticky-total { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+  .ppm-sticky-total small { color: var(--ds-text-muted, #455364); font-weight: 600; }
+  .ppm-sticky-total strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ppm-sticky-bar .button { flex: 1 1 auto; max-width: 220px; min-height: 52px; justify-content: center; font-size: 1rem; font-weight: 700; }
+
+  /* ---------- Home: money first, a short profile, the rest behind one button ---------- */
+  .pd-middle { display: contents; }
+  .pd-totals { order: -3; }
+  .pd-profile { order: -2; }
+  .pd-idboxes { order: -1; }
+  .pd-profile:not(.is-open) .pd-lines { display: none; }
+  .pd-more-toggle { grid-column: 1 / -1; justify-content: center; min-height: 44px; margin-top: 10px; font-weight: 700; }
+  .pd-totals strong, .ph-today-grid strong { white-space: nowrap; overflow-wrap: normal; font-size: 1.15rem; }
+  .ph-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ph-today-grid > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  /* ---------- Profile: only filled fields on a phone ---------- */
+  .profile-grid > .is-empty { display: none; }
+
+  /* ---------- Agreement: one card, clause by clause, accept bar above the tab bar ---------- */
+  .agr-panel { padding: 12px; }
+  .agr-text { border: 0; padding: 0; }
+  .agr-clauses { display: flex; flex-direction: column; gap: 8px; }
+  .agr-intro { margin: 0 0 4px; white-space: pre-line; line-height: 1.7; overflow-wrap: anywhere; }
+  .agr-clause { border: 1px solid var(--ds-line, #dfe5e0); border-radius: 12px; background: var(--ds-surface, #fff); }
+  .agr-clause > summary { display: flex; align-items: center; min-height: 48px; padding: 8px 14px; font-weight: 700; line-height: 1.5; cursor: pointer; }
+  .agr-clause[open] > summary { border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
+  .agr-clause-text { padding: 10px 14px 14px; white-space: pre-line; line-height: 1.7; overflow-wrap: anywhere; }
+  :is(.dealer-shell, .subdealer-shell) .agr-accept { bottom: calc(var(--chrome-bottom-h, 56px) + env(safe-area-inset-bottom)); }
+
+  /* ---------- Catalog: two cards per row, short and glanceable ---------- */
+  .pcart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pcart-picture { padding: 8px; }
+  .pcart-body { padding: 10px; gap: 6px; }
+  .pcart-title { min-height: 0; font-size: 15px; line-height: 1.35; }
+  .pcart-group, .pcart-note { display: none; }
+  .pcart-price strong { font-size: 18px; }
+  .pcart-price-row { padding-top: 6px; }
+  .pcart-actions { grid-template-columns: 1fr; }
+  .pcart-now { display: none; }
+  .pcart-add { min-height: 44px; font-size: 14px; padding: 6px; }
+  .pcart-details { min-height: 44px; font-size: 13px; }
+
+  /* ---------- My income: heads with no money fold away, no sideways table ---------- */
+  .mm-heads:not(.show-zero) tr.is-zero { display: none; }
+  .mm-heads-wrap { overflow-x: visible; }
+  .mm-zero-toggle { width: 100%; justify-content: center; min-height: 48px; margin-top: 12px; font-weight: 700; }
+
+  /* ---------- Orders and team-orders: summary tiles two to a row, amounts on one line ---------- */
+  :is(.dealer-shell, .subdealer-shell) .metric-grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric { padding: 10px 12px; }
+  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric strong { font-size: 1.1rem; white-space: nowrap; overflow-wrap: normal; }
+  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric span { font-size: .85rem; }
+  :is(.dealer-shell, .subdealer-shell) .order-totals { padding: 12px 12px 0; }
+  :is(.dealer-shell, .subdealer-shell) .order-filters .order-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+  :is(.dealer-shell, .subdealer-shell) .order-filters > .button { width: 100%; justify-content: center; min-height: 48px; }
+
+  /* ---------- Referral tree (/network): fits the width, no sideways swipe ---------- */
+  .app-shell .ptl-tree { overflow-x: visible; padding-left: 0; list-style: none; }
+  .app-shell .ptl-tree ul { list-style: none; margin: 6px 0 0; padding-left: 12px; border-left: 3px solid var(--ds-brand-soft, #e3f1eb); }
+  .app-shell .ptl-branch { margin: 8px 0; }
+  .ptl-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; min-height: 48px; padding: 6px 4px; cursor: pointer; line-height: 1.45; }
+  .ptl-sum-name { flex: 1 1 100%; overflow-wrap: anywhere; }
+  .ptl-sum-sep { display: none; }
+  .ptl-sum-code { color: var(--ds-text-muted, #455364); }
+  .ptl-sum-depth { padding: 1px 10px; border-radius: 999px; background: var(--ds-brand-soft, #e3f1eb); color: var(--ds-brand-text, #00694d); font-size: .85rem; font-weight: 700; }
+  .ptl-branch > details > .text-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .ptl-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .ptl-modes > .button { justify-content: center; min-height: 44px; padding: 4px 6px; font-size: .9rem; text-align: center; }
+  .ptl-modes > a.button { grid-column: 1 / -1; }
+
+  /* ---------- Order detail: a short progress list, current step opened ---------- */
+  :root .app-shell .transaction-progress-stepper .stepper-track { gap: 6px; }
+  :root .app-shell .transaction-progress-stepper .step-card { padding: 8px 12px; gap: 4px; }
+  :root .app-shell .transaction-progress-stepper .step-name { margin: 0; font-size: 1rem; }
+  :root .app-shell .transaction-progress-stepper .step-card:is(.state-completed, .state-upcoming) .step-desc,
+  :root .app-shell .transaction-progress-stepper .step-card.state-completed .step-time { display: none; }
+  :root .app-shell .transaction-progress-stepper .step-card.state-upcoming { opacity: .8; }
+  .order-number { overflow-wrap: anywhere; }
+  .order-number .order-number-prefix { font-size: .8em !important; color: var(--ds-text-muted, #455364) !important; }
+  :is(.dealer-shell, .subdealer-shell) .inline-actions .button.small { min-height: 44px; }
+}
