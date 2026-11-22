@@ -77,6 +77,18 @@ class SupportDeskConversationTest extends TestCase
         $this->actingAs($partner)->onPortal('subdealer')->get("/commands/support-tickets/{$id}/attachment")->assertOk();
     }
 
+    public function test_the_attached_pdf_opens_in_the_browser_and_is_saved_only_when_asked(): void
+    {
+        $partner = User::factory()->subDealer()->create(['status' => 'active']);
+        $id = $this->ticketWithFile($partner);
+
+        $opened = $this->actingAs($partner)->onPortal('subdealer')->get("/commands/support-tickets/{$id}/attachment")->assertOk();
+        $this->assertStringStartsWith('inline', (string) $opened->headers->get('Content-Disposition'));
+
+        $saved = $this->actingAs($partner)->onPortal('subdealer')->get("/commands/support-tickets/{$id}/attachment?download=1")->assertOk();
+        $this->assertStringStartsWith('attachment', (string) $saved->headers->get('Content-Disposition'));
+    }
+
     public function test_nobody_else_can_open_the_attached_file(): void
     {
         $partner = User::factory()->subDealer()->create(['status' => 'active']);

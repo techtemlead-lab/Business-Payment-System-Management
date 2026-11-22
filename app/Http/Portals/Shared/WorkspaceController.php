@@ -395,7 +395,7 @@ class WorkspaceController extends Controller
             $r->filled('replacement_q') ? $r->string('replacement_q')->toString() : null,
         );
 
-        $claims = DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
+        $claims = DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at', DB::raw('(proof_path IS NOT NULL) AS has_proof'), 'proof_mime']);
 
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
             'commissionOutcome' => app(MixedOutcomeDecisions::class)->outcomeFor($order, $u),

@@ -7,7 +7,9 @@ use App\Domain\Notifications\PartnerEventEmail;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\ProofFile;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -220,7 +222,7 @@ final class SupportTickets
      * Opens the file attached to a request. Only the partner who sent it and the
      * office staff who run the support desk may open it; anyone else gets 404.
      */
-    public function openAttachment(User $viewer, string $id): StreamedResponse
+    public function openAttachment(User $viewer, string $id, Request $request): StreamedResponse
     {
         $ticket = DB::table('support_tickets')->where('id', $id)->first();
         $mayOpen = $ticket && ((int) $ticket->user_id === (int) $viewer->id
@@ -228,10 +230,7 @@ final class SupportTickets
         abort_unless($mayOpen && $ticket->attachment_path && Storage::disk('local')->exists($ticket->attachment_path), 404);
         Audit::record($viewer->id, 'support.attachment_opened', $id);
 
-        return Storage::disk('local')->response($ticket->attachment_path, 'support-file-'.$id.'.'.pathinfo($ticket->attachment_path, PATHINFO_EXTENSION), [
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return ProofFile::response($request, $ticket->attachment_path, 'support-file-'.$id.'.'.pathinfo($ticket->attachment_path, PATHINFO_EXTENSION));
     }
 
     /**

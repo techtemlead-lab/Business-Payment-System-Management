@@ -112,7 +112,10 @@ class PartnerChatTest extends TestCase
         $message = PartnerMessage::query()->firstOrFail();
         Storage::disk('local')->assertExists($message->attachment_path);
 
-        $this->actingAs($dealer)->onPortal('dealer')->get('/commands/messages/'.$message->id.'/photo')->assertOk();
+        $photo = $this->actingAs($dealer)->onPortal('dealer')->get('/commands/messages/'.$message->id.'/photo')->assertOk();
+        $this->assertStringStartsWith('inline', (string) $photo->headers->get('Content-Disposition'));
+        $this->assertSame('image/png', $photo->headers->get('Content-Type'));
+        $this->assertStringStartsWith('attachment', (string) $this->actingAs($dealer)->onPortal('dealer')->get('/commands/messages/'.$message->id.'/photo?download=1')->headers->get('Content-Disposition'));
         $this->actingAs($owner)->onPortal('sadmin')->get('/commands/messages/'.$message->id.'/photo')->assertOk();
         $this->actingAs($other)->onPortal('dealer')->get('/commands/messages/'.$message->id.'/photo')->assertNotFound();
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/messages', ['photo' => UploadedFile::fake()->create('virus.exe', 10)])

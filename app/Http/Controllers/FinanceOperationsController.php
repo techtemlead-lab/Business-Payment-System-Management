@@ -19,6 +19,7 @@ use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 use App\Support\PdfFonts;
 use App\Support\PdfPaper;
+use App\Support\ProofFile;
 use App\Support\RankLabel;
 use App\Support\ReasonFields;
 use App\Support\SpreadsheetCell;
@@ -283,7 +284,8 @@ class FinanceOperationsController extends Controller
         abort_unless($path && Storage::disk('local')->exists($path), 404);
         Audit::record($request->user()->id, $kind.'.receipt_downloaded', $id);
 
-        return Storage::disk('local')->download($path, $kind.'-'.$id.'.'.pathinfo($path, PATHINFO_EXTENSION), ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+        // Pictures and PDFs open in the browser (the page shows them in a pop-up or a new tab); ?download=1 saves the file.
+        return ProofFile::response($request, $path, $kind.'-'.$id.'.'.pathinfo($path, PATHINFO_EXTENSION));
     }
 
     public function export(Request $request, ReportData $reports): Response

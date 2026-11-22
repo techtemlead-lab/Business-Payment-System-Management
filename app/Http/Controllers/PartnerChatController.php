@@ -6,10 +6,10 @@ use App\Domain\Support\ChatRouting;
 use App\Domain\Support\PartnerChat;
 use App\Models\PartnerMessage;
 use App\Models\User;
+use App\Support\ProofFile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -67,11 +67,6 @@ class PartnerChatController extends Controller
     {
         $message = $chat->attachmentFor($request->user(), $message);
 
-        return Storage::disk('local')->response($message->attachment_path, null, [
-            'Content-Type' => $message->attachment_mime ?? 'image/jpeg',
-            'Cache-Control' => 'private, no-store',
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Disposition' => 'inline',
-        ]);
+        return ProofFile::response($request, $message->attachment_path, 'chat-photo-'.$message->id.'.'.pathinfo($message->attachment_path, PATHINFO_EXTENSION));
     }
 }

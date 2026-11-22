@@ -75,6 +75,36 @@ class WithdrawalTransferProofTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'receipt.viewed', 'subject' => $id, 'actor_id' => $dealer->id]);
     }
 
+    public function test_the_proof_opens_in_the_browser_by_default_and_is_saved_only_when_asked(): void
+    {
+        [$dealer, $id] = $this->approvedBkashWithdrawal();
+        $this->record($id, ['receipt' => ReceiptImage::make('bkash.png')])->assertSessionHasNoErrors();
+
+        // The page used to ask for ?view=1; the plain address now shows the picture too.
+        $plain = $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals/'.$id.'/receipt')->assertOk();
+        $this->assertStringStartsWith('inline', (string) $plain->headers->get('Content-Disposition'));
+        $this->assertSame('nosniff', $plain->headers->get('X-Content-Type-Options'));
+
+        $saved = $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals/'.$id.'/receipt?download=1')->assertOk();
+        $this->assertStringStartsWith('attachment', (string) $saved->headers->get('Content-Disposition'));
+        $this->assertDatabaseHas('audit_events', ['action' => 'receipt.downloaded', 'subject' => $id, 'actor_id' => $dealer->id]);
+        $this->assertDatabaseHas('audit_events', ['action' => 'receipt.viewed', 'subject' => $id, 'actor_id' => $dealer->id]);
+    }
+
+    public function test_a_pdf_proof_opens_in_a_tab_and_another_partner_is_still_refused(): void
+    {
+        [$dealer, $id] = $this->approvedBkashWithdrawal();
+        $this->record($id, ['receipt' => UploadedFile::fake()->create('slip.pdf', 30, 'application/pdf')])->assertSessionHasNoErrors();
+
+        $pdf = $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals/'.$id.'/receipt')->assertOk();
+        $this->assertStringStartsWith('inline', (string) $pdf->headers->get('Content-Disposition'));
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+
+        $stranger = User::factory()->dealer()->create(['status' => 'active']);
+        $this->actingAs($stranger)->onPortal('dealer')->get('/withdrawals/'.$id.'/receipt')->assertNotFound();
+        $this->actingAs($stranger)->onPortal('dealer')->get('/withdrawals/'.$id.'/receipt?download=1')->assertNotFound();
+    }
+
     public function test_another_partner_cannot_open_the_proof(): void
     {
         [, $id] = $this->approvedBkashWithdrawal();
