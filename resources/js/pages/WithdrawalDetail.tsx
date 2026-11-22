@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head, Link, router, useForm, usePage, usePoll } from '@inertiajs/react';
 import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
-import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, Printer } from 'lucide-react';
+import { Download, ExternalLink, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, Printer } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
 import { useT } from '../shared/i18n/t';
@@ -9,6 +9,7 @@ import { useReasonField } from '../shared/reasonFields';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 import WithdrawalFacts, { AmountWords, type WithdrawalFactsData } from '../components/payouts/WithdrawalFacts';
 import ReceiptPicker from '../components/payouts/ReceiptPicker';
+import { ProofLink, proofKindOf } from '../components/ProofViewer';
 import { HandOverDialog } from '../components/payouts/OfficePayoutList';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
@@ -445,13 +446,17 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 {w.proof_is_image && (
                     <figure className="wd-proof">
                         <figcaption><b>{translate('office_withdrawal', 'proof_title')}</b>{w.paid_at && <> · {translate('office_withdrawal', 'proof_sent_on', { date: date(w.paid_at) })}</>}</figcaption>
-                        <a href={`${base}/withdrawals/${w.id}/receipt?view=1`} target="_blank" rel="noopener">
-                            <img src={`${base}/withdrawals/${w.id}/receipt?view=1`} alt={translate('office_withdrawal', 'proof_alt')} loading="lazy" style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 8, border: '1px solid var(--ds-line, #e2e8f0)' }} />
-                        </a>
+                        <ProofLink href={`${base}/withdrawals/${w.id}/receipt`} kind="image" title={translate('office_withdrawal', 'proof_title')}>
+                            <img src={`${base}/withdrawals/${w.id}/receipt`} alt={translate('office_withdrawal', 'proof_alt')} loading="lazy" style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 8, border: '1px solid var(--ds-line, #e2e8f0)' }} />
+                        </ProofLink>
                     </figure>
                 )}
                 {w.has_receipt
-                    ? <a className="button" href={`${base}/withdrawals/${w.id}/receipt`}><Download size={17} />{translate('portal', 'wd_download_receipt')}</a>
+                    ? <p className="ops-row is-wrap">
+                        {/* A picture is already shown above and opens in a pop-up; a PDF opens in a new tab. */}
+                        {!w.proof_is_image && <ProofLink className="button" href={`${base}/withdrawals/${w.id}/receipt`} kind={proofKindOf(w.receipt_mime)}><ExternalLink size={17} />{translate('portal', 'proof_open_new_tab')}</ProofLink>}
+                        <a className="button" href={`${base}/withdrawals/${w.id}/receipt?download=1`} download><Download size={17} />{translate('portal', 'wd_download_receipt')}</a>
+                    </p>
                     : <p className="muted">{translate('portal', 'wd_receipt_pending')}</p>}
                 {payoutReceipt && <p className="ops-mt-3">
                     {translate('portal', 'prc_issued_line', { number: String(payoutReceipt.number), method: translate('portal', `payout_method_${payoutReceipt.method}`) })}{' '}
