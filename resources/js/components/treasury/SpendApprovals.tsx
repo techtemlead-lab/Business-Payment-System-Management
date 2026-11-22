@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Badge, FormErrors, Modal, date, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import { ProofLink } from '../ProofViewer';
 import { useReasonFields } from '../../shared/reasonFields';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
@@ -68,7 +69,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
             <dl className="office-facts">
                 {facts.map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}
                 {row.reason && <div><dt>{translate('funds', 'fld_note')}</dt><dd>{row.reason}</dd></div>}
-                {row.has_receipt && <div><dt>{translate('treasury', 'col_receipt')}</dt><dd><a className="text-link" href={`/commands/operations/receipts/reserve/${row.id}`}>{translate('treasury', 'view')}</a></dd></div>}
+                {row.has_receipt && <div><dt>{translate('treasury', 'col_receipt')}</dt><dd><ProofLink className="text-link" href={`/commands/operations/receipts/reserve/${row.id}`}>{translate('treasury', 'view')}</ProofLink></dd></div>}
                 {row.over_budget && <div><dt>{translate('funds', 'budget_head')}</dt><dd><Badge status="flagged" /></dd></div>}
                 {row.waiting_days !== undefined && <div><dt>{translate('funds', 'waiting_since')}</dt><dd>{translate('funds', 'waiting_days', { days: String(row.waiting_days) })}</dd></div>}
             </dl>
