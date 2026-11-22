@@ -29,6 +29,7 @@ final class RepeatOrderOptions
      *   order_id: string,
      *   number: string,
      *   ordered_on: string,
+     *   status: string,
      *   total: string,
      *   names: list<string>,
      *   items: list<array{product: array<string, mixed>, quantity: int, last_quantity: int, last_unit_price: string, price_changed: bool}>,
@@ -46,7 +47,7 @@ final class RepeatOrderOptions
             ->orderByDesc('id')
             ->limit(self::RecentOrders)
             ->with('lines:id,order_id,product_id,name,quantity,unit_price,is_free')
-            ->get(['id', 'number', 'created_at', 'total']);
+            ->get(['id', 'number', 'created_at', 'total', 'status']);
         if ($orders->isEmpty()) {
             return [];
         }
@@ -58,6 +59,22 @@ final class RepeatOrderOptions
             ->filter(fn (array $option): bool => $option['items'] !== [] || $option['skipped'] !== [])
             ->values()
             ->all();
+    }
+
+    /**
+     * One of the buyer's own orders as a cart option, whatever its age or status. The caller must already have
+     * checked that the order belongs to the buyer.
+     *
+     * @return array<string, mixed>
+     */
+    public function forOrder(User $buyer, Order $order): array
+    {
+        $order->loadMissing('lines:id,order_id,product_id,name,quantity,unit_price,is_free');
+        $productIds = $order->lines->pluck('product_id')->unique()->values()->all();
+        /** @var Collection<int, Product> $products */
+        $products = Product::query()->withSellableStock()->whereIn('id', $productIds)->get()->keyBy('id');
+
+        return $this->option($order, $products, $buyer);
     }
 
     /**
@@ -88,6 +105,7 @@ final class RepeatOrderOptions
             'order_id' => (string) $order->id,
             'number' => (string) $order->number,
             'ordered_on' => $order->created_at?->copy()->timezone((string) config('madina.business_timezone', 'Asia/Dhaka'))->toDateString() ?? '',
+            'status' => (string) $order->status,
             'total' => Money::decimal(Money::cents((string) $order->total)),
             'names' => $order->chargedLines()->pluck('name')->map(fn (mixed $name): string => (string) $name)->values()->all(),
             'items' => $items,
