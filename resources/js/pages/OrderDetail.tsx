@@ -19,6 +19,7 @@ import { returnedByLine } from '../components/office/portalShared';
 import { orderLineDiscountPercent } from '../components/orderLineDiscount';
 import OwedItemsPanel, { type OwedItem } from '../components/OwedItemsPanel';
 import ClaimDecision from '../components/ClaimDecision';
+import OrderNextStep, { type OrderNextStepData } from '../components/OrderNextStep';
 
 /** Units of a line still to send: not sent and not closed by a cancel. */
 const unsentOf = (line: Row) => Math.max(0, Number(line.quantity) - Number(line.dispatched) - Number(line.closed ?? 0));
@@ -78,12 +79,12 @@ function DispatchForm({ order, courierChoices, stockByBranch }: { order: Row; co
  * Store team: the partner took the goods at the office. One step takes everything still to send out of the
  * chosen branch's stock and marks the order delivered; no courier and no tracking number.
  */
-function OfficeHandoverForm({ order, stockByBranch }: { order: Row; stockByBranch: BranchStock[] }) {
+function OfficeHandoverForm({ order, stockByBranch, act = false }: { order: Row; stockByBranch: BranchStock[]; act?: boolean }) {
     const translate = useT();
     // One key for this hand-over: a double press records it once.
     const [handoverKey] = useState(() => randomUuid());
     const firstBranch = stockByBranch.find(branch => branch.branch_id === order.fulfillment_branch_id) ?? stockByBranch.find(branch => branch.can_send_all) ?? stockByBranch[0];
-    return <section className="panel narrow-panel" data-testid="office-handover">
+    return <section id="od-handover" className={`panel narrow-panel${act ? ' od-act' : ''}`} data-testid="office-handover">
         <h2>{translate('order_delivery', 'handover_title')}</h2>
         <p className="muted">{translate('order_delivery', 'handover_hint')}</p>
         {order.delivery_method !== 'office' && <p className="notice" role="note">{translate('order_delivery', 'handover_courier_order_note')}</p>}
@@ -116,13 +117,13 @@ function SupplyDateForm({ order }: { order: Row }) {
 }
 
 /** Pay what is due on this order without typing anything: cash at the office, or the partner's own account. */
-function PayWithoutDetails({ orderId, outstanding, payOptions }: { orderId: string; outstanding: string; payOptions?: { account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null }) {
+function PayWithoutDetails({ orderId, outstanding, payOptions, act = false }: { orderId: string; outstanding: string; act?: boolean; payOptions?: { account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null }) {
     const translate = useT();
     const balance = Number(payOptions?.account_available ?? 0);
     const due = Number(outstanding);
     const short = Math.round(due * 100) - Math.round(balance * 100);
     return <>
-        <section className="panel narrow-panel" data-testid="pay-at-office">
+        <section id="od-pay" className={`panel narrow-panel${act ? ' od-act' : ''}`} data-testid="pay-at-office">
             <h2>{translate('order_payment', 'office_pay_title')}</h2>
             <p className="muted">{translate('order_payment', 'office_pay_hint', { amount: money(outstanding) })}</p>
             <ActionForm action={`/commands/orders/${orderId}/payments`} fields={[]} defaults={{ channel: 'Office' }} submit={translate('order_payment', 'office_pay_button')} />
@@ -163,6 +164,35 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const canSendGoods = capabilities.includes('inventory') && (staffActions?.inventory?.edit ?? true) && staffOnOrder;
     const canChangeDelivery = (capabilities.includes('inventory') || capabilities.includes('order_review')) && staffOnOrder
         && ['submitted', 'held', 'approved'].includes(order.status) && shipments.length === 0;
+    // Phone: the one thing this person should do now (see OrderNextStep and mobile-office.css).
+    const nextStep: OrderNextStepData | null = (() => {
+        if (owner) {
+            if (parcelOnRoad) {
+                return { key: 'received', targetId: 'od-timeline' };
+            }
+            return paymentPrompt.ask_for_payment ? { key: 'pay', targetId: 'od-pay' } : null;
+        }
+        if (!staffOnOrder) {
+            return null;
+        }
+        if (capabilities.includes('finance') && canVerify && claims.some(claim => claim.status === 'pending')) {
+            return { key: 'verify', targetId: 'od-claims' };
+        }
+        if (capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status)) {
+            return { key: 'approve', targetId: 'od-review' };
+        }
+        if (capabilities.includes('inventory') && (staffActions?.inventory?.edit ?? true) && !pickup && ['approved', 'partially_dispatched'].includes(order.status)) {
+            return { key: 'courier', href: `/orders/${order.id}/courier` };
+        }
+        if (canSendGoods && itemsLeft && pickup && ['approved', 'partially_dispatched'].includes(order.status) && !parcelOnRoad) {
+            return { key: 'handover', targetId: 'od-handover' };
+        }
+        if (capabilities.includes('inventory') && parcelOnRoad) {
+            return { key: 'delivered', targetId: 'od-timeline' };
+        }
+        return null;
+    })();
+    const act = (id: string) => nextStep?.targetId === id;
     const [shareOpen, setShareOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const printUrl = `/orders/${order.id}/invoice/print`;
@@ -223,6 +253,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             )}
             <Badge status={['cancelled', 'approved'].includes(order.status) && shipments.some(shipment => shipment.status === 'returned') ? 'returned' : order.status} />
         </div></div>
+        <div className="od-flow">
+        <OrderNextStep step={nextStep} />
         {handledBy.length > 0 && <p className="notice" role="status" data-testid="handled-by">{translate('orders_stock', 'handled_by', { names: handledBy.join(', ') })}</p>}
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
         <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
@@ -252,7 +284,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <OrderMoneyBreakdown data={moneyBreakdown} />
         {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', officeCashWaiting ? 'office_waiting_title' : 'waiting_title')}</b><p>{translate('order_payment', officeCashWaiting ? 'office_waiting_body' : 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
-            <Table rows={order.lines} columns={[
+            <Table rows={order.lines} phoneColumns={['name', 'quantity', 'total']} columns={[
                 { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'col_ordered_quantity'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched - (returnedOf.get(Number(line.id)) ?? 0)) },
                 ...(returnedOf.size > 0 ? [{ key: 'returned', title: translate('office_orders', 'col_returned'), align: 'right' as const, render: (line: Row) => number(returnedOf.get(Number(line.id)) ?? 0) }] : []),
                 ...(anyGivenBack ? [{ key: 'given_back', title: translate('orders_stock', 'kind_return'), align: 'right' as const, render: (line: Row) => number(line.returned ?? 0) }] : []),
@@ -281,7 +313,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <OwedItemsPanel order={order} owedItems={owedItems} owner={owner} canSendGoods={canSendGoods} canRefund={staffOnOrder && capabilities.includes('finance')} unsentOf={unsentOf} />
             {itemsLeft && capabilities.includes('inventory') && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && auth.user.id !== order.user_id && <SupplyDateForm key={`${order.supply_eta ?? ''}|${order.supply_note ?? ''}`} order={order} />}
         </section>
-        <div className="two-column">
+        <div id="od-claims" className={`two-column${act('od-claims') ? ' od-act' : ''}`}>
             <section className="panel"><h2>{translate('portal', 'payment_claims')}</h2>
                 <Table rows={claims} columns={[
                     { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method'), render: (r: Row) => { const raw = String(r.channel ?? ''); const key = `pay_channel_${raw.toLowerCase()}`; const text = translate('portal', key); return raw === '' ? '—' : (text !== key ? text : raw); } }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
@@ -294,7 +326,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 {/* Two clear buttons, then a sheet with the amount and who paid (ClaimDecision posts the same approve/reason/cash_counted). */}
                 {capabilities.includes('finance') && canVerify && claims.filter(claim => claim.status === 'pending').map(claim => <ClaimDecision key={claim.id} claim={claim} order={order} />)}
             </section>
-            <section className="panel"><h2>{translate('portal', 'delivery_timeline')}</h2>
+            <section id="od-timeline" className={`panel${act('od-timeline') ? ' od-act' : ''}`}><h2>{translate('portal', 'delivery_timeline')}</h2>
                 {shipments.length ? shipments.map(shipment => {
                     const lines = typeof shipment.lines === 'string' ? JSON.parse(shipment.lines) : shipment.lines;
                     return <div className="timeline-item" key={shipment.id}><i /><div>
@@ -325,7 +357,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
         <PartlyDeliveredCommission />
         <OrderReturnsPanel order={order} data={returns} />
-        {owner && paymentPrompt.ask_for_payment && <PayWithoutDetails orderId={String(order.id)} outstanding={outstanding} payOptions={payOptions} />}
+        {owner && paymentPrompt.ask_for_payment && <PayWithoutDetails orderId={String(order.id)} outstanding={outstanding} payOptions={payOptions} act={act('od-pay')} />}
         {owner && paymentPrompt.ask_for_payment && <section className="panel narrow-panel">
             <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{fullPaymentRequired ? translate('portal', 'submit_full_payment_hint', { amount: money(outstanding) }) : translate('portal', 'submit_payment_reference_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
@@ -340,7 +372,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'proof', label: translate('portal', 'payment_proof_label'), type: 'file', required: true, accept: 'image/jpeg,image/png,image/webp,application/pdf', hint: translate('portal', 'payment_proof_hint') },
             ]} submit={translate('portal', 'submit_for_verification')} />
         </section>}
-        {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section className="panel narrow-panel">
+        {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section id="od-review" className={`panel narrow-panel${act('od-review') ? ' od-act' : ''}`}>
             <h2>{translate('portal', 'review_this_order')}</h2><p className="muted">{translate('portal', 'review_this_order_hint')}</p>
             {stockByBranch.length > 0 && <ul className="plain-list" data-testid="approval-stock">{Array.from(new Set<number>((order.lines ?? []).map((line: Row) => Number(line.product_id)))).map((productId: number) => {
                 const line = order.lines.find((other: Row) => Number(other.product_id) === productId);
@@ -353,9 +385,9 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', place: 'order.decision' },
             ]} submit={translate('portal', 'record_decision')} />
         </section>}
-        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && !pickup && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2>
+        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && !pickup && ['approved', 'partially_dispatched'].includes(order.status) && <section id="od-dispatch" className={`panel${nextStep?.key === 'courier' ? ' od-act' : ''}`}><h2>{translate('portal', 'dispatch_available_items')}</h2>
             <p><Link className="button dark" data-testid="choose-courier-link" href={`/orders/${order.id}/courier`}>{translate('courier', 'pick_open_link')}</Link></p><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} stockByBranch={stockByBranch} /></section>}
-        {canSendGoods && itemsLeft && ['approved', 'partially_dispatched'].includes(order.status) && !parcelOnRoad && <OfficeHandoverForm key={`${order.id}-${shipments.length}`} order={order} stockByBranch={stockByBranch} />}
+        {canSendGoods && itemsLeft && ['approved', 'partially_dispatched'].includes(order.status) && !parcelOnRoad && <OfficeHandoverForm key={`${order.id}-${shipments.length}`} order={order} stockByBranch={stockByBranch} act={act('od-handover')} />}
         <section className="panel"><h2>{translate('portal', 'order_activity')}</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
@@ -376,5 +408,6 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 return <div className="timeline-item" key={event.id}><i /><div><b>{title}</b><p>{dateTime(event.created_at)}{event.actor_name ? ` · ${event.actor_name}` : ''}{detail ? ` · ${detail}` : ''}</p></div></div>;
             }) : <p className="muted">{translate('portal', 'order_activity_empty')}</p>}
         </section>
+        </div>
     </Shell>;
 }

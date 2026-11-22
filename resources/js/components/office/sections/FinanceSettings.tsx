@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import OfficePage from '../OfficePage';
 import { actionAllowed } from '../../action-permissions';
 import { money, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
 import { useReasonField } from '../../../shared/reasonFields';
+import { useMobileSections } from '../../../shared/useMobileSections';
 import SettingsForm, { settingsBack, type SettingsField } from './SettingsForm';
 
 const root = '/commands/operations';
@@ -12,6 +13,9 @@ const root = '/commands/operations';
 /** Owner and finance money rules: one column, one thin line between the forms, each with its own reason and Save. */
 export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityWait, autoApproval, kycBeforeFirstWithdrawal, fullPaymentWhenOrdering, autoReleaseMatured, payoutLimits, withdrawalMethods, withdrawalWeek }: Row) {
     const translate = useT();
+    const sheetRef = useRef<HTMLDivElement>(null);
+    // Phone: each setting block is a heading that opens on tap, instead of a 6,700 px scroll.
+    useMobileSections(sheetRef, { selector: ':scope > .set-block', open: 1 });
     const { auth, financeActive, staffActions } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const withdrawalAction = `${root}/settings/withdrawal-minimum`;
@@ -24,7 +28,7 @@ export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityW
     return (
         <OfficePage title={translate('portal', 'finance_settings')} back={settingsBack(translate)}>
             {!financeActive && capabilities.includes('finance') && <p className="set-line">{translate('portal', 'ops_preview_finance_notice')}</p>}
-            <div className="set-sheet">
+            <div className="set-sheet" ref={sheetRef}>
                 {autoApproval && <AutoApprovalBlock setting={autoApproval} />}
                 {fullPaymentWhenOrdering && <OwnerSwitchBlock
                     setting={fullPaymentWhenOrdering}

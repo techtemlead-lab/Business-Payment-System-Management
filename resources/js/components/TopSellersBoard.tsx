@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Trophy } from 'lucide-react';
-import { Table, money, type Row } from './UI';
+import { DateInput, Table, money, type Row } from './UI';
 import { ReportFilterSheet } from './BranchPerformanceHub';
 import OfficePage from './office/OfficePage';
 import Figures from './office/Figures';
@@ -112,8 +112,8 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
     };
     const datePickers = (
         <>
-            <label>{translate('office_reports', 'top_sellers_from')}<input type="date" value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
-            <label>{translate('office_reports', 'top_sellers_to')}<input type="date" value={pickedTo} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
+            <label>{translate('office_reports', 'top_sellers_from')}<DateInput value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
+            <label>{translate('office_reports', 'top_sellers_to')}<DateInput value={pickedTo} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
         </>
     );
     const topTenTotal = entries.reduce((sum, entry) => sum + Math.round(Number(entry.amount ?? 0) * 100), 0) / 100;

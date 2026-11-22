@@ -1,0 +1,182 @@
+/*
+ * Office (manage.) and owner (sadmin.) pages on a phone.
+ * Everything that changes the layout sits inside the phone media query. The few rules before it only keep the
+ * phone-only elements out of sight on wider screens (they are in the page markup but have no meaning there).
+ *
+ * Needs, from the app shell: `--chrome-bottom-h` (height of the bottom tab bar, default 56px) and, if the top bar
+ * stays fixed, `--chrome-top-h` (its height, default 0px) for the one sticky switch on the commission page.
+ */
+
+/* ---- Not shown above the phone width ---------------------------------------------------------------------- */
+.app-shell .od-now,
+.app-shell .od-now-bar,
+.app-shell .tps-summary,
+.app-shell .cp-mode-sticky,
+.app-shell .msec-savebar,
+.app-shell .tsy-warn-link{display:none}
+/* A wrapper that adds no box on wide screens, so the page lays out exactly as before. */
+.app-shell .od-flow,
+.app-shell .tsy-warns{display:contents}
+
+@media (max-width:767px){
+  /* ---- Long forms: a list of sections that open on tap (useMobileSections) ---------------------------------- */
+  .app-shell .msec>.msec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .app-shell .msec>.msec-head::after{content:"";flex:none;width:10px;height:10px;margin-inline-end:4px;border-right:2px solid var(--ds-text-muted);border-bottom:2px solid var(--ds-text-muted);transform:rotate(45deg);transition:transform .15s}
+  .app-shell .msec:not(.msec-closed)>.msec-head::after{transform:rotate(-135deg)}
+  .app-shell .msec:not(.msec-closed)>.msec-head{margin-bottom:var(--ds-s-3)}
+  .app-shell .msec>.msec-head:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px;border-radius:var(--ds-r-md)}
+  .app-shell .msec.msec-closed{padding-block:var(--ds-s-2)}
+  .app-shell .msec.msec-closed>:not(.msec-head){display:none !important}
+  @media (prefers-reduced-motion:reduce){
+    .app-shell .msec>.msec-head::after{transition:none}
+  }
+
+  /* ---- Save button that stays in reach, above the bottom tab bar ---------------------------------------------- */
+  .app-shell .msec-savebar{position:fixed;left:0;right:0;bottom:calc(var(--chrome-bottom-h, 56px) + env(safe-area-inset-bottom, 0px));z-index:44;display:flex;align-items:center;gap:var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-4);background:var(--ds-surface);border-top:1px solid var(--ds-line);box-shadow:0 -6px 18px rgba(11,31,51,.1)}
+  .app-shell .msec-savebar>span{flex:1 1 auto;min-width:0;font-size:var(--ds-fs-sm);line-height:1.4;color:var(--ds-text-muted)}
+  .app-shell .msec-savebar .button{flex:1 1 180px;justify-content:center;min-height:48px;font-size:16px}
+  .app-shell .workspace-main:has(.msec-savebar),
+  .app-shell .workspace-main:has(.od-now-bar){padding-bottom:calc(var(--chrome-bottom-h, 56px) + 96px)}
+  /* The Enter hint means nothing on a phone. */
+  .app-shell .acf-submit>small.acf-note{display:none}
+
+  /* ---- Order page: what to do now, money first, the decision right after, the long parts last ------------------ */
+  .app-shell .od-flow{display:flex;flex-direction:column;min-width:0}
+  .app-shell .od-flow>*{order:10}
+  .app-shell .od-flow>.od-now{order:-30}
+  .app-shell .od-flow>.metric-grid{order:-20}
+  .app-shell .od-flow>.od-act{order:-10}
+  .app-shell .od-flow>[data-testid="order-money"]{order:30}
+  .app-shell .od-flow>:last-child{order:40}
+  .app-shell .od-flow>[id]{scroll-margin-top:84px}
+
+  .app-shell .od-now{display:flex;flex-direction:column;gap:2px;margin:0 0 var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);background:var(--ds-brand-soft);border:1px solid var(--ds-line);border-inline-start:4px solid var(--ds-brand);border-radius:var(--ds-r-lg);box-shadow:none}
+  .app-shell .od-now small{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+  .app-shell .od-now b{font-size:var(--ds-fs-lg);line-height:1.4;color:var(--ds-text)}
+  .app-shell .od-now-bar{position:fixed;left:0;right:0;bottom:calc(var(--chrome-bottom-h, 56px) + env(safe-area-inset-bottom, 0px));z-index:44;display:flex;align-items:center;gap:var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-4);background:var(--ds-surface);border-top:1px solid var(--ds-line);box-shadow:0 -6px 18px rgba(11,31,51,.1)}
+  .app-shell .od-now-bar>span{flex:0 1 auto;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+  .app-shell .od-now-bar .button{flex:1 1 auto;justify-content:center;min-height:48px;font-size:16px}
+
+  /* The three money tiles: total on its own line, then paid and still to pay side by side. */
+  .app-shell .od-flow>.metric-grid.three{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-2);margin-bottom:var(--ds-s-3)}
+  .app-shell .od-flow>.metric-grid.three .metric:first-child{grid-column:1/-1}
+  .app-shell .od-flow>.metric-grid.three .metric{padding:var(--ds-s-3) var(--ds-s-4)}
+  .app-shell .od-flow>.metric-grid.three .metric strong{margin:4px 0 2px;font-size:22px}
+  .app-shell .od-flow>.metric-grid.three .metric span{font-size:var(--ds-fs-sm)}
+
+  /* Invoice buttons: two across instead of three loose rows. */
+  .app-shell .order-title .ops-row.is-wrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-2)}
+  .app-shell .order-title .ops-row.is-wrap>.button{justify-content:center;min-height:44px}
+  .app-shell .order-title .ops-row.is-wrap>.badge{grid-column:1/-1;justify-self:start}
+  .app-shell .order-title .ops-row .odt-share-menu{left:0;right:0;min-width:0}
+
+  /* Progress: one line with the current step; the five cards open on tap. */
+  .app-shell .transaction-progress-stepper.tps-panel{padding:var(--ds-s-2) var(--ds-s-3)}
+  .app-shell .transaction-progress-stepper .stepper-head{display:none}
+  .app-shell .transaction-progress-stepper .tps-summary{display:flex;align-items:center;flex-wrap:wrap;gap:var(--ds-s-2);width:100%;min-height:52px;padding:var(--ds-s-2) var(--ds-s-3);text-align:left;color:var(--ds-text);background:var(--ds-surface-2);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);cursor:pointer}
+  .app-shell .transaction-progress-stepper .tps-summary-step{font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+  .app-shell .transaction-progress-stepper .tps-summary-name{flex:1 1 auto;font-size:var(--ds-fs-md);line-height:1.4}
+  .app-shell .transaction-progress-stepper .tps-summary-toggle{margin-inline-start:auto;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-brand-text)}
+  .app-shell .transaction-progress-stepper .tps-summary:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+  .app-shell .transaction-progress-stepper:not(.is-expanded) .stepper-track{display:none}
+  .app-shell .transaction-progress-stepper.is-expanded .stepper-track{margin-top:var(--ds-s-3);gap:var(--ds-s-2)}
+  .app-shell .transaction-progress-stepper .step-desc,
+  .app-shell .transaction-progress-stepper .step-time,
+  .app-shell .transaction-progress-stepper .step-badge{font-size:12px}
+
+  /* "Where this order's money went": a card per line instead of a five-column table. */
+  .app-shell .order-money-table{min-width:0 !important;width:100%}
+  .app-shell .order-money-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .app-shell .order-money-table,
+  .app-shell .order-money-table tbody,
+  .app-shell .order-money-table tfoot{display:block}
+  .app-shell .order-money-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line-soft)}
+  .app-shell .order-money-table tbody tr.table-empty-row{display:block}
+  .app-shell .order-money-table tbody td{display:block;padding:0;border:0;min-width:0;overflow-wrap:anywhere}
+  .app-shell .order-money-table tbody td:nth-child(1){grid-column:1;grid-row:1}
+  .app-shell .order-money-table tbody td:nth-child(3){grid-column:2;grid-row:1;text-align:right;font-weight:700}
+  .app-shell .order-money-table tbody td:nth-child(4){grid-column:1;grid-row:2}
+  .app-shell .order-money-table tbody td:nth-child(5){grid-column:2;grid-row:2;text-align:right}
+  .app-shell .order-money-table tbody td:nth-child(2){grid-column:1/-1;grid-row:3;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+  .app-shell .order-money-table tfoot tr{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4)}
+  .app-shell .order-money-table tfoot td{display:block;padding:0;border:0}
+  .app-shell .order-money-table tfoot td:nth-child(3){flex-basis:100%;font-size:var(--ds-fs-sm)}
+
+  /* ---- Profit and loss: the answer first --------------------------------------------------------------------- */
+  .app-shell .office-page:has(>.tsy-block-head)>*{order:5}
+  .app-shell .office-page:has(>.tsy-block-head)>:is(.office-head,.office-tabs){order:0}
+  .app-shell .office-page:has(>.tsy-block-head)>.office-figures{order:1}
+  .app-shell .office-page:has(>.tsy-block-head)>.tsy-warn-link{order:2}
+  .app-shell .office-page:has(>.tsy-block-head)>.tsy-block-head{order:3}
+  .app-shell .office-page:has(>.tsy-block-head)>.tsy-warns{order:7}
+  .app-shell .tsy-warns{display:flex;flex-direction:column;gap:var(--ds-s-3);scroll-margin-top:84px}
+  .app-shell .tsy-warn-link{display:block;padding:var(--ds-s-3) var(--ds-s-4);min-height:44px;font-size:var(--ds-fs-base);line-height:1.5;color:var(--ds-warn-fg);background:var(--ds-warn-bg);border-radius:var(--ds-r-lg)}
+  .app-shell .tsy-block-head{display:block}
+  .app-shell .tsy-block-tools.tsy-month{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-3);align-items:end;width:100%}
+  .app-shell .tsy-block-tools.tsy-month>label:first-child,
+  .app-shell .tsy-block-tools.tsy-month>.button{grid-column:1/-1}
+  .app-shell .tsy-block-tools.tsy-month>.button{min-height:48px;justify-content:center;font-size:16px}
+  .app-shell .tsy-month input{width:100%;min-height:44px;font-size:16px}
+  .app-shell .tsy-month .date-input-wrapper{width:100%;margin:0}
+
+  /* ---- Number tiles on every office page: two across, label above the number ------------------------------- */
+  .app-shell .workspace-main .office-figures,
+  .app-shell .workspace-main .office-figures[data-cards]{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-2)}
+  .app-shell .workspace-main .office-figure{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;padding:var(--ds-s-3)}
+  .app-shell .workspace-main .office-figure span{font-size:var(--ds-fs-sm);line-height:1.4}
+  .app-shell .workspace-main .office-figure strong,
+  .app-shell .workspace-main .office-figure strong.is-headline{font-size:var(--ds-fs-xl);text-align:left}
+  .app-shell .workspace-main .office-figure:has(>strong.is-headline){grid-column:1/-1;order:-1;padding:var(--ds-s-4)}
+  .app-shell .workspace-main .office-figure strong.is-headline{font-size:28px}
+
+  /* ---- Office home: numbers, work waiting, company money, then the shortcuts ---------------------------------- */
+  .app-shell .office-home>*{order:6}
+  .app-shell .office-home>[data-tour="start-books"]{order:0}
+  .app-shell .office-home>[data-tour="home-metrics"]{order:1}
+  .app-shell .office-home>.admin-home-insights{order:2}
+  .app-shell .office-home>.osb-grid{order:3}
+  .app-shell .office-home>.office-shortcuts{order:4}
+  .app-shell .office-shortcuts{padding:var(--ds-s-3)}
+  .app-shell .office-shortcuts .office-add-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-2)}
+  .app-shell .office-shortcuts .office-add-buttons .button{flex:none;min-height:48px;padding-inline:var(--ds-s-2);font-size:var(--ds-fs-base)}
+  .app-shell .office-shortcuts .office-add-buttons :is(.office-new-account,.office-new-sub-dealer){flex:none}
+
+  /* ---- Commission rules page --------------------------------------------------------------------------------- */
+  /* One compact card per commission: the name, what kind it is, then dealer and sub-dealer side by side. */
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row),
+  .app-shell .cp-table tfoot tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--ds-s-3);row-gap:2px}
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row)>td,
+  .app-shell .cp-table tfoot tr>td{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;padding:4px 0;border-bottom:0;text-align:left}
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row)>td:nth-child(1),
+  .app-shell .cp-table tfoot tr>td:nth-child(1){grid-column:1/-1}
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row)>td:nth-child(2),
+  .app-shell .cp-table tfoot tr>td:nth-child(2){grid-column:1/-1;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row)>td:nth-child(2)::before,
+  .app-shell .cp-table tfoot tr>td:nth-child(2)::before{display:none}
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row)>td:nth-child(n+3){font-size:var(--ds-fs-xl);font-weight:700}
+  .app-shell .cp-table tbody tr:not(.cp-block-row):not(.cp-parts-row)>td:nth-child(n+3)::before{font-size:var(--ds-fs-sm);font-weight:500}
+  /* The block heading and its explanation wrap instead of running off the edge. */
+  .app-shell .cp-block-row th,
+  .app-shell .cp-block-row th span,
+  .app-shell .cp-block-row th small{display:block;white-space:normal;overflow-wrap:anywhere}
+  /* The dealer / sub-dealer switch stays pinned while the conditions scroll. */
+  .app-shell .cp-card>.cp-mode-sticky{display:block;position:sticky;top:var(--chrome-top-h, 0px);z-index:5;margin:0 calc(var(--ds-s-4) * -1) var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-4);background:var(--ds-surface);border-bottom:1px solid var(--ds-line)}
+  .app-shell .cp-card-head>.cp-switch{display:none}
+  /* Bike and car check: the label above its (very long) amount. */
+  .app-shell .cp-fund dl>div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px var(--ds-s-3)}
+  .app-shell .cp-fund dt{flex:1 1 140px}
+  .app-shell .cp-fund dd{margin:0;text-align:right;overflow-wrap:anywhere}
+
+  /* ---- Small things that stretched or cut a page ------------------------------------------------------------ */
+  /* A hidden table heading must stay inside its scroll box; it stretched /errors to 623 px. */
+  .app-shell .table-wrap{position:relative}
+  /* The 31-day chart scrolls inside its card instead of widening the page. */
+  .app-shell .vis-chart-scroll{min-width:0;max-width:100%}
+  .app-shell .panel:has(.vis-chart-scroll){min-width:0;max-width:100%}
+  /* A status word never breaks in the middle. */
+  .app-shell .badge{white-space:nowrap}
+  .app-shell a.office-back{display:inline-flex;align-items:center;min-height:44px}
+  /* The statement file box on /operations/accounting: a visible dashed button. */
+  .app-shell label.file-picker{display:flex;flex-direction:column;align-items:stretch;gap:var(--ds-s-1)}
+  .app-shell label.file-picker .file-picker-face{justify-content:center;width:100%;border:1px dashed var(--ds-line-strong);background:var(--ds-surface-2);font-size:var(--ds-fs-base)}
+}

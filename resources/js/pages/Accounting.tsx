@@ -3,7 +3,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import { actionAllowed } from '../components/action-permissions';
-import { Badge, Pagination, Row, Table, dateTime, money } from '../components/UI';
+import { Badge, DateInput, Pagination, Row, Table, dateTime, money } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonFields } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
@@ -185,7 +185,7 @@ function Payables({ payables, t }: { payables: Row; t: Translate }) {
                 {payables.kinds.map((kind: Row) => <option key={kind.kind} value={kind.kind}>{t(`payable_kind_${kind.kind}`)} ({money(kind.available)})</option>)}
             </select></label>
             <label>{t('payable_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event => form.setData('amount', event.target.value)} /></label>
-            <label>{t('payable_paid_on')}<input required type="date" value={form.data.paid_on} onChange={event => form.setData('paid_on', event.target.value)} /></label>
+            <label>{t('payable_paid_on')}<DateInput required value={form.data.paid_on} onChange={event => form.setData('paid_on', event.target.value)} /></label>
             <label>{t('payable_reference')}<input maxLength={100} value={form.data.reference} onChange={event => form.setData('reference', event.target.value)} /></label>
             <label>{t('payable_note')}<input required minLength={5} maxLength={1000} value={form.data.note} onChange={event => form.setData('note', event.target.value)} /></label>
             {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}
@@ -227,7 +227,7 @@ function ClinicCash({ clinicCash, t }: { clinicCash: Row; t: Translate }) {
             form.post('/commands/operations/accounting/clinic-cash/deposits', { preserveScroll: true, onSuccess: () => form.setData({ ...form.data, amount: '', reference: '', note: '', request_key: newRequestKey() }) });
         }}>
             <label>{t('payable_amount')}<input required inputMode="decimal" value={form.data.amount} onChange={event => form.setData('amount', event.target.value)} /></label>
-            <label>{p('cash_deposited_on')}<input required type="date" value={form.data.deposited_on} onChange={event => form.setData('deposited_on', event.target.value)} /></label>
+            <label>{p('cash_deposited_on')}<DateInput required value={form.data.deposited_on} onChange={event => form.setData('deposited_on', event.target.value)} /></label>
             <label>{p('cash_reference')}<input maxLength={100} value={form.data.reference} onChange={event => form.setData('reference', event.target.value)} /></label>
             <label>{p('cash_note')}<input required minLength={5} maxLength={1000} value={form.data.note} onChange={event => form.setData('note', event.target.value)} /></label>
             {Object.keys(form.errors).length > 0 && <p role="alert" className="error">{Object.values(form.errors).join(' ')}</p>}

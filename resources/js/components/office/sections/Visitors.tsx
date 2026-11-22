@@ -4,7 +4,7 @@ import { Download } from 'lucide-react';
 import OfficePage from '../OfficePage';
 import { ReportFilterSheet } from '../../BranchPerformanceHub';
 import type { OfficeHub } from '../../OfficeHubTabs';
-import { ActionForm, Table, dateTime, number, type Row } from '../../UI';
+import { ActionForm, DateInput, Table, dateTime, number, type Row } from '../../UI';
 import PartnerActivityList, { type PartnerActivityReport } from './PartnerActivityList';
 import { useT } from '../../../shared/i18n/t';
 import { businessDate, businessMonth, localizeDigits } from '../../../business-date';
@@ -62,8 +62,8 @@ export default function Visitors({ report, hub }: { report: VisitorsReport; hub?
     };
     const datePickers = (
         <>
-            <label>{translate('office_visitors', 'from')}<input type="date" value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
-            <label>{translate('office_visitors', 'to')}<input type="date" value={pickedTo} min={pickedFrom || undefined} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
+            <label>{translate('office_visitors', 'from')}<DateInput value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
+            <label>{translate('office_visitors', 'to')}<DateInput value={pickedTo} min={pickedFrom || undefined} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
         </>
     );
 

@@ -1014,6 +1014,13 @@ export default function AccountCreate({
                         <small className="acf-note">{translate('portal', 'acct_enter_moves')}</small>
                     </div>
                 </aside>
+                {/* Phone only (mobile-office.css): the submit button stays above the bottom bar with the progress beside it. */}
+                <div className="msec-savebar acf-savebar">
+                    <span>{localizeDigits(String(progressPercent))}% · {progressText}</span>
+                    <button type="submit" className="button dark" disabled={form.processing}>
+                        {form.processing ? translate('portal', 'acct_creating') : isPartner ? translate('portal', 'acct_submit_partner') : translate('portal', 'acct_submit_staff')}
+                    </button>
+                </div>
             </form>
             </div>
         </Shell>
