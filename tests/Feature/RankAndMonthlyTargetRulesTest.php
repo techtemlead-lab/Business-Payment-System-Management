@@ -381,12 +381,15 @@ class RankAndMonthlyTargetRulesTest extends TestCase
         }
 
         $this->travelTo(now()->setDate(2027, 1, 1)->setTime(1, 0));
+        // Owner's rule of 2026-11-22: only the month close pays it, in the same run as the month's bonus and royalty.
         $this->artisan('finance:release-quota-holds')->assertSuccessful();
+        $this->assertSame('held', $share->fresh()->status, 'The 15-minute run does not pay a new order\'s share.');
+        $this->artisan('finance:auto-approve')->assertSuccessful();
         $this->assertSame('available', $share->fresh()->status);
         $wallet = DB::table('wallets')->where('user_id', $dealer->id)->value('available');
         $this->artisan('finance:release-quota-holds')->assertSuccessful();
-        $this->assertSame($wallet, DB::table('wallets')->where('user_id', $dealer->id)->value('available'), 'Paid once.');
         $this->artisan('finance:auto-approve')->assertSuccessful();
+        $this->assertSame($wallet, DB::table('wallets')->where('user_id', $dealer->id)->value('available'), 'Paid once.');
         $this->assertSame('available', $share->fresh()->status);
         $this->assertSame(0, CommissionAllocation::where('metadata->source_allocation_id', $share->id)->count(), 'A met target sends nothing to company profit.');
         $this->assertSame(1, DB::table('journal_entries')->where('event_key', 'commission.hold_release.'.$share->id)->count());
