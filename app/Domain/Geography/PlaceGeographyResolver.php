@@ -13,9 +13,17 @@ use Illuminate\Support\Collection;
  * A buyer with no usable place code gets an empty "unplaced" geography: their area
  * shares go to the company reserve instead of guessing a place from a name such as
  * "Dhaka", which can be a division, a district or an upazila.
+ *
+ * A partner added with the four area places picked (client, 2026-11-22) has them on the profile
+ * under "area_chain": the area commission of his own purchases then follows that chain, not the
+ * base places below his seat. Older accounts without it keep the base-place chain. The chain is
+ * read when an order is posted, so orders already posted keep the geography they were posted with.
  */
 final class PlaceGeographyResolver
 {
+    /** The profile key holding the picked area places: level => {id, code, name}. */
+    public const AreaChainKey = 'area_chain';
+
     /**
      * @return array{
      *   division:?string,
@@ -32,8 +40,68 @@ final class PlaceGeographyResolver
     public function forBuyer(User $buyer): array
     {
         $anchor = $this->anchorPlaceForBuyer($buyer);
+        if (! $anchor) {
+            return $this->unplacedGeography();
+        }
+        $chainIds = self::areaChainIds($buyer);
+        $chainPlaces = $chainIds === [] ? collect() : PlaceCode::query()->whereIn('id', array_values($chainIds))->where('is_active', true)->get()->keyBy('id');
+        $chosen = $this->chosenAreaPlace($anchor, $chainIds, $chainPlaces);
 
-        return $anchor ? $this->expandFromAnchor($anchor, 'place_code') : $this->unplacedGeography();
+        return $chosen ? $this->expandFromAnchor($chosen, 'area_chain') : $this->expandFromAnchor($anchor, 'place_code');
+    }
+
+    /**
+     * The ids of the four places picked on the add-partner form (or in the account editor) for
+     * the area commission of the partner's own purchases, deepest first. Empty for older accounts.
+     *
+     * @return array<string, int> level => place id, union first
+     */
+    public static function areaChainIds(User $user): array
+    {
+        $chain = data_get($user->profile, self::AreaChainKey);
+        if (! is_array($chain)) {
+            return [];
+        }
+        $ids = [];
+        foreach ([PlaceCode::LevelUnion, PlaceCode::LevelUpazila, PlaceCode::LevelDistrict, PlaceCode::LevelDivision] as $level) {
+            $id = filter_var(data_get($chain, $level.'.id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($id !== false) {
+                $ids[$level] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * The deepest picked place that is still active, coded and of its own level, when it lies on
+     * or below the partner's seat (anchor). Null sends the buyer back to the default base-place
+     * chain: no pick (older accounts), every pick switched off, or a pick left behind by a later
+     * place-code change, so a stale pick can never pay another area.
+     *
+     * @param  array<string, int>  $chainIds  level => id, deepest first
+     * @param  Collection<int, PlaceCode>  $chainPlaces  active places by id
+     */
+    private function chosenAreaPlace(PlaceCode $anchor, array $chainIds, Collection $chainPlaces): ?PlaceCode
+    {
+        foreach ($chainIds as $level => $id) {
+            $place = $chainPlaces->get($id);
+            if (! $place || $place->level !== $level || ! $place->isReadyForAssignment()) {
+                continue;
+            }
+            $cursor = $place;
+            $guard = 0;
+            while ($cursor && $guard++ < 8) {
+                if ((int) $cursor->id === (int) $anchor->id) {
+                    return $place;
+                }
+                $cursor = $cursor->parent;
+            }
+
+            return null;
+        }
+
+        return null;
     }
 
     /**
@@ -49,14 +117,33 @@ final class PlaceGeographyResolver
             return [];
         }
         $anchors = $this->anchorPlacesForBuyers($buyers);
-        $this->primeChains(array_values($anchors));
+        /** @var array<int, array<string, int>> $chainIds */
+        $chainIds = [];
+        foreach ($buyers as $buyer) {
+            $ids = isset($anchors[(int) $buyer->id]) ? self::areaChainIds($buyer) : [];
+            if ($ids !== []) {
+                $chainIds[(int) $buyer->id] = $ids;
+            }
+        }
+        $chainPlaces = $chainIds === [] ? collect() : PlaceCode::query()
+            ->whereIn('id', array_values(array_unique(array_merge(...array_values(array_map('array_values', $chainIds))))))
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('id');
+        $this->primeChains([...array_values($anchors), ...$chainPlaces->values()->all()]);
 
         $geographies = [];
         foreach ($buyers as $buyer) {
             $id = (int) $buyer->id;
-            $geographies[$id] = isset($anchors[$id])
-                ? $this->expandFromAnchor($anchors[$id], 'place_code')
-                : $this->unplacedGeography();
+            if (! isset($anchors[$id])) {
+                $geographies[$id] = $this->unplacedGeography();
+
+                continue;
+            }
+            $chosen = isset($chainIds[$id]) ? $this->chosenAreaPlace($anchors[$id], $chainIds[$id], $chainPlaces) : null;
+            $geographies[$id] = $chosen
+                ? $this->expandFromAnchor($chosen, 'area_chain')
+                : $this->expandFromAnchor($anchors[$id], 'place_code');
         }
 
         return $geographies;

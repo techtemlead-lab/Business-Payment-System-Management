@@ -121,4 +121,8 @@ return [
     'err_target_kind' => 'Targets are only for dealers.',
     'flash_target_saved' => 'Target saved.',
     'flash_target_cleared' => 'The company rule applies again.',
+    'sec_commission_area' => 'Area for the area commission (own purchases)',
+    'commission_area_chosen' => 'The four places picked by the office. The area commission of new orders goes here.',
+    'commission_area_default' => 'The four places are not picked, so the base places below the dealer\'s place are used. They can be picked from Edit.',
+    'commission_area_none' => 'No place is set, so the area commission goes to the company.',
 ];

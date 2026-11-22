@@ -117,6 +117,11 @@ export default function AccountCreate({
         permanent_upazila: '',
         permanent_union: '',
         dealer_level: '' as '' | PlaceLevel,
+        // The four area places picked one by one: the area commission of the partner's own purchases goes there.
+        area_division_id: '',
+        area_district_id: '',
+        area_upazila_id: '',
+        area_union_id: '',
         place_code: '',
         dealer_code: '',
         reference_code: '',
@@ -190,9 +195,12 @@ export default function AccountCreate({
     /** Where the person lives permanently: kept apart, it never touches the code or the area. */
     const home = usePlaceChain(place_divisions, loadChildren);
     const dealerLevel = form.data.dealer_level;
-    // A sub-dealer always works in one union; a dealer's lists stop at the level of his kind of dealer.
+    // A sub-dealer's code comes from the union; a dealer's from the place of his kind of dealer.
     const codeLevel: PlaceLevel | '' = isSubDealer ? 'union' : dealerLevel;
-    const businessLevels = codeLevel === '' ? [] : placeLevels.slice(0, placeLevels.indexOf(codeLevel) + 1);
+    // Every partner picks all four places (client, 2026-11-22), once the kind of dealer is chosen.
+    const businessLevels = codeLevel === '' ? [] : placeLevels;
+    const noArea = { area_division_id: '', area_district_id: '', area_upazila_id: '', area_union_id: '' };
+    const areaErrors = { division: errorOf('area_division_id'), district: errorOf('area_district_id'), upazila: errorOf('area_upazila_id'), union: errorOf('area_union_id') };
 
     /** The progress stays in view just under the top bar, whose height changes with the screen. */
     useEffect(() => {
@@ -342,7 +350,12 @@ export default function AccountCreate({
             district: nameOf('district'),
             upazila: nameOf('upazila'),
             union: nameOf('union'),
+            area_division_id: ids.division,
+            area_district_id: ids.district,
+            area_upazila_id: ids.upazila,
+            area_union_id: ids.union,
         }));
+        form.clearErrors(`area_${level}_id` as never);
         setDealerKindNote('');
         changePlaceCode(code);
         if (code) {
@@ -353,6 +366,7 @@ export default function AccountCreate({
     /** A code typed by someone who knows it replaces whatever was picked from the lists. */
     const typePlaceCode = (typed: string) => {
         business.clear();
+        form.setData((prev) => ({ ...prev, ...noArea }));
         changePlaceCode(typed);
     };
 
@@ -360,7 +374,7 @@ export default function AccountCreate({
     const chooseDealerLevel = (level: PlaceLevel) => {
         business.clear();
         setDealerKindNote('');
-        form.setData((prev) => ({ ...prev, dealer_level: level, division: '', district: '', upazila: '', union: '' }));
+        form.setData((prev) => ({ ...prev, ...noArea, dealer_level: level, division: '', district: '', upazila: '', union: '' }));
         form.clearErrors('dealer_level');
         changePlaceCode('');
     };
@@ -415,6 +429,7 @@ export default function AccountCreate({
         return () => window.clearTimeout(handle);
     }, [form.data.reference_code, form.data.dealer_code, isPartner]);
 
+    const areaBoxes = ['area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id'];
     // Details nobody needs to open an account; kept in one folded block at the end.
     const MORE_BOXES = ['occupation', 'extra_contact', 'latitude', 'longitude'];
     const sections: Section[] = useMemo(() => {
@@ -433,7 +448,7 @@ export default function AccountCreate({
             ...typeSection,
             { key: 'identity', title: translate('portal', 'acct_step_identity'), hint: translate('portal', 'acct_step_identity_hint'), required: [identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'], boxes: ['identity_type', identityNumber, 'date_of_birth', 'name', 'name_bn', 'father_name', 'mother_name'] },
             { key: 'home', title: translate('portal', 'acct_step_home'), hint: translate('portal', 'acct_step_home_hint'), required: ['permanent_division', 'permanent_district', 'permanent_upazila'], boxes: ['permanent_division', 'permanent_district', 'permanent_upazila', 'permanent_union', 'permanent_place_id', 'village', 'post_office'] },
-            { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: isSubDealer ? ['place_code'] : ['dealer_level', 'place_code'], boxes: [...(isSubDealer ? [] : ['dealer_level']), 'place_code', 'dealer_code'] },
+            { key: 'place', title: translate('portal', 'acct_step_area'), hint: translate('portal', isSubDealer ? 'acct_area_hint_sub' : 'acct_area_hint_dealer'), required: [...(isSubDealer ? [] : ['dealer_level']), ...areaBoxes, 'place_code'], boxes: [...(isSubDealer ? [] : ['dealer_level']), ...areaBoxes, 'place_code', 'dealer_code'] },
             { key: 'refer', title: translate('portal', 'acct_step_refer'), required: [], boxes: ['reference_code'] },
             { key: 'contact', title: translate('portal', 'acct_step_contact'), hint: translate('portal', 'acct_step_contact_hint'), required: ['phone', 'email'], boxes: ['phone', 'email', 'shop_name'] },
             { key: 'last', title: translate('portal', 'acct_section_last'), required: accountReason.required ? ['reason'] : [], boxes: [...(accountReason.shown ? ['reason'] : []), 'directory_visible', ...MORE_BOXES, ...finishKyc] },
@@ -502,6 +517,10 @@ export default function AccountCreate({
             latitude: data.latitude,
             longitude: data.longitude,
             dealer_level: data.role === 'dealer' ? data.dealer_level : '',
+            area_division_id: data.area_division_id,
+            area_district_id: data.area_district_id,
+            area_upazila_id: data.area_upazila_id,
+            area_union_id: data.area_union_id,
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
@@ -622,6 +641,7 @@ export default function AccountCreate({
                                             setDealerKindNote('');
                                             form.setData((prev) => ({
                                                 ...prev,
+                                                ...noArea,
                                                 role: newRole,
                                                 place_code: '',
                                                 dealer_code: '',
@@ -759,12 +779,12 @@ export default function AccountCreate({
                                         </div>
                                         {errorOf('dealer_level')
                                             ? <span className="field-error" role="alert">{errorOf('dealer_level')}</span>
-                                            : <p className="acf-note">{dealerKindNote || translate('portal', dealerLevel ? 'acct_dealer_kind_hint' : 'acct_dealer_kind_first')}</p>}
+                                            : <p className="acf-note">{dealerKindNote || translate('portal', dealerLevel ? 'acct_area_chain_hint' : 'acct_dealer_kind_first')}</p>}
                                     </div>
                                 )}
-                                {businessLevels.length > 0 && <p className="acf-note">{translate('joining', 'place_pick_hint')}</p>}
+                                {businessLevels.length > 0 && <p className="acf-note">{isSubDealer ? `${translate('portal', 'acct_area_chain_hint_sub')} ` : ''}{translate('joining', 'place_pick_hint')}</p>}
                                 <div className="acf-grid">
-                                    <PlacePickers chain={business} levels={businessLevels} onPick={pickBusinessPlace} Field={Box} />
+                                    <PlacePickers chain={business} levels={businessLevels} onPick={pickBusinessPlace} Field={Box} errors={areaErrors} />
                                     <Box text={translate('portal', isSubDealer ? 'acct_union_code' : 'acct_place_code')} error={errorOf('place_code') || placeError} hint={translate('joining', 'place_code_hint')}>
                                         <div className="acf-with-button">
                                             <input
