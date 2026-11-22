@@ -7011,4 +7011,10 @@ return [
     'acct_area_chain_incomplete' => 'চারটি জায়গাই বেছে নিন: বিভাগ, জেলা, উপজেলা / থানা ও ইউনিয়ন।',
     'event_account_area_chain_updated' => 'পার্টনারের এরিয়া কমিশনের এলাকা বদলানো হয়েছে',
     'event_site_website_url_normalised' => 'সাইট সেটিংসে ওয়েবসাইটের ঠিকানা ঠিক করা হয়েছে',
+    'nav_bottom_network' => 'টিম',
+    'nav_bottom_more' => 'আরও',
+    'bottom_payouts_hub' => 'টাকা তোলা',
+    'bottom_office_messages' => 'মেসেজ',
+    'bottom_office_partners' => 'ডিলার',
+    'bottom_office_stock' => 'পণ্য ও স্টক',
 ];

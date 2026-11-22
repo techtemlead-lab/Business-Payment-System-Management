@@ -1,0 +1,418 @@
+/* =========================================================================
+   Phone app chrome (partner, office and owner panels): top bar, menu drawer, bottom bar.
+   Phones only (up to 767px): tablets and desktops keep the layout from dashboard.css.
+
+   Goal: the fixed chrome takes about 13 percent of an 844px screen (56px bar + 56px tab bar),
+   the drawer uses the whole screen height with ONE scrolling list, rows are 48px, tab labels 12px.
+
+   Selector prefix: ".app-shell.app-shell:is(...shells)" is written out in full on purpose. It
+   outranks the older rules in dashboard.css and the screens-*.css files without !important,
+   whatever the order of the imports. Other phone helpers may use the two variables below
+   (a sticky bar that sits above the tab bar uses bottom: var(--chrome-bottom-h)).
+   ========================================================================= */
+
+/* New elements (JSX in Shell.tsx): invisible everywhere except the phone rules below. */
+.app-shell .workspace-phone-title,
+.app-shell .sidebar-user,
+.app-shell .sidebar-branch,
+.app-shell .profile-menu-phone-tools { display: none; }
+
+@media (max-width: 767px) {
+  /* Partner screens are zoomed (screens-text-size.css: 1.15 normal, 1 / 1.3 / 1.5 by the A buttons). The bars and
+     touch sizes below are divided by that zoom, so a bar is 56 real pixels and a finger target 44 whatever the text size. */
+  .app-shell {
+    --m-zoom: 1;
+    --px: calc(1px / var(--m-zoom));
+    --t44: calc(44 * var(--px));
+    --t48: calc(48 * var(--px));
+    --chrome-top-h: calc(56 * var(--px));
+    --chrome-bottom-h: calc(56 * var(--px) + env(safe-area-inset-bottom, 0px) / var(--m-zoom));
+  }
+  .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1.15; }
+  html[data-text-size="small"] .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1; }
+  html[data-text-size="large"] .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1.3; }
+  html[data-text-size="xlarge"] .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1.5; }
+
+  /* ---- Top bar: menu button, page title, up to three icon buttons --------------------------- */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: var(--chrome-top-h);
+    min-height: var(--chrome-top-h);
+    padding: 0 8px;
+    margin: 0;
+    grid-template-areas: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .breadcrumb {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    gap: 4px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-menu-button {
+    flex: none;
+    width: var(--t44);
+    height: var(--t44);
+    min-height: var(--t44);
+  }
+  /* One title only: the old crumb pieces give way to the full title, on one line. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .breadcrumb > span,
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .breadcrumb > b {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-phone-title {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--ds-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .header-actions {
+    flex: none;
+    gap: 2px;
+    margin-left: auto;
+  }
+  /* Language, text size, theme, website, tour and branch moved into the avatar menu and the drawer. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .header-actions > :is(.language-switcher,.text-size-toggle,.text-size-switch,.theme-toggle,.portal-website-link,.tour-guide-launcher,.psignout-bar),
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .branch-workspace-select {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .header-actions :is(.icon-button,.global-search-trigger,.pcart-icon,.notice-bell) {
+    width: var(--t44);
+    height: var(--t44);
+    min-width: var(--t44);
+    min-height: var(--t44);
+    padding: 0;
+    justify-content: center;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .profile-menu-trigger {
+    width: var(--t44);
+    height: var(--t44);
+    min-height: var(--t44);
+    padding: 0;
+    justify-content: center;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .profile-menu-trigger .avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* The page's own heading repeated the title: keep it for screen readers, hide it from the eye.
+     The one-line hint and the page's buttons stay. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-main > .page-heading h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ---- Avatar menu: also holds language (and office text size) on a phone ----------------- */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .profile-menu-panel {
+    width: calc(min(320px, 100vw - 16px) / var(--m-zoom));
+    max-height: calc((100dvh - 72px - env(safe-area-inset-bottom, 0px)) / var(--m-zoom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-panel :is(a,button) {
+    min-height: var(--t48);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-panel .profile-menu-phone-tools {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin: 0 0 6px;
+    padding: 4px 4px 10px;
+    border-bottom: 1px solid var(--ds-line);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-phone-tools .language-switcher {
+    display: flex;
+    width: 100%;
+    gap: 4px;
+    padding: 3px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-phone-tools .language-switcher button {
+    flex: 1 1 0;
+    width: auto;
+    min-height: var(--t44);
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--ds-r-pill);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-phone-tools .language-switcher .language-full { display: inline; }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-phone-tools .language-switcher .language-short { display: none; }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-phone-tools .text-size-toggle {
+    display: flex;
+    width: 100%;
+    min-height: var(--t44);
+    justify-content: flex-start;
+    font-size: 15px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-phone-tools .text-size-toggle .text-size-label { display: inline; }
+
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .profile-menu-panel .profile-menu-theme .theme-toggle {
+    width: 100%;
+    height: auto;
+    min-width: 0;
+    min-height: var(--t48);
+    padding: 0 12px;
+    border: 0;
+    white-space: nowrap;
+  }
+
+  /* ---- Menu drawer: slim header, one scrolling list, compact footer ------------------------ */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar {
+    display: grid;
+    grid-template-columns: var(--t44) minmax(0, 1fr) auto auto;
+    grid-template-rows: var(--chrome-top-h) auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "logo user out close"
+      "branch branch branch branch"
+      "search search search search"
+      "nav nav nav nav"
+      "foot foot foot foot";
+    width: calc(min(86vw, 320px) / var(--m-zoom));
+    height: calc(100dvh / var(--m-zoom));
+    max-height: calc(100dvh / var(--m-zoom));
+    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) / var(--m-zoom)) 8px;
+    overflow: hidden;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar > .icon-button {
+    grid-area: close;
+    align-self: center;
+    justify-self: end;
+    width: var(--t44);
+    height: var(--t44);
+    min-height: var(--t44);
+    margin: 0;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-logo {
+    grid-area: logo;
+    width: var(--t44);
+    height: var(--chrome-top-h);
+    margin: 0;
+    padding: 0;
+    justify-content: flex-start;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-logo img {
+    width: 36px;
+    height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-logo .sidebar-logo-mark,
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .workspace-label {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-user {
+    grid-area: user;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    padding: 0 6px;
+    line-height: 1.35;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-user b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ds-side-strong);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-user span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--ds-side-muted);
+  }
+  /* Partner sign-out: small, in the header row (it still asks before leaving). */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .psignout-drawer {
+    grid-area: out;
+    width: auto;
+    min-height: var(--t44);
+    margin: 0 4px 0 0;
+    padding: 0 8px;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--ds-side-line);
+    border-radius: var(--ds-r-md);
+    background: transparent;
+    color: var(--ds-side-text);
+    align-self: center;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .psignout-drawer:hover {
+    background: var(--ds-side-hover);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .psignout-drawer svg {
+    display: none;
+  }
+
+  /* Branch picker (office): moved here from the top bar. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-branch {
+    grid-area: branch;
+    display: block;
+    position: relative;
+    z-index: 4;
+    margin: 0 0 6px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-branch .branch-workspace-select {
+    display: flex;
+    flex: none;
+    width: 100%;
+    max-width: none;
+    height: var(--t44);
+    min-height: var(--t44);
+    font-size: 15px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-branch .branch-workspace-trigger { height: 42px; }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-branch .branch-workspace-menu {
+    width: 100%;
+    max-height: calc(50dvh / var(--m-zoom));
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-branch .branch-workspace-menu button {
+    min-height: var(--t48);
+    font-size: 15px;
+  }
+
+  /* Menu search: office keeps it (47 pages); partners have about ten, so they need none. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar label.sidebar-menu-search {
+    grid-area: search;
+    height: var(--t44);
+    min-height: var(--t44);
+    margin: 0 0 6px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar label.sidebar-menu-search input {
+    font-size: 16px;
+  }
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .sidebar label.sidebar-menu-search {
+    display: none;
+  }
+
+  /* The list: all the remaining height, one scroll area, a light fade at the edge that has more. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-nav-container {
+    grid-area: nav;
+    min-height: 0;
+    margin: 0;
+    padding: 0 0 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: auto;
+    background:
+      linear-gradient(var(--ds-side-bg) 30%, transparent) 0 0 / 100% 28px no-repeat local,
+      linear-gradient(transparent, var(--ds-side-bg) 70%) 0 100% / 100% 28px no-repeat local,
+      linear-gradient(rgba(255, 255, 255, .16), transparent) 0 0 / 100% 18px no-repeat scroll,
+      linear-gradient(transparent, rgba(255, 255, 255, .16)) 0 100% / 100% 18px no-repeat scroll;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar :is(.nav-group a,.nav-mother-body > a,.nav-section-body > a) {
+    min-height: var(--t48);
+    padding: 10px 12px;
+    gap: 12px;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar :is(.nav-group a,.nav-mother-body > a,.nav-section-body > a) > svg {
+    width: 20px;
+    height: 20px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar :is(.nav-mother-toggle,.nav-section-toggle) {
+    min-height: var(--t48);
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+
+  /* Footer: compact rows, pinned under the list. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer {
+    grid-area: foot;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 0;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .sidebar-guide-button {
+    grid-column: 1 / -1;
+    min-height: var(--t48);
+    font-size: 15px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .help-card {
+    display: contents;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .help-card > :is(svg,b,span) {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .help-card > a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    grid-column: 1 / -1;
+    min-height: var(--t48);
+    padding: 0 10px;
+    border: 1px solid var(--ds-side-line);
+    border-radius: var(--ds-r-md);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-office-footer :is(.sidebar-help-link,.sidebar-sign-out) {
+    min-height: var(--t48);
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  /* ---- Bottom bar: 56px, 12px labels, safe-area padding ------------------------------------ */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav {
+    height: var(--chrome-bottom-h);
+    padding: 0 4px calc(env(safe-area-inset-bottom, 0px) / var(--m-zoom));
+    gap: 2px;
+    align-items: stretch;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a,button) {
+    justify-content: center;
+    gap: 2px;
+    padding: 4px 2px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a,button) > svg {
+    flex: none;
+    width: 22px;
+    height: 22px;
+  }
+
+  /* A page with its own sticky save bar does not get a third bar: the tab bar steps aside there. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .ws-save-bar {
+    bottom: calc(var(--chrome-bottom-h) + 8px);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell):has(.ws-save-bar) .portal-bottom-nav {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell):has(.ws-save-bar) .ws-save-bar {
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px) / var(--m-zoom));
+  }
+  /* Sticky confirm bar of the partner agreement sat behind the tab bar. */
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .agr-accept {
+    bottom: var(--chrome-bottom-h);
+  }
+}

@@ -7011,4 +7011,10 @@ return [
     'acct_area_chain_incomplete' => 'Pick all four places: division, district, upazila / thana and union.',
     'event_account_area_chain_updated' => 'Partner area for the area commission changed',
     'event_site_website_url_normalised' => 'Website address in the site settings corrected',
+    'nav_bottom_network' => 'Team',
+    'nav_bottom_more' => 'More',
+    'bottom_payouts_hub' => 'Payouts',
+    'bottom_office_messages' => 'Messages',
+    'bottom_office_partners' => 'Partners',
+    'bottom_office_stock' => 'Stock',
 ];

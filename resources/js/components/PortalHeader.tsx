@@ -61,10 +61,10 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
             {item('/', translate('portal', 'nav_module_home'), Home, 'portal-mobile-home')}
             {commerceHref && item(commerceHref, commerceLabel, commerceIcon)}
             {role === 'dealer'
-                ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'nav_module_network'), Network))
+                ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'nav_bottom_network'), Network))
                 : null}
             {partnerChromeEnabled(role, controls, 'earnings') && item('/my-money', translate('portal', 'nav_module_earnings'), Wallet)}
-            {(role !== 'dealer' || !partnerChromeEnabled(role, controls, 'network')) && item('/more', translate('portal', 'nav_module_more'), LayoutGrid)}
+            {(role !== 'dealer' || !partnerChromeEnabled(role, controls, 'network')) && item('/more', translate('portal', 'nav_bottom_more'), LayoutGrid)}
         </nav>
     );
 }
