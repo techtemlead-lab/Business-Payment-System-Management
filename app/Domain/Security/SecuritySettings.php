@@ -100,8 +100,9 @@ final class SecuritySettings
     }
 
     /**
-     * Whether one mobile number may hold only one account. Off by default (owner's word,
-     * 2026-11-17): several accounts may share a number until an owner switches this on.
+     * Whether one mobile number may hold only one account. On by default (client, 2026-11-22; it was
+     * off from the owner's word of 2026-11-17): a number another account holds cannot open a second
+     * account. An owner can still switch it off, and a saved choice is kept as it is.
      *
      * @return array{enabled: bool, version: int}
      */
@@ -110,7 +111,7 @@ final class SecuritySettings
         $row = $this->settingRow(self::OneAccountPerIdentityKey);
 
         return [
-            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? false) : false,
+            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? true) : true,
             'version' => (int) ($row->version ?? 0),
         ];
     }

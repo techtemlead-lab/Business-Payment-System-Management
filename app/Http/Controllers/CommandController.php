@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\FirstPassword;
+use App\Domain\Accounts\IdentityKeys;
 use App\Domain\Accounts\OfficeProfile;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
@@ -308,6 +309,8 @@ class CommandController extends Controller
         $d['phone'] = app(AccountPhoneRules::class)->available($d['phone']);
         if (! empty($d['nid'])) {
             $this->permit($r, 'identity_write');
+            // One person, one account: an NID number another account holds is refused.
+            IdentityKeys::refuseDuplicates($d['nid']);
         }
         if (! empty($d['sponsor_id'])) {
             abort_unless(User::whereKey($d['sponsor_id'])->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
@@ -445,6 +448,10 @@ class CommandController extends Controller
             } else {
                 $d['phone'] = $phones->available($newPhone, $user->id);
             }
+        }
+        // A changed NID number must not be one another account holds (the account's own number is always fine).
+        if (! empty($d['nid'])) {
+            IdentityKeys::refuseDuplicates($d['nid'], null, $user->id);
         }
         $placeCode = isset($d['place_code']) ? trim((string) $d['place_code']) : '';
         unset($d['place_code']);

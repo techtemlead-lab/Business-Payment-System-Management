@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Casts\PasswordVaultEncrypted;
 use App\Casts\ProtectedProfile;
+use App\Domain\Accounts\IdentityKeys;
 use App\Domain\Staff\LeadershipAccess;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
@@ -19,7 +20,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
-#[Hidden(['password', 'remember_token', 'nid', 'tin', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
+#[Hidden(['password', 'remember_token', 'nid', 'nid_hash', 'birth_certificate_hash', 'tin', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference
 {
     public const PasswordManagedByAdmin = 'admin';
@@ -61,6 +62,13 @@ class User extends Authenticatable implements HasLocalePreference
     protected static function booted(): void
     {
         static::saving(function (self $user): void {
+            // The comparable keys of the encrypted NID and birth-certificate numbers (see IdentityKeys) follow the numbers.
+            if (! $user->exists || $user->isDirty('nid')) {
+                $user->nid_hash = IdentityKeys::key(IdentityKeys::Nid, $user->nid);
+            }
+            if (! $user->exists || $user->isDirty('profile')) {
+                $user->birth_certificate_hash = IdentityKeys::key(IdentityKeys::BirthCertificate, ($user->profile ?? [])['birth_certificate_number'] ?? null);
+            }
             if ($user->exists && ($user->isDirty('password') || $user->isDirty('phone'))) {
                 $user->credentials_changed_at = now();
             }

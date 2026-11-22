@@ -74,9 +74,11 @@ final class PartnerAccountProvisioning
             throw ValidationException::withMessages(['identity_type' => __('portal.acct_val_identity_type')]);
         }
 
-        if (User::query()->where('email', $email)->exists()) {
+        if (User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
             throw ValidationException::withMessages(['email' => __('portal.acct_val_email_taken')]);
         }
+        // One person, one account: the same NID or birth-certificate number never opens a second one.
+        IdentityKeys::refuseDuplicates($input['nid'] ?? null, $input['birth_certificate_number'] ?? null);
 
         $sponsor = null;
         $managementReferral = false;
@@ -224,6 +226,11 @@ final class PartnerAccountProvisioning
         try {
             $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $areaNames, $areaChain, $dealerCode, $profile, $plainPassword, $typedPassword, $managementReferral, $managementSettings): User {
                 CommissionWallet::lock();
+                // Checked again inside the lock that every account creation passes through, so two at the same moment cannot both win.
+                IdentityKeys::refuseDuplicates($input['nid'] ?? null, $input['birth_certificate_number'] ?? null);
+                if ($this->phones->enforced() && $this->phones->holders($phone) !== []) {
+                    throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
+                }
                 $this->claimCodes($actor, [$dealerCode]);
                 $user = (new User)->forceFill([
                     'role' => $role,
