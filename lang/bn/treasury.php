@@ -20,7 +20,7 @@ return [
     'fund_salary_pool' => 'স্যালারি',
     'fund_royalty_pool' => 'র‍্যাঙ্ক রয়্যালটি ফান্ড (পুরনো অর্ডার)',
     'fund_rank_bonus' => 'র‍্যাঙ্ক বোনাস ফান্ড',
-    'fund_rank_reward' => 'সাব-ডিলার র‍্যাঙ্ক ফান্ড',
+    'fund_rank_reward' => 'সাব-ডিলার এক্সট্রা (পুরনো অর্ডার)',
     'fund_clinic' => 'চেম্বারের ফান্ড',
     'fund_benefits' => 'কমিশন এক্সট্রা ফান্ড',
     'fund_salary_reserve' => 'পুরনো বেতনের টাকা',

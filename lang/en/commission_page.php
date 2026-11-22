@@ -78,7 +78,7 @@ return [
     'subblock_title' => 'Sub-dealer only',
     'subblock_lead' => 'These three apply only to a sub-dealer\'s purchase. Every commission above applies to a sub-dealer\'s purchase the same as to a dealer\'s.',
     'extra_goes_label' => 'This part now goes to',
-    'dest_rank_fund' => 'the sub-dealer rank fund (as before)',
+    'dest_rank_fund' => 'the old sub-dealer extra fund (as before)',
     'dest_extra_fund' => 'the company fund "Sub-dealer extra"',
     'dest_pick' => 'Where the sub-dealer extra part goes',
     'dest_note' => 'A change reaches new orders only. Past orders are not changed. This is a company fund, not any person\'s money.',
