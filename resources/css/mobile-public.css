@@ -1,0 +1,766 @@
+/*
+ * Public website at phone width (mobile fix round, 2026-11-22).
+ * Everything that changes the look is inside max-width:767px, so desktop and tablet stay as they were.
+ * The only rules outside it hide the phone-only controls on wider screens.
+ * This file is imported at the top of reference-home.css, so it comes BEFORE that file's own rules in
+ * the cascade; the selectors below therefore start with body.ref-home (and use !important where an
+ * older :is() rule would otherwise win).
+ */
+
+@media (min-width: 768px) {
+    .ref-filter-open,
+    .ref-filter-sheet-close,
+    .ref-filter-sheet-done,
+    .ref-filter-backdrop,
+    .ref-apply-sticky,
+    .ref-contact-quick,
+    .ref-product-sticky {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767px) {
+    /* ---- 1. Header: one slim brand row + the nav row, instead of three bands ---- */
+    body.ref-home .ref-bismillah {
+        display: none;
+    }
+    body.ref-home .ref-company-bar {
+        height: auto;
+        line-height: 1.3;
+        padding: 6px 14px;
+        overflow: visible;
+    }
+    body.ref-home .ref-company-bar-inner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    body.ref-home .ref-bar-brand {
+        flex: none;
+    }
+    body.ref-home .ref-bar-legal,
+    body.ref-home .ref-bar-leaf {
+        display: none;
+    }
+    body.ref-home .ref-bar-logo img {
+        width: 40px;
+        height: 40px;
+    }
+    body.ref-home .ref-bar-name {
+        flex: 1;
+        min-width: 0;
+        justify-content: flex-start;
+    }
+    body.ref-home .ref-bar-text {
+        font-size: 16px;
+        line-height: 1.35;
+        text-align: left;
+    }
+    /* The 404 page shares the brand bar: keep its name off the screen edge. */
+    body.ref-error-page .ref-company-bar {
+        padding: 8px 16px;
+    }
+    body.ref-error-page .ref-company-bar-inner {
+        justify-content: center;
+    }
+
+    /* The breadcrumb repeats the page title and the bottom bar already leads home. */
+    body.ref-home .ref-inner-main > .ref-breadcrumb {
+        display: none;
+    }
+    body.ref-home .ref-container.ref-inner-main {
+        padding-top: 12px;
+    }
+
+    /* Drawer: the Bismillah and the licence numbers moved here from the top of every page. */
+    .ref-mobile-drawer-identity {
+        text-align: center;
+        padding-top: 4px;
+    }
+    .ref-drawer-bismillah {
+        margin: 0 0 8px;
+        font-size: 20px;
+        line-height: 1.6;
+        color: #0c3b2a;
+    }
+    .ref-drawer-legal {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #34463c;
+    }
+    html[data-theme="dark"] .ref-drawer-bismillah,
+    html[data-theme="dark"] .ref-drawer-legal {
+        color: #c9d8cf;
+    }
+    body.ref-home .ref-mobile-drawer-close {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    body.ref-home .ref-drawer-locale-switch button {
+        min-height: 44px;
+        font-size: 15px;
+    }
+    body.ref-home .ref-drawer-locale-switch button:not(.is-active) {
+        color: #34463c;
+    }
+
+    /* ---- 12. Page title band: title plus a short lead, no heavy card ---- */
+    body.ref-home .ref-page-plate {
+        padding: 18px 18px;
+        border-radius: 12px;
+        margin-bottom: 14px;
+    }
+    body.ref-home .ref-page-plate::before,
+    body.ref-home .ref-page-plate-sprig,
+    body.ref-home .ref-page-plate-seal {
+        display: none;
+    }
+    body.ref-home .ref-page-plate h1 {
+        font-size: 24px;
+        line-height: 1.4;
+    }
+    body.ref-home .ref-page-plate-lead {
+        margin-top: 6px;
+        font-size: 15px;
+        line-height: 1.6;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+    body.ref-home .ref-page-plate-extra {
+        margin-top: 12px;
+    }
+
+    /* ---- 13. Empty lists: compact, not a 300 px box ---- */
+    body.ref-home .ref-empty {
+        padding: 20px 16px;
+    }
+    body.ref-home .ref-deferred-paint {
+        contain-intrinsic-size: auto 320px;
+    }
+
+    /* ---- 7. Bottom bar and the WhatsApp bubble ---- */
+    body.ref-home {
+        padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+    body.ref-home .ref-mobile-nav > a,
+    body.ref-home .ref-mobile-nav > button,
+    body.ref-home .ref-mobile-nav .ref-mobile-home-label {
+        font-size: 12px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+    body.ref-home .ref-mobile-nav > a > span,
+    body.ref-home .ref-mobile-nav > button > span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    body.ref-home .ref-floating-tools {
+        bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+        right: 10px;
+    }
+    body.ref-home .ref-floating-tools > a,
+    body.ref-home .ref-floating-tools > button {
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        padding: 0;
+        justify-content: center;
+    }
+    /* A form or a sign-in is being filled in: the bubble must not sit on the buttons. */
+    body.ref-home:has(.ref-auth-main, .ref-partner-apply-form, form[action="/enquiries"], .ref-product-sticky) .ref-floating-tools {
+        display: none;
+    }
+
+    /* ---- 11. Small taps ---- */
+    .ref-carousel-dots button {
+        position: relative;
+    }
+    .ref-carousel-dots button::before {
+        content: "";
+        position: absolute;
+        inset: -18px -8px;
+    }
+    body.ref-home .ref-carousel-dots {
+        gap: 12px;
+        bottom: 10px;
+    }
+    body.ref-home .ref-mobile-search-btn,
+    body.ref-home .ref-mobile-menu-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* ---- 3. Home page: banner first, quieter caption, two product columns ---- */
+    body.ref-home .ref-main {
+        display: flex;
+        flex-direction: column;
+    }
+    body.ref-home .ref-main > .ref-promotions {
+        order: -1;
+    }
+    body.ref-home .ref-main > .ref-md-message--home {
+        margin-top: 14px;
+    }
+    body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption {
+        left: 8px;
+        right: 8px;
+        bottom: 30px;
+        padding: 6px 10px;
+    }
+    body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption b {
+        font-size: 15px;
+        line-height: 1.35;
+    }
+    body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption span {
+        display: none;
+    }
+    body.ref-home .ref-featured-tabs {
+        -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
+        mask-image: linear-gradient(to right, #000 88%, transparent);
+    }
+    body.ref-home .ref-featured-products .ref-product-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    body.ref-home .ref-featured-products .ref-product-grid > .ref-product-card {
+        flex: 0 0 calc((100% - 10px) / 2) !important;
+        width: calc((100% - 10px) / 2) !important;
+        max-width: none;
+    }
+
+    /* ---- 2. Products: filter in a bottom sheet, two compact cards per row ---- */
+    body.ref-home .ref-filter-open {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 48px;
+        margin: 0 0 12px;
+        border: 1.5px solid var(--sm-green, #14633f);
+        border-radius: 12px;
+        background: #fff;
+        color: var(--sm-green-deep, #0c3b2a);
+        font: inherit;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    html[data-theme="dark"] body.ref-home .ref-filter-open {
+        background: #12241c;
+        color: #e8f0ea;
+    }
+    body.ref-home .ref-catalog-layout {
+        display: block;
+    }
+    body.ref-home .ref-catalog-layout.is-searching .ref-filter-open {
+        min-height: 44px;
+    }
+    body.ref-home .ref-filter-sidebar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        max-height: 86vh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 52px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+        border-radius: 18px 18px 0 0;
+        background: #fff;
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.28);
+        transform: translateY(105%);
+        visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    }
+    html[data-theme="dark"] body.ref-home .ref-filter-sidebar {
+        background: #12241c;
+    }
+    body.ref-home .ref-filter-sidebar.is-open {
+        transform: none;
+        visibility: visible;
+        transition: transform 0.25s ease;
+    }
+    body.ref-home .ref-filter-sheet-close {
+        position: absolute;
+        top: 4px;
+        right: 8px;
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-size: 20px;
+    }
+    body.ref-home .ref-filter-sheet-done {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        display: block;
+        width: 100%;
+        min-height: 52px;
+        margin-top: 16px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--sm-green-deep, #0c3b2a);
+        color: #fff;
+        font: inherit;
+        font-size: 17px;
+        font-weight: 700;
+    }
+    body.ref-home .ref-filter-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 59;
+        background: rgba(0, 0, 0, 0.45);
+    }
+    body.ref-home .ref-filter-backdrop[hidden] {
+        display: none;
+    }
+    body.ref-filter-sheet-open {
+        overflow: hidden;
+    }
+    body.ref-home .ref-filter-form {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    body.ref-home .ref-filter-form h2 {
+        margin: 14px 0 6px;
+        font-size: 16px;
+    }
+    body.ref-home .ref-filter-form .ref-radio {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+        font-size: 16px;
+    }
+    body.ref-home .ref-filter-form .ref-price-inputs input {
+        min-height: 48px;
+        font-size: 16px;
+    }
+    /* The sheet's own "show products" button replaces the in-form one; "clear" stays as a large link. */
+    body.ref-home .ref-filter-form > .ref-primary-button {
+        display: none;
+    }
+    body.ref-home .ref-filter-form .ref-clear-filters {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    body.ref-home .ref-catalog-toolbar {
+        padding: 12px;
+    }
+    body.ref-home .ref-catalog-toolbar .ref-chip-group {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    body.ref-home .ref-catalog-toolbar .ref-chip-group::-webkit-scrollbar {
+        display: none;
+    }
+    body.ref-home .ref-catalog-toolbar .ref-chip {
+        flex: none;
+    }
+
+    body.ref-home .ref-product-grid.ref-catalog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px;
+    }
+    body.ref-home .ref-product-card {
+        display: flex;
+        flex-direction: column;
+        border-radius: 12px;
+    }
+    body.ref-home .ref-product-card .ref-card-picture,
+    body.ref-home .ref-product-card .ref-card-picture.is-stock {
+        aspect-ratio: 4 / 5;
+        padding: 8px;
+        border-radius: 11px 11px 0 0;
+    }
+    body.ref-home .ref-product-card .ref-card-picture.is-stock {
+        padding: 0;
+    }
+    body.ref-home .ref-product-card .ref-card-note,
+    body.ref-home .ref-product-card .ref-card-category,
+    body.ref-home .ref-product-card .ref-card-group,
+    body.ref-home .ref-product-card .ref-card-price small {
+        display: none;
+    }
+    body.ref-home .ref-product-card .ref-card-body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px;
+    }
+    body.ref-home .ref-product-card .ref-card-title,
+    body.ref-home .locale-bn .ref-product-card .ref-card-title {
+        min-height: 0;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+    /* The whole card is the tap target: the title link stretches over it. */
+    body.ref-home .ref-product-card .ref-card-title a::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+    body.ref-home .ref-product-card .ref-card-sizes,
+    body.ref-home .ref-product-card .ref-card-cta {
+        position: relative;
+        z-index: 2;
+    }
+    body.ref-home .ref-product-card .ref-size-button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 12px;
+        font-size: 13px;
+    }
+    body.ref-home .ref-product-card .ref-card-price-row {
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        align-items: center;
+    }
+    body.ref-home .ref-product-card .ref-card-price strong {
+        font-size: 17px;
+    }
+    body.ref-home .ref-product-card .ref-card-cta {
+        margin-top: auto;
+        min-height: 44px;
+        padding: 0 8px;
+        font-size: 14px;
+    }
+
+    /* ---- 4. Partnership: apply button always in reach, cards folded, form comfortable ---- */
+    body.ref-home .ref-apply-sticky {
+        position: sticky;
+        top: 8px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 48px;
+        margin: 0 0 14px;
+        border-radius: 12px;
+        background: #c8992e;
+        color: #0c3b2a;
+        font-size: 17px;
+        font-weight: 700;
+        box-shadow: 0 6px 18px rgba(12, 59, 42, 0.25);
+    }
+    html.ref-fold-ready [data-mobile-fold] {
+        padding: 0 !important;
+    }
+    html.ref-fold-ready [data-mobile-fold] > [data-fold-toggle] {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 52px;
+        margin: 0;
+        padding: 10px 44px 10px 16px;
+        cursor: pointer;
+        font-size: 17px;
+    }
+    html.ref-fold-ready [data-mobile-fold] > [data-fold-toggle]::after {
+        content: "\f078";
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", FontAwesome, sans-serif;
+        font-weight: 900;
+        font-size: 13px;
+        transition: transform 0.2s ease;
+    }
+    html.ref-fold-ready [data-mobile-fold].is-open > [data-fold-toggle]::after {
+        transform: translateY(-50%) rotate(180deg);
+    }
+    html.ref-fold-ready [data-mobile-fold] > [data-fold-body] {
+        display: none;
+        margin: 0;
+        padding: 0 16px 16px;
+    }
+    html.ref-fold-ready [data-mobile-fold].is-open > [data-fold-body] {
+        display: block;
+    }
+    html.ref-fold-ready [data-mobile-fold] > .ref-about-icon {
+        display: none;
+    }
+    /* Footer links fold under their heading, so the footer is no longer 800 px on every page. */
+    html.ref-fold-ready .ref-footer [data-mobile-fold] > [data-fold-toggle] {
+        padding-left: 0;
+    }
+    html.ref-fold-ready .ref-footer [data-mobile-fold] > [data-fold-body] {
+        padding: 0;
+    }
+    html.ref-fold-ready .ref-footer [data-mobile-fold].is-open > [data-fold-body] {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 12px;
+    }
+    body.ref-home .ref-footer-links a {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    body.ref-home .ref-footer-support a,
+    body.ref-home .ref-footer-contact-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    body.ref-home .ref-footer-legal {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        width: 100%;
+    }
+    body.ref-home .ref-footer-legal a {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    body.ref-home .ref-footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    /* Application form: roomy fields, readable date drop-downs, submit always visible above the bottom bar. */
+    body.ref-home .ref-partner-apply-form .ref-input-control,
+    body.ref-home .ref-partner-apply-form select,
+    body.ref-home .ref-partner-apply-form input,
+    body.ref-home .ref-partner-apply-form textarea {
+        font-size: 16px;
+    }
+    body.ref-home .ref-partner-apply-form .ref-input-control {
+        min-height: 48px;
+    }
+    body.ref-home .ref-partner-apply-form .ref-dob-row {
+        display: grid !important;
+        grid-template-columns: 0.8fr 1.3fr 1.1fr;
+        gap: 8px;
+    }
+    body.ref-home .ref-partner-apply-form select.ref-input-control {
+        min-width: 0;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    body.ref-home .ref-partner-submit-area .ref-field-hint {
+        font-size: 13px;
+        line-height: 1.7;
+    }
+    body.ref-home .ref-partner-submit-btn {
+        position: sticky;
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        z-index: 30;
+        min-height: 52px;
+        width: 100%;
+        box-shadow: 0 8px 22px rgba(12, 59, 42, 0.3);
+    }
+
+    /* ---- 14. Application status: breathing room between the fields ---- */
+    body.ref-home .ref-partner-apply-form .ref-field-group {
+        margin-bottom: 16px;
+    }
+    body.ref-home .ref-partner-apply-form .ref-field-group + .ref-partner-submit-btn,
+    body.ref-home .ref-partner-apply-form .ref-field-group:last-of-type {
+        margin-bottom: 24px;
+    }
+
+    /* ---- 9. Contact: three big actions first, then the form, then the details ---- */
+    body.ref-home .ref-contact-quick {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+        gap: 10px;
+        margin: 0 0 14px;
+    }
+    body.ref-home .ref-contact-quick a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-height: 64px;
+        padding: 8px;
+        border-radius: 12px;
+        background: var(--sm-green-deep, #0c3b2a);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+    }
+    body.ref-home .ref-contact-quick a.is-chat {
+        background: #1a9c46;
+    }
+    body.ref-home .ref-contact-quick a.is-mail {
+        background: #8f6a14;
+    }
+    body.ref-home .ref-contact-quick i {
+        font-size: 20px;
+    }
+    body.ref-home .ref-contact-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    body.ref-home .ref-contact-grid > .ref-contact-form-card {
+        order: -1;
+    }
+    body.ref-home .ref-contact-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        font-size: 16px;
+    }
+    body.ref-home .ref-contact-grid .ref-form input,
+    body.ref-home .ref-contact-grid .ref-form select,
+    body.ref-home .ref-contact-grid .ref-form textarea {
+        font-size: 16px;
+    }
+    body.ref-home .ref-contact-grid .ref-form input,
+    body.ref-home .ref-contact-grid .ref-form select {
+        min-height: 48px;
+    }
+    body.ref-home .ref-contact-grid .ref-form textarea {
+        min-height: 120px;
+    }
+
+    /* ---- 8. Product detail: 44 px taps, a call bar above the bottom bar ---- */
+    body.ref-home .ref-share-bar button,
+    body.ref-home .ref-share-bar a {
+        display: inline-grid;
+        place-items: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    body.ref-home .ref-product-review summary,
+    body.ref-home .ref-product-reviews summary {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    body.ref-home .ref-company-intro-actions {
+        display: grid;
+        gap: 10px;
+    }
+    body.ref-home .ref-company-intro-actions a {
+        min-height: 48px;
+        justify-content: center;
+        text-align: center;
+    }
+    body.ref-home .ref-product-sticky {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+        z-index: 34;
+        display: flex;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.97);
+        border-top: 1px solid #e2e2d4;
+        box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.1);
+    }
+    html[data-theme="dark"] body.ref-home .ref-product-sticky {
+        background: rgba(12, 22, 18, 0.97);
+        border-top-color: #254032;
+    }
+    body.ref-home .ref-product-sticky a {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 48px;
+        border-radius: 12px;
+        background: var(--sm-green-deep, #0c3b2a);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+    }
+    body.ref-home .ref-product-sticky a.is-chat {
+        background: #1a9c46;
+    }
+    /* Room so the last element of the page is never behind the two fixed bars. */
+    body.ref-home:has(.ref-product-sticky) {
+        padding-bottom: calc(136px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* ---- 5. Dealer / sub-dealer sign-in pages: only the sign-in, like the owner and staff pages ---- */
+    body.am-auth:not(.company-auth) .ref-company-bar,
+    body.am-auth:not(.company-auth) .ref-footer,
+    body.am-auth:not(.company-auth) .ref-breadcrumb {
+        display: none;
+    }
+    body.am-auth:not(.company-auth) .ref-container.ref-auth-main {
+        min-height: 0;
+        padding-top: 20px;
+        padding-bottom: 28px;
+    }
+    body.am-auth:not(.company-auth) .ref-auth-card {
+        width: 100%;
+        max-width: 448px;
+        padding: 24px 18px;
+    }
+    body.am-auth:not(.company-auth) .ref-auth-card input:not([type="checkbox"]):not([type="radio"]),
+    body.am-auth:not(.company-auth) .ref-auth-card select {
+        min-height: 48px;
+        font-size: 16px;
+    }
+    body.am-auth:not(.company-auth) .ref-auth-submit {
+        min-height: 52px;
+        font-size: 17px;
+    }
+    body.am-auth:not(.company-auth) .ref-password-field button {
+        min-width: 48px;
+        min-height: 48px;
+    }
+    body.am-auth:not(.company-auth) .ref-auth-card .ref-forgot-link {
+        display: flex !important;
+        align-items: center;
+        justify-content: flex-end;
+        min-height: 48px;
+        margin-top: 4px !important;
+    }
+    body.am-auth:not(.company-auth) .ref-auth-bottom a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    body.am-auth:not(.company-auth) .ref-partner-login-option {
+        min-height: 64px;
+    }
+
+    /* ---- 17/18. Prose pages: readable, tappable ---- */
+    body.ref-home .ref-trust-prose a,
+    body.ref-home .ref-content-prose a {
+        padding-block: 4px;
+    }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+    body.ref-home .ref-filter-sidebar,
+    body.ref-home .ref-filter-sidebar.is-open,
+    html.ref-fold-ready [data-mobile-fold] > [data-fold-toggle]::after {
+        transition: none;
+    }
+}
