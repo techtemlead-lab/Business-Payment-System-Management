@@ -1,0 +1,38 @@
+/* Phone layout of the shared Table: each row is a stacked card (.mt-card from the money table) with the key columns visible,
+   the rest behind "Show more", and the row actions as full-width 44 px buttons. Desktop and tablet keep the real table. */
+@media (max-width:767px){
+  .app-shell .table-tools select.table-phone-sort{flex:1 1 100%;width:100%;min-height:44px;height:44px;padding:0 32px 0 12px;font-size:16px}
+
+  .app-shell .table-cards{margin:0 0 12px}
+  .app-shell .table-panel>.table-block>.table-cards{margin:0 12px 12px}
+  .table-card{flex-wrap:wrap;align-items:flex-start}
+  .table-card .mt-card-main{flex:1 1 0;min-width:0}
+  .table-card .mt-card-title{line-height:1.5}
+  .table-card .mt-card-lines{margin-top:2px;font-size:var(--ds-fs-sm,14px);line-height:1.6}
+  .table-card-label{color:var(--ds-text-muted)}
+  .table-card .mt-card-lines .badge,.table-card .mt-card-amount .badge{white-space:normal}
+
+  .table-card :is(.table-card-more,.table-card-actions){flex:0 0 100%;min-width:0}
+  .table-card-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;padding:0 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md,10px);background:var(--ds-surface);color:var(--ds-brand-text,var(--ds-text-2));font-size:var(--ds-fs-sm,14px);font-weight:600}
+  .table-card-toggle:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+  .table-card-more dl{display:grid;gap:0;margin:8px 0 0;padding:0}
+  .table-card-more dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:8px 0;border-bottom:1px solid var(--ds-line-soft)}
+  .table-card-more dl>div:last-child{border-bottom:0}
+  .table-card-more dt{flex:0 0 38%;color:var(--ds-text-muted);font-size:var(--ds-fs-sm,14px)}
+  .table-card-more dd{flex:1;min-width:0;margin:0;text-align:right;font-size:var(--ds-fs-sm,14px);overflow-wrap:anywhere}
+
+  .table-card-actions{display:flex;flex-wrap:wrap;gap:8px}
+  .table-card-actions>div{display:flex;flex:1 1 100%;flex-wrap:wrap;gap:8px;min-width:0}
+  .table-card-actions :is(.button,.icon-button,.text-link,button,a.badge){flex:1 1 auto;justify-content:center;min-height:44px}
+  .table-card-actions .icon-button{min-width:44px}
+  .table-card-actions form{display:flex;flex:1 1 auto;gap:8px}
+  .table-card-actions form>:is(.button,button){flex:1 1 auto}
+
+  .app-shell .table-empty-phone{margin:0 0 12px}
+  .app-shell .table-empty-phone .empty{min-height:160px;margin:0;padding:24px 16px;border:1px dashed var(--ds-line-strong);border-radius:14px;background:var(--ds-surface-2)}
+  .app-shell .table-panel>.table-block>.table-empty-phone{margin:0 12px 12px}
+
+  .app-shell .table-block .table-client-pagination{flex-wrap:wrap;gap:8px}
+  .app-shell .table-block .table-client-pagination :is(.page-btn,.page-size-select){min-height:44px;height:44px}
+  .app-shell .table-block .table-client-pagination .page-btn{min-width:44px}
+}
