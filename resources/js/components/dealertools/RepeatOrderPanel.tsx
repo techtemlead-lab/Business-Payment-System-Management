@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { date, money, number, type Row } from '../UI';
+import { Badge, date, money, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
 
 export interface RepeatItem {
@@ -16,44 +16,35 @@ export interface RepeatOption {
     number: string;
     ordered_on: string;
     /** What the order cost then, and the names of the products on it. */
+    status?: string;
     total?: string;
     names?: string[];
     items: RepeatItem[];
     skipped: { name: string; reason: string }[];
 }
 
-/** Past orders the partner can put back in the cart with one tap, at today's prices. */
-/** Most product names written on a card; the rest become "n more". */
-const NAMES_SHOWN = 2;
-
+/** Past orders the partner can put back in the cart with one tap, at today's prices. One compact line each. */
 export default function RepeatOrderPanel({ orders, onFill }: { orders: RepeatOption[]; onFill: (option: RepeatOption) => void }) {
     const translate = useT();
     if (orders.length === 0) {
         return null;
     }
     return (
-        <section className="panel" data-testid="repeat-orders">
-            <h2>{translate('dealer_tools', 'repeat_title')}</h2>
-            <p className="muted">{translate('dealer_tools', 'repeat_hint')}</p>
-            <div className="metric-grid three">
-                {orders.map((option, index) => (
-                    <div key={option.order_id} className="metric">
-                        <span>{translate('dealer_tools', index === 0 ? 'repeat_last' : 'repeat_past')} · {date(option.ordered_on)}</span>
-                        <strong>{option.number}</strong>
-                        <small>{translate('dealer_tools', 'repeat_items', { count: number(option.items.length) })}</small>
-                        {(option.names?.length ?? 0) > 0 && (
-                            <small data-testid="repeat-products">
-                                {option.names!.slice(0, NAMES_SHOWN).join(', ')}
-                                {option.names!.length > NAMES_SHOWN && ` ${translate('purchase_page', 'reorder_more', { count: number(option.names!.length - NAMES_SHOWN) })}`}
-                            </small>
-                        )}
-                        {option.total !== undefined && <small data-testid="repeat-total"><b>{translate('purchase_page', 'reorder_total', { amount: money(option.total) })}</b></small>}
+        <section className="panel ppm-recent" data-testid="repeat-orders">
+            <h2>{translate('purchase_page', 'reorder_recent_title')}</h2>
+            <ul className="ppm-recent-list">
+                {orders.map((option) => (
+                    <li key={option.order_id} className="ppm-recent-row">
+                        <strong className="ppm-recent-number">{option.number}</strong>
+                        <span className="ppm-recent-date">{date(option.ordered_on)}</span>
+                        {option.total !== undefined && <span className="ppm-recent-total" data-testid="repeat-total">{money(option.total)}</span>}
+                        {option.status ? <Badge status={option.status} /> : null}
                         {option.items.some(item => item.quantity > 0)
-                            ? <button type="button" className="button small dark" onClick={() => onFill(option)}><RotateCcw size={15} /> {translate('dealer_tools', 'repeat_fill')}</button>
+                            ? <button type="button" className="button small dark ppm-recent-action" onClick={() => onFill(option)}><RotateCcw size={15} /> {translate('purchase_page', 'reorder_button')}</button>
                             : <small>{translate('dealer_tools', 'repeat_nothing')}</small>}
-                    </div>
+                    </li>
                 ))}
-            </div>
+            </ul>
         </section>
     );
 }

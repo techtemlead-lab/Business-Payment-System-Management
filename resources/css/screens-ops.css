@@ -688,3 +688,13 @@
 @media (prefers-reduced-motion:reduce){
   .app-shell .acf-bar span{transition:none}
 }
+.app-shell .ppm-recent{padding:12px 16px}
+.app-shell .ppm-recent h2{margin:0 0 8px;font-size:var(--ds-fs-md)}
+.app-shell .ppm-recent-list{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.app-shell .ppm-recent-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:8px 0;border-top:1px solid var(--ds-border)}
+.app-shell .ppm-recent-row:first-child{border-top:0}
+.app-shell .ppm-recent-number{min-width:130px}
+.app-shell .ppm-recent-date{min-width:100px;color:var(--ds-text-muted,inherit)}
+.app-shell .ppm-recent-total{min-width:110px;font-weight:700;text-align:right}
+.app-shell .ppm-recent-action{margin-left:auto;min-height:44px}
+.app-shell .ppm-reorder-btn{min-height:44px;white-space:nowrap}
