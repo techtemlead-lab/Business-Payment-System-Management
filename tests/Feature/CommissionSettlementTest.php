@@ -380,6 +380,10 @@ class CommissionSettlementTest extends TestCase
         $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
         $this->assertDatabaseCount('rank_incentive_awards', 1);
         $this->assertSame($walletBefore + 500000, Money::cents((string) DB::table('wallets')->where('user_id', $leader->id)->value('available')));
+        // The prize came out of two fund rows (his own reserve and the sub-dealer's), yet it reaches the wallet as ONE credit.
+        $this->assertGreaterThan(1, DB::table('commission_settlement_payouts')->where('user_id', $leader->id)->where('kind', 'rank_mo')->count());
+        $this->assertSame(1, DB::table('journal_lines as l')->join('journal_entries as e', 'e.id', '=', 'l.entry_id')
+            ->where('l.user_id', $leader->id)->where('l.account', 'wallet_liability')->where('e.event_key', 'like', 'commissions.settlement.%.rank_mo')->count());
     }
 
     public function test_a_leader_promoted_twice_before_the_reward_runs_still_gets_the_lower_rank_reward(): void
