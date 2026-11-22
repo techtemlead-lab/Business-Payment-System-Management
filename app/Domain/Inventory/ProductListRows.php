@@ -23,7 +23,7 @@ final class ProductListRows
     public function build(): array
     {
         $entries = [];
-        foreach (Product::query()->where('active', true)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'group_bn', 'group_en', 'efficacy_bn', 'efficacy_en', 'image_path']) as $product) {
+        foreach (Product::query()->where('active', true)->get(['id', 'name', 'strength', 'category', 'pack_size_en', 'pack_size_bn', 'mrp', 'dealer_price', 'sub_dealer_price', 'description', 'dose_bn', 'dose_en', 'group_bn', 'group_en', 'efficacy_bn', 'efficacy_en', 'image_path', 'image_original_path']) as $product) {
             [$name, $packSize] = StockPrintName::split($product->registerName(), ProductSizeGroups::label($product));
             $category = trim((string) $product->category);
             $entries[] = ['product' => $product, 'name' => $name, 'pack_size' => $packSize, 'category' => $category !== '' ? $category : null];
@@ -39,6 +39,7 @@ final class ProductListRows
             /** @var Product $product */
             $product = $entry['product'];
             $mrpCents = $this->cents($product->mrp);
+            $image = PdfPhotos::sourceFor((int) $product->id, $product->image_path, $product->category, $product->image_original_path);
             $rows[] = [
                 'product_id' => (int) $product->id,
                 'serial' => $index + 1,
@@ -49,7 +50,8 @@ final class ProductListRows
                 'mrp' => $mrpCents > 0 ? Money::decimal($mrpCents) : null,
                 'dealer_discount' => $this->discount($product, $product->dealer_price),
                 'sub_dealer_discount' => $this->discount($product, $product->sub_dealer_price),
-                'image' => PdfPhotos::sourceFor((int) $product->id, $product->image_path, $product->category),
+                'image' => $image,
+                'image_fallbacks' => PdfPhotos::fallbacksFor($product->image_original_path, $image),
                 'usage' => $this->localizedFact($product, 'dose'),
                 // The product description stands in until the owner fills in the efficacy.
                 'efficacy' => $this->localizedFact($product, 'efficacy') ?? $this->plainText($product->description),
