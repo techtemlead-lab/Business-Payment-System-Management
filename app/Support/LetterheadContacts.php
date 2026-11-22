@@ -127,6 +127,10 @@ final class LetterheadContacts
         if (! str_contains($host, '.')) {
             return ['label' => '', 'url' => ''];
         }
+        // The company's own domain always prints as https://www.madinanhc.com, whatever form the server address has.
+        if (CompanyWebsite::isOwnDomain($host)) {
+            return ['label' => CompanyWebsite::url(), 'url' => CompanyWebsite::url()];
+        }
         $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'https';
 
         return ['label' => $host, 'url' => $scheme.'://'.$host.'/'];
