@@ -10,6 +10,92 @@ import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from 
 import WithdrawalFacts, { AmountWords, type WithdrawalFactsData } from '../components/payouts/WithdrawalFacts';
 import ReceiptPicker from '../components/payouts/ReceiptPicker';
 import { HandOverDialog } from '../components/payouts/OfficePayoutList';
+import ConfirmSheet, { useConfirm, type ConfirmFact } from '../components/ConfirmSheet';
+import { actionAllowed } from '../components/action-permissions';
+
+/** "Rahim (MNHC-101)": the partner who gets the money, from the review facts. */
+function payeeOf(facts: WithdrawalFactsData | null): string {
+    if (!facts) {
+        return '';
+    }
+
+    return facts.partner.code ? `${facts.partner.name} (${facts.partner.code})` : facts.partner.name;
+}
+
+/**
+ * Finance decides a withdrawal with two clear buttons. A sheet then repeats the amount and who gets it,
+ * asks for the reason, and posts exactly what the old form did: `decision`, `payer_id` (when payers are
+ * offered) and `reason` (unless the owner switched that box off).
+ */
+function WithdrawalDecision({ withdrawal: w, facts, payers, allowApprove }: { withdrawal: Row; facts: WithdrawalFactsData | null; payers: Array<{ id: number; name: string }>; allowApprove: boolean }) {
+    const translate = useT();
+    const { portal, staffActions } = usePage<any>().props;
+    const action = `/commands/withdrawals/${w.id}/review`;
+    const reason = useReasonField('money.withdrawal_review');
+    const [asking, setAsking] = React.useState<null | 'approved' | 'rejected'>(null);
+    const form = useForm<Record<string, string>>({
+        decision: '',
+        ...(payers.length > 0 ? { payer_id: '' } : {}),
+        ...(reason.shown ? { reason: '' } : {}),
+    });
+    if ((portal === 'manage' || portal === 'sadmin') && !actionAllowed(action, staffActions)) {
+        return null;
+    }
+    const payee = payeeOf(facts);
+    const account = String(w.destination_for_payment ?? w.destination_masked ?? '');
+    const sheetFacts: ConfirmFact[] = [
+        ...(payee ? [{ label: translate('payouts', 'cs_fact_payee'), value: payee }] : []),
+        { label: translate('payouts', 'cs_fact_method'), value: channelName(w.channel, translate) },
+        ...(account ? [{ label: translate('payouts', 'cs_fact_account'), value: account }] : []),
+        { label: translate('payouts', 'cs_fact_request'), value: date(w.created_at) },
+    ];
+    const open = (decision: 'approved' | 'rejected') => {
+        form.clearErrors();
+        form.setData((data) => ({ ...data, decision, ...(payers.length > 0 && decision === 'rejected' ? { payer_id: '' } : {}) }));
+        setAsking(decision);
+    };
+    const approving = asking === 'approved';
+
+    return (
+        <section className="panel narrow-panel wd-act" data-testid="withdrawal-decision">
+            <h2>{translate('portal', 'wd_review_title')}</h2>
+            {w.waits_for_owner && <p className="notice" role="status">{translate('self_approval', 'owner_approves_withdrawal')}</p>}
+            <div className="decision-summary">
+                <strong>{money(w.amount)}</strong>
+                {(payee || account) && <span>{[payee, channelName(w.channel, translate), account].filter(Boolean).join(' · ')}</span>}
+            </div>
+            <p className="muted">{translate('payouts', 'wd_decide_hint')}</p>
+            <div className="decision-buttons">
+                {allowApprove && <button type="button" className="button dark" onClick={() => open('approved')}><Check size={18} aria-hidden="true" />{translate('payouts', 'wd_approve_button')}</button>}
+                <button type="button" className="button danger" onClick={() => open('rejected')}><XCircle size={18} aria-hidden="true" />{translate('payouts', 'wd_reject_button')}</button>
+            </div>
+            {asking && (
+                <ConfirmSheet
+                    title={translate('payouts', approving ? 'wd_approve_title' : 'wd_reject_title')}
+                    sentence={translate('payouts', approving ? 'wd_approve_sentence' : 'wd_reject_sentence', { name: payee || translate('portal', 'col_partner') })}
+                    amount={w.amount}
+                    facts={sheetFacts}
+                    tone={approving ? 'primary' : 'danger'}
+                    confirmLabel={translate('payouts', approving ? 'wd_approve_button' : 'wd_reject_button')}
+                    reason={reason.shown ? { label: reason.label(translate('portal', 'wd_review_reason')), required: reason.required, maxLength: 1000, value: form.data.reason ?? '', onChange: (value) => form.setData('reason', value) } : undefined}
+                    pending={form.processing}
+                    errors={form.errors}
+                    onCancel={() => setAsking(null)}
+                    onConfirm={() => form.post(action, { preserveScroll: true, onSuccess: () => setAsking(null) })}
+                >
+                    {approving && payers.length > 0 && (
+                        <label>{translate('payouts', 'payer_label')}
+                            <select value={form.data.payer_id ?? ''} onChange={(event) => form.setData('payer_id', event.target.value)}>
+                                <option value="">{translate('portal', 'select_placeholder')}</option>
+                                {payers.map((payer) => <option key={payer.id} value={String(payer.id)}>{payer.name}</option>)}
+                            </select>
+                        </label>
+                    )}
+                </ConfirmSheet>
+            )}
+        </section>
+    );
+}
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
@@ -174,6 +260,19 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                         grid-template-columns: 1fr;
                         gap: 12px;
                     }
+                }
+                /* Phones: short step rows; only the current step keeps its line, and text is readable size */
+                @media (max-width: 767px) {
+                    .withdrawal-progress-stepper .wd-stepper-head { padding-bottom: 10px; margin-bottom: 12px; }
+                    .withdrawal-progress-stepper .wd-stepper-track { gap: 8px; }
+                    .withdrawal-progress-stepper .wd-step-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 10px; row-gap: 2px; padding: 10px 12px; }
+                    .withdrawal-progress-stepper .wd-step-top { display: contents; }
+                    .withdrawal-progress-stepper .wd-step-indicator { grid-column: 1; grid-row: 1 / span 2; }
+                    .withdrawal-progress-stepper .wd-step-badge { grid-column: 3; grid-row: 1; font-size: 12px; }
+                    .withdrawal-progress-stepper .wd-step-name { grid-column: 2; grid-row: 1; margin: 0; font-size: 15px; line-height: 1.5; }
+                    .withdrawal-progress-stepper .wd-step-desc { grid-column: 2 / span 2; font-size: 13px; line-height: 1.5; }
+                    .withdrawal-progress-stepper .wd-step-time { grid-column: 2 / span 2; margin: 0; padding: 0; border: 0; font-size: 12px; }
+                    .withdrawal-progress-stepper .wd-step-card:not(.state-active):not(.state-failed) :is(.wd-step-desc, .wd-step-time) { display: none; }
                 }
                 .withdrawal-progress-stepper .wd-step-card {
                     display: flex;
@@ -372,6 +471,9 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     });
     const isCash = form.data.method === 'cash';
     const [handingOver, setHandingOver] = React.useState(false);
+    // Recording a payment asks once more, with the amount and who gets it, before the same request is sent.
+    const [confirmingPay, setConfirmingPay] = React.useState(false);
+    const { confirm, sheet } = useConfirm();
     const paymentNote = useReasonField('money.withdrawal_settle');
     // Bank-file and money-came-back steps are named in the payouts words; the rest as before.
     const eventLabel = (event: string): string => {
@@ -388,9 +490,20 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
         }
     }, [inFlight, stop]);
 
+    const payTo = form.data.method === 'bkash' || form.data.method === 'nagad' ? form.data.wallet_number : (form.data.method === 'bank' || form.data.method === 'other') ? form.data.account_number : '';
+    const payFacts: ConfirmFact[] = [
+        ...(facts ? [{ label: translate('payouts', 'cs_fact_payee'), value: payeeOf(facts) }] : []),
+        { label: translate('payouts', 'cs_fact_method'), value: translate('portal', `payout_method_${form.data.method}`) },
+        ...(payTo ? [{ label: translate('payouts', 'cs_fact_account'), value: payTo }] : []),
+        ...(isCash && form.data.received_by ? [{ label: translate('portal', 'pay_fld_received_by'), value: form.data.received_by }] : []),
+        ...(form.data.payment_reference ? [{ label: translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref'), value: form.data.payment_reference }] : []),
+    ];
+
     return (
         <Shell section={isPartnerDesk ? 'my-money' : 'payouts-hub'}>
             <Head title={translate('portal', 'wd_head_title')} />
+            {/* Phones: the "what to do now" panels come before the progress and history (screens-confirm-sheet.css); computers lay this out as before. */}
+            <div className="wd-page">
             <Link className="text-link" href={base + (isPartnerDesk ? '/my-money' : '/payouts-hub')}>{translate('portal', 'wd_back')}</Link>
             <div className="order-title">
                 <div>
@@ -404,38 +517,28 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             {w.status === 'approved' && w.pay_by && <p className="muted">{isPartnerDesk ? translate('payouts', 'partner_pay_by', { date: date(w.pay_by) }) : translate('payouts', 'pay_by', { date: date(w.pay_by) })}{!isPartnerDesk && ` · ${w.payer_name ? translate('payouts', 'payer_named', { name: w.payer_name }) : translate('payouts', 'payer_none')}`}</p>}
             {w.payout_line && <div className="notice" role="status"><Clock size={20} /><p>{w.payout_line}</p></div>}
             {isPartnerDesk && w.can_cancel && (
-                <button type="button" className="button small" onClick={() => {
-                    if (window.confirm(translate('payouts', 'cancel_confirm'))) {
+                <button type="button" className="button small" onClick={async () => {
+                    const answer = await confirm({
+                        title: translate('payouts', 'wd_cancel_title'),
+                        sentence: translate('payouts', 'cancel_confirm'),
+                        amount: w.amount,
+                        facts: [{ label: translate('payouts', 'cs_fact_method'), value: channelName(w.channel, translate) }, { label: translate('payouts', 'cs_fact_request'), value: date(w.created_at) }],
+                        tone: 'danger',
+                        confirmLabel: translate('payouts', 'cancel_request'),
+                        cancelLabel: translate('payouts', 'wd_cancel_keep'),
+                    });
+                    if (answer) {
                         router.post(`/commands/withdrawals/${w.id}/cancel`, {}, { preserveScroll: true });
                     }
                 }}>{translate('payouts', 'cancel_request')}</button>
             )}
+            {sheet}
             <WithdrawalProgressStepper withdrawal={w} events={events} />
-            {finance && facts && <section className="panel narrow-panel"><WithdrawalFacts facts={facts} channel={String(w.channel)} amount={w.amount} /></section>}
+            {finance && facts && <section className="panel narrow-panel wd-act"><WithdrawalFacts facts={facts} channel={String(w.channel)} amount={w.amount} /></section>}
             {finance && w.status === 'requested' && (
-                <section className="panel narrow-panel">
-                    <h2>{translate('portal', 'wd_review_title')}</h2>
-                    {w.waits_for_owner && <p className="notice" role="status">{translate('self_approval', 'owner_approves_withdrawal')}</p>}
-                    <ActionForm
-                        action={`/commands/withdrawals/${w.id}/review`}
-                        fields={[
-                            {
-                                name: 'decision',
-                                label: translate('portal', 'wd_decision'),
-                                required: true,
-                                options: [
-                                    ...(facts?.blocker || facts?.over_channel_limit || w.waits_for_owner ? [] : [{ value: 'approved', label: translate('portal', 'wd_approve') }]),
-                                    { value: 'rejected', label: translate('portal', 'wd_reject') },
-                                ],
-                            },
-                            ...((facts?.payers.length ?? 0) > 0 ? [{ name: 'payer_id', label: translate('payouts', 'payer_label'), options: (facts?.payers ?? []).map((payer) => ({ value: String(payer.id), label: payer.name })) }] : []),
-                            { name: 'reason', label: translate('portal', 'wd_review_reason'), type: 'textarea', required: true, place: 'money.withdrawal_review' },
-                        ]}
-                        submit={translate('portal', 'wd_record_review')}
-                    />
-                </section>
+                <WithdrawalDecision withdrawal={w} facts={facts} payers={facts?.payers ?? []} allowApprove={!(facts?.blocker || facts?.over_channel_limit || w.waits_for_owner)} />
             )}
-            <section className="panel">
+            <section className="panel wd-info">
                 <h2>{translate('portal', 'wd_manual_title')}</h2>
                 <dl className="profile-grid">
                     <div><dt>{translate('portal', 'wd_destination')}</dt><dd>{w.destination_for_payment ?? w.destination_masked}</dd></div>
@@ -458,7 +561,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <a className="button small" href={`${base}/payment-receipts/${payoutReceipt.id}/print`} target="_blank" rel="noopener"><Printer size={15} />{translate('portal', 'prc_view_print')}</a>
                 </p>}
             </section>
-            <section className="panel">
+            <section className="panel wd-info">
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
@@ -468,7 +571,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             </section>
             {/* Paid money that came back: one person records it, a second confirms or takes it back. */}
             {finance && w.status === 'paid' && w.return_state && (
-                <section className="panel narrow-panel">
+                <section className="panel narrow-panel wd-act">
                     <h2>{translate('payouts', 'return_title')}</h2>
                     {w.return_note && <p className="muted">{translate('payouts', 'return_recorded_line', { note: String(w.return_note) })}</p>}
                     {w.return_state === 'record' && <>
@@ -488,7 +591,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             )}
             {/* In a file sent to the bank the money may already be on its way: no rejecting until the bank answers. */}
             {finance && w.status === 'approved' && w.exported_at && (
-                <section className="panel narrow-panel">
+                <section className="panel narrow-panel wd-act">
                     <h2>{translate('payouts', 'not_sent_title')}</h2>
                     <p className="notice" role="status">{translate('payouts', 'in_bank_file_badge', { batch: String(w.payout_batch_id ?? '').slice(0, 8).toUpperCase() })}</p>
                     <p className="muted">{translate('payouts', 'not_sent_body')}</p>
@@ -502,35 +605,18 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     />}
                 </section>
             )}
+            {/* Approved but not yet paid or in a bank file: it can still be rejected (no second approval). */}
             {finance && w.status === 'approved' && !w.exported_at && (
-                <section className="panel narrow-panel">
-                    <h2>{translate('portal', 'wd_review_title')}</h2>
-                    <ActionForm
-                        action={`/commands/withdrawals/${w.id}/review`}
-                        fields={[
-                            {
-                                name: 'decision',
-                                label: translate('portal', 'wd_decision'),
-                                required: true,
-                                options: [
-                                    ...(w.status === 'requested' ? [{ value: 'approved', label: translate('portal', 'wd_approve') }] : []),
-                                    { value: 'rejected', label: translate('portal', 'wd_reject') },
-                                ],
-                            },
-                            { name: 'reason', label: translate('portal', 'wd_review_reason'), type: 'textarea', required: true, place: 'money.withdrawal_review' },
-                        ]}
-                        submit={translate('portal', 'wd_record_review')}
-                    />
-                </section>
+                <WithdrawalDecision withdrawal={w} facts={facts} payers={[]} allowApprove={false} />
             )}
             {finance && w.status === 'approved' && w.payer_state === 'second_person' && (
-                <section className="panel narrow-panel">
+                <section className="panel narrow-panel wd-act">
                     <h2>{translate('portal', 'wd_record_title')}</h2>
                     <p className="muted" role="status">{translate('self_approval', 'wait_second_person')}</p>
                 </section>
             )}
             {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel === 'Office' && (
-                <section className="panel narrow-panel">
+                <section className="panel narrow-panel wd-act">
                     <h2>{translate('office_withdrawal', 'hand_over_title')}</h2>
                     <p className="muted">{translate('office_withdrawal', 'list_body')}</p>
                     {facts?.blocker && <p className="notice" role="alert"><b>{translate('payouts', 'blocked_title')}</b> {facts.blocker}</p>}
@@ -539,7 +625,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 </section>
             )}
             {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel !== 'Office' && (
-                <section className="panel narrow-panel">
+                <section className="panel narrow-panel wd-act">
                     <h2>{translate('portal', 'wd_record_title')}</h2>
                     <div className="notice">
                         <ShieldCheck size={20} />
@@ -547,7 +633,9 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     </div>
                     <form className="action-form" onSubmit={e => {
                         e.preventDefault();
-                        form.post(`/commands/withdrawals/${w.id}/record-payment`, { forceFormData: true });
+                        // The browser has checked every required box; now ask once more with the amount and the payee.
+                        form.clearErrors();
+                        setConfirmingPay(true);
                     }}>
                         <label>{translate('portal', 'pay_fld_method')}
                             <select required value={form.data.method} onChange={e => form.setData('method', e.target.value as PayoutMethod)}>
@@ -581,8 +669,22 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                             <Upload size={17} />{form.processing ? translate('portal', 'wd_recording') : translate('portal', 'wd_record_payment')}
                         </button>
                     </form>
+                    {confirmingPay && (
+                        <ConfirmSheet
+                            title={translate('payouts', 'wd_pay_title')}
+                            sentence={translate('payouts', 'wd_pay_sentence', { name: payeeOf(facts) || translate('portal', 'col_partner') })}
+                            amount={w.net_amount ?? w.amount}
+                            facts={payFacts}
+                            confirmLabel={translate('portal', 'wd_record_payment')}
+                            pending={form.processing}
+                            onCancel={() => setConfirmingPay(false)}
+                            // Same request as before; any refusal shows beside the boxes on the page, so the sheet closes when it ends.
+                            onConfirm={() => form.post(`/commands/withdrawals/${w.id}/record-payment`, { forceFormData: true, onFinish: () => setConfirmingPay(false) })}
+                        />
+                    )}
                 </section>
             )}
+            </div>
         </Shell>
     );
 }

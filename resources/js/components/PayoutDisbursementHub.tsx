@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import { FormErrors, money, date } from './UI';
@@ -12,6 +12,7 @@ import ReceiptPicker from './payouts/ReceiptPicker';
 import OfficePayoutList from './payouts/OfficePayoutList';
 import { PartnerTypeCell } from './office/portalShared';
 import { randomUuid } from '../shared/randomUuid';
+import { useConfirm } from './ConfirmSheet';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'returned' | 'rejected' | 'cancelled';
 
@@ -86,27 +87,50 @@ function csrfToken(): string {
 function BankFiles({ batches }: { batches: PayoutBatchRow[] }) {
     const translate = useT();
     const [batchId, setBatchId] = useState(() => randomUuid());
+    const fileForm = useRef<HTMLFormElement>(null);
+    const { confirm, sheet } = useConfirm();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        if (!window.confirm(translate('payouts', 'payout_file_confirm'))) {
-            e.preventDefault();
+    // The browser's own submit still sends the file request; the confirm sheet only stands in front of it.
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const answer = await confirm({
+            title: translate('payouts', 'batch_new_title'),
+            sentence: translate('payouts', 'payout_file_confirm'),
+            confirmLabel: translate('treasury', 'payout_file'),
+        });
+        if (!answer) {
             return;
         }
+        fileForm.current?.submit();
         // The download does not leave the page: show the rows as "in bank file" and ready a new id for the next file.
         window.setTimeout(() => {
             setBatchId(randomUuid());
             router.reload();
         }, 4000);
     };
+    const downloadAgain = async (e: React.MouseEvent<HTMLAnchorElement>, batch: PayoutBatchRow) => {
+        e.preventDefault();
+        const href = e.currentTarget.href;
+        const answer = await confirm({
+            title: translate('payouts', 'batch_again_title'),
+            sentence: translate('payouts', 'batch_download_again_confirm'),
+            amount: batch.total_net,
+            confirmLabel: translate('payouts', 'batch_download_again'),
+        });
+        if (answer) {
+            window.location.assign(href);
+        }
+    };
 
     return (
         <div className="panel">
+            {sheet}
             <div className="hub-row is-between">
                 <div>
                     <h3 className="hub-title">{translate('payouts', 'batches_title')}</h3>
                     <p className="hub-hint">{translate('payouts', 'batches_hint')}</p>
                 </div>
-                <form method="post" action="/commands/operations/accounting/payout-batch/export" onSubmit={handleSubmit}>
+                <form ref={fileForm} method="post" action="/commands/operations/accounting/payout-batch/export" onSubmit={handleSubmit}>
                     <input type="hidden" name="_token" value={csrfToken()} />
                     <input type="hidden" name="batch_id" value={batchId} />
                     <button type="submit" className="button small">
@@ -132,7 +156,7 @@ function BankFiles({ batches }: { batches: PayoutBatchRow[] }) {
                                 <a
                                     className="text-link"
                                     href={`/commands/operations/accounting/payout-batches/${batch.id}/file`}
-                                    onClick={(e) => { if (!window.confirm(translate('payouts', 'batch_download_again_confirm'))) e.preventDefault(); }}
+                                    onClick={(e) => downloadAgain(e, batch)}
                                 >
                                     {translate('payouts', 'batch_download_again')}
                                 </a>
