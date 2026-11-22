@@ -43,13 +43,9 @@ class PartnersAddedAtSameMomentTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'second-sub@example.test']);
     }
 
-    public function test_the_same_email_saved_at_the_same_moment_is_refused_in_plain_words(): void
-    {
-        $this->rivalSavesFirst(['role' => 'dealer', 'email' => 'same-moment@example.test', 'dealer_code' => 'D-RIVAL', 'refer_code' => 'D-RIVAL']);
-
-        $this->addPartner(['place_code' => 'MNHC102', 'email' => 'same-moment@example.test', 'phone' => '01712000103'])
-            ->assertSessionHasErrors(['email' => Lang::get('portal.acct_val_email_taken')]);
-    }
+    // The same email at the same moment is no longer a case here: the database does not insist on a unique email any more
+    // (owner, 2026-11-22: sharing is allowed while the one-person-one-account switch is off). With the switch on, the email is
+    // checked again inside the lock every account creation passes through (see AccountDuplicateIdentityTest).
 
     /**
      * Saves the rival account just before the new partner reaches the database, after every early check has passed.
