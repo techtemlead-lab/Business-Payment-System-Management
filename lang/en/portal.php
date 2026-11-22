@@ -7010,4 +7010,5 @@ return [
     'acct_area_chain_change_hint' => 'To change it, pick all four places again; if nothing is picked, it stays as it is.',
     'acct_area_chain_incomplete' => 'Pick all four places: division, district, upazila / thana and union.',
     'event_account_area_chain_updated' => 'Partner area for the area commission changed',
+    'event_site_website_url_normalised' => 'Website address in the site settings corrected',
 ];
