@@ -1,6 +1,4 @@
 {{-- The letterhead at the top of the printed lists. Styles: .header, .logo-cell, .legal-cell, .brand-name, .brand-line (see the list views). --}}
-@use('App\Support\LocalDigits')
-@php $digits = static fn ($value): string => LocalDigits::text((string) $value); @endphp
 <table class="header">
     <tr>
         <td class="logo-cell">
@@ -16,8 +14,7 @@
             </div>
         </td>
         <td class="legal-cell">
-            <div class="brand-line">{{ __('site.top_bar_trade_licence') }}: <b>{{ $digits($company['licence']) }}</b></div>
-            <div class="brand-line">{{ __('site.top_bar_trademark') }}: <b>{{ $company['trademark'] }}</b></div>
+            @include('partials.letterhead-legal', ['company' => $company])
         </td>
     </tr>
 </table>

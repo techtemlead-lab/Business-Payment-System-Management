@@ -5,6 +5,7 @@ namespace App\Domain\Accounts;
 use App\Domain\Content\PublicTrustContent;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LetterheadContacts;
 use App\Support\LocalDigits;
 use App\Support\PdfFonts;
 use App\Support\PdfPaper;
@@ -170,6 +171,8 @@ final class PartnerRegistrationForm
         $t = static fn (string $key, array $replace = []): string => __('partner_form.'.$key, $replace, $locale);
         $brand = __('portal.brand_madina_natural_health_care', [], $locale);
         $title = $t('title_'.$partner->role);
+        $website = LetterheadContacts::lines()['website'];
+        $websiteLine = $website !== '' ? '<div class="sub">'.e($website).'</div>' : '';
         $now = now('Asia/Dhaka');
         $serial = Str::upper(substr(hash('sha256', $partner->id.'|'.$now->format('YmdHis')), 0, 10));
 
@@ -223,7 +226,7 @@ final class PartnerRegistrationForm
             .foot{margin-top:16px;border-top:1px solid #dfe5e0;padding-top:6px;font-size:8pt;color:#5b6b7a}
         </style></head><body><div class="sheet">
             <table style="width:100%"><tr>
-                <td style="vertical-align:top"><div class="brand">'.e($brand).'</div><h1>'.e($title).'</h1><div class="sub">'.e($t('subtitle')).'</div></td>
+                <td style="vertical-align:top"><div class="brand">'.e($brand).'</div><h1>'.e($title).'</h1><div class="sub">'.e($t('subtitle')).'</div>'.$websiteLine.'</td>
                 <td style="width:36mm;vertical-align:top"><table class="photo"><tr><td>'.e($t('photo_box')).'</td></tr></table></td>
             </tr></table>
             '.$sectionHtml.'

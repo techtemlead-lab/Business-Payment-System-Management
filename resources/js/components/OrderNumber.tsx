@@ -1,6 +1,6 @@
 /**
- * An order number that is easy to read aloud: the date part small and the unique last part big
- * ("MN-270226-" + "FJSHOQRS"). The stored number never changes; the full number stays in the
+ * An order number that is easy to read aloud: the prefix and date small and the number of the day big
+ * ("MNHC-20261127-" + "100001"; older orders read "MN-270226-" + "FJSHOQRS"). The stored number never changes; the full number stays in the
  * text, so copying, searching and printing still give all of it.
  */
 export default function OrderNumber({ number }: { number: string }) {

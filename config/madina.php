@@ -150,6 +150,8 @@ return [
     'company_address' => env('MADINA_COMPANY_ADDRESS', 'Thana Road, Pirganj 5470, Rangpur, Bangladesh'),
     'company_phone' => env('MADINA_COMPANY_PHONE', '+8801730532966'),
     'company_email' => env('MADINA_COMPANY_EMAIL', ''),
+    // The company's own website as it is printed in every document header (see App\Support\CompanyWebsite).
+    'company_website' => env('MADINA_COMPANY_WEBSITE', 'https://www.madinanhc.com'),
     // Legacy env fallbacks. Prefer Service integrations in the admin panel; all remain disabled by default.
     'bdris' => [
         'enabled' => env('MADINA_BDRIS_ENABLED', false),

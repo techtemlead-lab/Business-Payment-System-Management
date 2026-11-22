@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class SiteCustomization
 {
-    private const SLUG = 'frontend_customization';
+    public const SLUG = 'frontend_customization';
 
     private const CacheKey = 'site_customization:v1';
 
