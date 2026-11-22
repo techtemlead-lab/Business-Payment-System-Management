@@ -16,6 +16,7 @@ import { ConsultationRequestsTab, PublicListingTab, type PrescriberPublicData } 
 import { ClinicQueueTab } from './ClinicQueueTab';
 import { LetterheadSettings, type LetterheadSettingsData } from './LetterheadSettings';
 import { PatientAccessLogList } from './PatientAccessLogList';
+import { useConfirm } from './ConfirmSheet';
 
 type Translate = ReturnType<typeof useT>;
 
@@ -251,6 +252,7 @@ function PrescriptionList({ data, translate, onCopy }: { data: PrescriptionsData
     const [paymentFor, setPaymentFor] = useState<Record<number, { method: string; reference: string }>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState<number | null>(null);
+    const { confirm, sheet } = useConfirm();
     // The owner-doctor's matches of typed medicines to company products, by line id.
     const [linkFor, setLinkFor] = useState<Record<number, LineLink>>({});
     const linkOf = (lineId: number): LineLink => linkFor[lineId] ?? { product_id: '', quantity: '1', unit_price: '', discount: '' };
@@ -259,9 +261,12 @@ function PrescriptionList({ data, translate, onCopy }: { data: PrescriptionsData
     const paymentOf = (id: number) => paymentFor[id] ?? { method: 'cash', reference: '' };
     const setPayment = (id: number, patch: Partial<{ method: string; reference: string }>) => setPaymentFor({ ...paymentFor, [id]: { ...paymentOf(id), ...patch } });
 
-    const dispense = (row: PrescriptionRow, confirmBelowFloor = false) => {
+    const dispense = async (row: PrescriptionRow, confirmBelowFloor = false) => {
         const branchId = branchFor[row.id] ?? String(branches[0]?.id ?? '');
-        if (!branchId || (!confirmBelowFloor && !window.confirm(translate('prescription', 'dispense_confirm')))) {
+        if (!branchId) {
+            return;
+        }
+        if (!confirmBelowFloor && !(await confirm({ title: translate('prescription', 'dispense'), sentence: translate('prescription', 'dispense_confirm'), confirmLabel: translate('prescription', 'dispense') }))) {
             return;
         }
         const payment = paymentOf(row.id);
@@ -279,8 +284,12 @@ function PrescriptionList({ data, translate, onCopy }: { data: PrescriptionsData
                 // Only the owner gets this question; the server blocks everyone else outright.
                 const { [CONFIRM_BELOW_FLOOR]: warning, ...others } = errs as Record<string, string>;
                 setErrors(others);
-                if (warning && window.confirm(warning)) {
-                    window.setTimeout(() => dispense(row, true), 0);
+                if (warning) {
+                    void confirm({ title: translate('payouts', 'cs_check_title'), sentence: warning, tone: 'danger', confirmLabel: translate('prescription', 'dispense') }).then((answer) => {
+                        if (answer) {
+                            window.setTimeout(() => dispense(row, true), 0);
+                        }
+                    });
                 }
             },
             onSuccess: () => setErrors({}),
@@ -292,6 +301,7 @@ function PrescriptionList({ data, translate, onCopy }: { data: PrescriptionsData
         <section className="panel">
             <div className="panel-heading"><h2 className="ops-row is-inline"><FileText size={18} /> {translate('prescription', 'rx_list')}</h2></div>
             <FormErrors errors={errors} />
+            {sheet}
             {data.prescriptions.length === 0 ? (
                 <Empty title={translate('prescription', 'rx_empty')} body={translate('prescription', 'rx_empty_body')} />
             ) : (

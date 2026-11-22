@@ -5,6 +5,7 @@ import { dateTime, Pagination, type Row } from './UI';
 import OfficePage from './office/OfficePage';
 import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
+import { useConfirm } from './ConfirmSheet';
 import FilterPicker from './FilterChips';
 
 type CleanupRow = { ref: string; kind: string; label: string; detail: string | null; happened_at: string };
@@ -59,9 +60,10 @@ export default function DataCleanupHub({ data }: { data?: CleanupData | null }) 
         const [word, provider] = row.detail.split('·').map((part) => part.trim());
         return [translate('portal', `cleanup_detail_${word}`), provider].filter(Boolean).join(' · ');
     };
-    const remove = () => {
+    const { confirm, sheet } = useConfirm();
+    const remove = async () => {
         const refs = Array.from(selected);
-        if (refs.length === 0 || !window.confirm(translate('portal', 'cleanup_confirm', { count: String(refs.length) }))) {
+        if (refs.length === 0 || !(await confirm({ title: translate('payouts', 'cs_check_title'), sentence: translate('portal', 'cleanup_confirm', { count: String(refs.length) }), tone: 'danger', irreversible: true, confirmLabel: translate('portal', 'cleanup_delete_selected') }))) {
             return;
         }
         setDeleting(true);
@@ -78,11 +80,12 @@ export default function DataCleanupHub({ data }: { data?: CleanupData | null }) 
         <OfficePage
             title={translate('portal', 'cleanup_title')}
             back={settingsBack(translate)}
-            action={(
+            action={(<>
+                {sheet}
                 <button type="button" className="button danger" disabled={deleting || selected.size === 0 || selected.size > data.max_per_delete} onClick={remove}>
                     <Trash2 size={16} aria-hidden="true" />{translate('portal', 'cleanup_delete_selected')}{selected.size > 0 ? ` (${selected.size})` : ''}
                 </button>
-            )}
+            </>)}
         >
             <div className="cleanup-hub" data-tour="data-cleanup">
                 <form className="cleanup-filters" onSubmit={applyFilters}>
