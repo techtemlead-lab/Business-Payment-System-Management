@@ -24,7 +24,8 @@ class AutoApprovePayouts extends Command
     /** Pending fund categories each monthly settlement pays out. */
     private const MonthlyFunds = [
         'salary' => ['dealer_monthly_salary_pool', 'sub_dealer_salary'],
-        'royalty' => ['rank_royalty_pool'],
+        // The four rank funds of newer orders and the single fund of older ones (RankRoyaltyFunds).
+        'royalty' => ['rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool'],
     ];
 
     public function handle(FinanceSettings $settings, CommissionService $commissions): int

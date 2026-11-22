@@ -80,7 +80,8 @@ final class CommissionSettlement
                 return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
             }
         }
-        $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : ['rank_royalty_pool'];
+        // Royalty: the four rank funds of newer orders and the single fund of older ones, each row closed once.
+        $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : RankRoyaltyFunds::allCategories();
         $fundIds = CommissionAllocation::whereIn('category', $categories)->where('status', 'pending')
             ->where('metadata->period_month', $month)->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all();
 
@@ -272,8 +273,16 @@ final class CommissionSettlement
                 $chunk['divisions'][$divisionKey]['pool_cents'] = ($chunk['divisions'][$divisionKey]['pool_cents'] ?? 0) + $cents;
                 $chunk['divisions'][$divisionKey]['qualifiers'] = max($chunk['divisions'][$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
             } else {
-                // The four rank funds (1% each by default), each rounded down; the paisa left go to the Commission extra fund.
-                ['parts' => $buckets, 'leftover' => $leftover] = EqualSplit::byWeights($cents, $this->rankWeights($rules['rank_royalty']['parameters']));
+                $fundRank = RankRoyaltyFunds::rankOf((string) $fund->category);
+                if ($fundRank !== null) {
+                    // A rank fund row (newer orders) already holds only that rank's money: all of it goes to that rank.
+                    $buckets = array_map(fn (string $code): int => $code === $fundRank ? $cents : 0, self::LeadershipRanks);
+                    $leftover = 0;
+                } else {
+                    // The single fund of older orders: split into the four rank funds by the share percents saved with
+                    // the order, each rounded down; the paisa left go to the Commission extra fund.
+                    ['parts' => $buckets, 'leftover' => $leftover] = EqualSplit::byWeights($cents, $this->rankWeights($rules['rank_royalty']['parameters']));
+                }
                 // Who may share: dealers, and sub-dealers too when the order was captured under the owner's rule of 2026-11-21.
                 $candidates = $dealerIds;
                 if (MonthlyTargets::subDealersEarnRanks($rules)) {
