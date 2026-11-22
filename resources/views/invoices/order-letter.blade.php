@@ -35,10 +35,19 @@
         }
 
         /* Print Page Layout. A4 is written in millimetres because the PDF maker misreads the word "A4" here. */
+        @if (! empty($printable))
+        /* The browser view: margin 0 removes the browser's own date, title, address and page-number lines. The side margins
+           are the sheet's padding; the top and bottom margins of every page come from the repeating spacer rows of .page-frame. */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        @else
         @page {
             size: 210mm 297mm;
             margin: 10mm 12mm 12mm 12mm;
         }
+        @endif
 
         @media print {
             body {
@@ -65,7 +74,24 @@
             table.items tr {
                 page-break-inside: avoid;
             }
+            .sheet.sheet-print {
+                padding: 0 12mm !important;
+            }
+            .page-frame td.spacer-top { height: 10mm; padding: 0; }
+            .page-frame td.spacer-bottom { height: 12mm; padding: 0; }
+            table.items thead { display: table-header-group; }
+            .sheet-print .keep-together {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
         }
+        /* On screen the print frame is invisible: its cells behave like plain blocks and the spacer rows are hidden. */
+        @media screen {
+            .page-frame, .page-frame > tbody, .page-frame > tbody > tr, .page-frame > tbody > tr > td { display: block; padding: 0; }
+            .page-frame > thead, .page-frame > tfoot { display: none; }
+        }
+        .page-frame { width: 100%; border-collapse: collapse; border: 0; }
+        .page-frame td { padding: 0; vertical-align: top; }
 
         /* Toolbar */
         .print-toolbar {
@@ -188,11 +214,13 @@
         .meta-row td { vertical-align: top; }
         .invoice-no { font-size: 16px; font-weight: 700; padding-top: 4px; color: #0f172a; }
         .referred {
-            border: 1px solid #94a3b8;
-            padding: 4px 10px;
-            font-size: 14px;
+            margin-top: 4px;
+            border: 1px solid #cbd5e1;
+            padding: 2px 8px;
+            font-size: 11px;
             font-weight: 600;
-            text-align: center;
+            color: #475569;
+            text-align: left;
             display: inline-block;
             max-width: 100%;
             box-sizing: border-box;
@@ -358,7 +386,13 @@
     <div class="watermark">{{ $watermark_label }}</div>
 @endif
 
-<div class="content sheet">
+@if (! empty($printable))
+<table class="page-frame">
+    <thead><tr><td class="spacer-top"></td></tr></thead>
+    <tfoot><tr><td class="spacer-bottom"></td></tr></tfoot>
+    <tbody><tr><td>
+@endif
+<div class="content sheet{{ ! empty($printable) ? ' sheet-print' : '' }}">
     <table class="header">
         <tr>
             <td class="logo-cell">
@@ -385,12 +419,9 @@
     <table class="meta-row">
         <tr>
             <td class="invoice-no">{{ __('portal.inv_number') }} : {{ $order['number'] }}</td>
-            <td style="text-align:right">
-                @if (! empty($buyer['referred_code']))
-                    <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ collect([$buyer['referred_name'] ?? null, $buyer['referred_code']])->filter()->implode(' · ') }}</div>
-                @elseif (! empty($buyer['referred_company']))
-                    <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ __('partner_profile.referred_by_company') }}</div>
-                @endif
+            <td class="legal-ids" style="text-align:right;vertical-align:top">
+                {{-- The same two lines as the printed product and stock lists. --}}
+                @include('partials.letterhead-legal', ['company' => $company, 'style' => 'font-size:11px;line-height:1.4;color:#334155'])
             </td>
         </tr>
     </table>
@@ -399,18 +430,34 @@
         <tr>
             <td>
                 {{-- Written with inline styles: the PDF maker does not apply the stylesheet to a box inside a table cell. --}}
-                <table class="dealer-box" style="width:68%;border:1.5px solid #1e3a8a;background:#fbfcfe;border-collapse:collapse">
-                    <tr><td style="padding:8px 10px">
+                <table class="dealer-box dealer-box-compact" style="width:76%;border:1.5px solid #1e3a8a;background:#fbfcfe;border-collapse:collapse">
+                    <tr><td style="padding:4px 8px">
                     <table style="width:100%;border-collapse:collapse">
-                        <tr><td colspan="2" style="font-size:17px;font-weight:700;color:#1e3a8a;padding:0 0 4px;border-bottom:1px solid #94a3b8">{{ $buyer['designation'] }}</td></tr>
-                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_name') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['name'] }}</td></tr>
-                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_dealer_code') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['code'] ?: '—' }}</td></tr>
-                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_area') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['area'] }}</td></tr>
-                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_mobile') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['phone'] ?: '—' }}</td></tr>
-                        <tr><td style="width:30%;font-size:14px;font-weight:600;color:#1e293b;padding:2px 0;vertical-align:top">{{ __('portal.inv_booking_address') }} :</td><td style="font-size:14px;color:#0f172a;padding:2px 0;vertical-align:top">{{ $buyer['booking_address'] }}</td></tr>
+                        <tr><td colspan="4" style="font-size:14px;font-weight:700;color:#1e3a8a;padding:0 0 2px;border-bottom:1px solid #94a3b8">{{ $buyer['designation'] }}</td></tr>
+                        <tr>
+                            <td style="width:22%;white-space:nowrap;font-size:11.5px;font-weight:600;color:#1e293b;padding:1px 4px 1px 0;vertical-align:top">{{ __('portal.inv_name') }} :</td>
+                            <td style="width:28%;font-size:11.5px;color:#0f172a;padding:1px 6px 1px 0;vertical-align:top">{{ $buyer['name'] }}</td>
+                            <td style="width:23%;white-space:nowrap;font-size:11.5px;font-weight:600;color:#1e293b;padding:1px 4px 1px 0;vertical-align:top">{{ __('portal.inv_dealer_code') }} :</td>
+                            <td style="width:28%;font-size:11.5px;color:#0f172a;padding:1px 0;vertical-align:top">{{ $buyer['code'] ?: '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td style="width:22%;white-space:nowrap;font-size:11.5px;font-weight:600;color:#1e293b;padding:1px 4px 1px 0;vertical-align:top">{{ __('portal.inv_area') }} :</td>
+                            <td style="width:28%;font-size:11.5px;color:#0f172a;padding:1px 6px 1px 0;vertical-align:top">{{ $buyer['area'] }}</td>
+                            <td style="width:23%;white-space:nowrap;font-size:11.5px;font-weight:600;color:#1e293b;padding:1px 4px 1px 0;vertical-align:top">{{ __('portal.inv_mobile') }} :</td>
+                            <td style="width:28%;font-size:11.5px;color:#0f172a;padding:1px 0;vertical-align:top">{{ $buyer['phone'] ?: '—' }}</td>
+                        </tr>
+                        <tr>
+                            <td style="font-size:11.5px;font-weight:600;color:#1e293b;padding:1px 4px 1px 0;vertical-align:top;white-space:nowrap">{{ __('portal.inv_booking_address') }} :</td>
+                            <td colspan="3" style="font-size:11.5px;color:#0f172a;padding:1px 0;vertical-align:top">{{ $buyer['booking_address'] }}</td>
+                        </tr>
                     </table>
                     </td></tr>
                 </table>
+                @if (! empty($buyer['referred_code']))
+                    <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ collect([$buyer['referred_name'] ?? null, $buyer['referred_code']])->filter()->implode(' · ') }}</div>
+                @elseif (! empty($buyer['referred_company']))
+                    <div class="referred">{{ __('partner_profile.inv_referred_by') }}: {{ __('partner_profile.referred_by_company') }}</div>
+                @endif
             </td>
             <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}
                 @if (($delivery['kind'] ?? 'none') === 'office')
@@ -489,6 +536,7 @@
         </tbody>
     </table>
 
+    <div class="keep-together">
     <div class="in-words"><strong>{{ __('portal.inv_in_words') }} :</strong> {{ $totals['in_words'] }}</div>
 
     <table class="pay-summary">
@@ -530,6 +578,7 @@
             </td>
         </tr>
     </table>
+    </div>
 
     <table class="signs">
         <tr>
@@ -539,6 +588,10 @@
         </tr>
     </table>
 </div>
+@if (! empty($printable))
+    </td></tr></tbody>
+</table>
+@endif
 
 @if (! empty($printable))
 <script nonce="{{ $csp_nonce ?? '' }}">
