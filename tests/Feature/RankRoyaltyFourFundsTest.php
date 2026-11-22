@@ -265,8 +265,9 @@ class RankRoyaltyFourFundsTest extends TestCase
         $this->assertSame('quota', $share->metadata['hold_reason']);
         $this->assertTrue($share->metadata['monthly_close']);
         $this->assertSame($walletBefore, (string) DB::table('wallets')->where('user_id', $dealer->id)->value('available'), 'Not credited at order time.');
-        $waiting = collect(app(PartnerPendingMoney::class)->for($dealer->fresh())['lines'])->firstWhere('id', 'area-'.$share->id);
-        $this->assertNotNull($waiting, 'Shown as a waiting line in the wallet.');
+        $waiting = collect(app(PartnerPendingMoney::class)->for($dealer->fresh())['month_end'])->firstWhere('id', 'area-'.$share->id);
+        $this->assertNotNull($waiting, 'Shown as a waiting month-end line in the wallet.');
+        $this->assertSame('month_end_area_met', $waiting['reason']);
         $this->assertSame('area_division', $waiting['head']);
         $this->assertSame((string) $share->amount, $waiting['amount']);
     }

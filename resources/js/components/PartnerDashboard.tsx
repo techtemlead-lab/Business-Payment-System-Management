@@ -116,6 +116,31 @@ function MoneyColumn({ totals, cards, held, pending, benefits, card }: { totals:
                     </ul>
                 </div>
             )}
+            {/* Rank royalty, the salary or bonus and the area shares of new orders: decided together on the month-end day. No amount where none is known yet. */}
+            {(pending?.month_end ?? []).length > 0 && (
+                <div className="pd-card pd-held" data-testid="home-month-end">
+                    <div className="pd-heads-top">
+                        <h3>{translate('my_money', 'month_end_heading')}</h3>
+                    </div>
+                    <p className="muted">{translate('my_money', pending?.role === 'sub_dealer' ? 'month_end_intro_sub' : 'month_end_intro')}</p>
+                    <ul>
+                        {(pending?.month_end ?? []).map((line: Row) => (
+                            <li key={line.id}>
+                                <div className="pd-heads-top">
+                                    <span>{line.order_number ? translate('my_money', 'pending_line', { what: line.what, order: line.order_number }) : line.what}</span>
+                                    <strong>{line.amount !== null
+                                        ? `${line.estimate ? `${translate('my_money', 'pending_salary_estimate')} ` : ''}${money(line.amount)}`
+                                        : translate('my_money', 'month_end_no_amount')}</strong>
+                                </div>
+                                <p className="muted">{translate('my_money', `pending_reason_${line.reason}`)}</p>
+                            </li>
+                        ))}
+                    </ul>
+                    {Number(pending?.more ?? 0) > 0 && mayWithdraw && (
+                        <Link className="text-link" href={`${base}/my-money`}>{translate('my_money', 'pending_more', { count: number(Number(pending?.more)) })}</Link>
+                    )}
+                </div>
+            )}
             {/* What the company spent on the partner (tour, event or contest prize): the latest three, never in the balance. */}
             <CompanyBenefitsList benefits={benefits} compact />
             {/* MA-03: commission held for the partner is shown while it is held, with the reason. */}

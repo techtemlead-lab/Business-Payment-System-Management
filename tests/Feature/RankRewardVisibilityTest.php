@@ -107,14 +107,16 @@ class RankRewardVisibilityTest extends TestCase
         // The month's target is met but the reserve is empty: now it waits for the office.
         $this->purchase($leader, '30000.00', '60000.00');
         $this->assertSame('rank_prize_office', $this->rewards($leader)[0]['reason']);
-        // The pending total is only the month's salary share (2% of ৳30,000); the waiting prize (৳5,000) is not in it.
-        $this->assertSame('600.00', $this->myMoney($leader)['pending']['total'], 'A waiting prize is not part of the pending total.');
+        // Neither the waiting prize (৳5,000) nor the dealer's month-end bonus (no amount before the month closes, owner's
+        // rule of 2026-11-22) is in the pending total.
+        $this->assertSame('0.00', $this->myMoney($leader)['pending']['total'], 'A waiting prize is not part of the pending total.');
 
         // The reserve is funded and the prize is paid by the engine, exactly as before.
         $this->purchase(User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']), '250000.00', '400000.00');
         $this->assertTrue(app(CommissionService::class)->claimOneTimeRankIncentive($leader->id)['success']);
 
-        $this->assertSame(['royalty'], array_column($this->rewards($leader), 'head'), 'Only the royalty note is left once the prize is paid.');
+        $this->assertSame([], $this->rewards($leader), 'No prize line is left once the prize is paid.');
+        $this->assertContains('royalty', array_column($this->myMoney($leader)['pending']['month_end'], 'head'), 'The royalty note stays with the month-end items.');
         // The engine writes one wallet line for each reserve fund the prize was drawn from; they carry the same name and add up to the prize.
         $rows = collect($this->statementRows($leader))->where('type_label', __('cr21_income.head_rank_mo'));
         $this->assertNotEmpty($rows, 'The paid prize is its own line in the statement.');
@@ -143,8 +145,10 @@ class RankRewardVisibilityTest extends TestCase
         $this->purchase($leader, '30000.00', '60000.00');
         $lines = $this->rewards($leader);
 
-        $this->assertSame(['rank_am', 'royalty'], array_column($lines, 'head'), 'The paid MO prize has no line; the royalty note follows the prizes.');
+        $this->assertSame(['rank_am'], array_column($lines, 'head'), 'The paid MO prize has no line; the royalty note is not a prize.');
         $this->assertSame('50000.00', $lines[0]['amount']);
+        $this->assertSame(['royalty', 'salary'], array_column($this->myMoney($leader)['pending']['month_end'], 'head'), 'Royalty and the bonus are month-end items, with no amount.');
+        $this->assertSame([null, null], array_column($this->myMoney($leader)['pending']['month_end'], 'amount'));
     }
 
     public function test_a_bike_or_car_prize_waits_until_the_office_pays_it_and_the_reasons_follow_the_request(): void
@@ -239,12 +243,16 @@ class RankRewardVisibilityTest extends TestCase
             ['user_id' => $holder->id, 'rank' => 'am', 'amount' => '50000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
             ['user_id' => $holder->id, 'rank' => 'sm', 'amount' => '250000.00', 'sources' => '{}', 'created_at' => now(), 'updated_at' => now()],
         ]);
-        $this->assertSame([], $this->rewards($holder), 'The royalty note waits for the month\'s target.');
+        $royalty = fn (User $partner): array => array_values(array_filter($this->myMoney($partner)['pending']['month_end'], fn (array $line): bool => $line['head'] === 'royalty'));
+        $this->assertSame([], $royalty($holder), 'The royalty note waits for the month\'s target.');
         $this->purchase($holder, '30000.00', '60000.00');
 
-        $lines = $this->rewards($holder);
-        $this->assertSame([['royalty', null, 'royalty_month_end', 'pending']], array_map(fn (array $line): array => [$line['head'], $line['amount'], $line['reason'], $line['state']], $lines));
+        // Owner's rule of 2026-11-22: rank royalty is a month-end item (with the bonus and the area shares), not an earned prize.
+        $this->assertSame([], $this->rewards($holder));
+        $lines = $royalty($holder);
+        $this->assertSame([['royalty', null, 'royalty_month_end', false]], array_map(fn (array $line): array => [$line['head'], $line['amount'], $line['reason'], $line['estimate']], $lines));
         $this->assertSame(__('cr21_income.head_royalty'), $lines[0]['what']);
+        $this->assertSame([], $royalty($plain));
         $this->assertSame([], $this->rewards($plain));
     }
 
@@ -278,7 +286,9 @@ class RankRewardVisibilityTest extends TestCase
     public function test_the_new_words_exist_in_both_languages(): void
     {
         foreach (['portal' => ['notice_rank_prize_title', 'notice_rank_prize_body', 'jr_rank_prize'], 'my_money' => ['rewards_heading', 'rewards_intro', 'reward_reason_rank_prize_office',
-            'reward_reason_rank_prize_keep', 'reward_reason_prize_office', 'reward_reason_prize_review', 'reward_reason_royalty_month_end', 'reward_reason_tour_fund', 'status_set_aside']] as $group => $keys) {
+            'reward_reason_rank_prize_keep', 'reward_reason_prize_office', 'reward_reason_prize_review', 'reward_reason_royalty_month_end', 'reward_reason_tour_fund', 'status_set_aside',
+            'month_end_heading', 'month_end_intro', 'month_end_intro_sub', 'month_end_no_amount', 'pending_reason_month_end_area', 'pending_reason_month_end_area_met',
+            'pending_reason_salary_shared_month_end', 'pending_reason_royalty_month_end']] as $group => $keys) {
             foreach (['bn', 'en'] as $locale) {
                 $words = require lang_path($locale.'/'.$group.'.php');
                 foreach ($keys as $key) {

@@ -62,7 +62,7 @@ return [
     // Pending money: what the partner gets only if the month's target is met, and the month-end salary.
     'pending_balance' => 'Pending balance',
     'pending_balance_hint' => 'Money you will get if this month\'s target is met. It is not in your balance yet.',
-    'pending_estimate_hint' => 'Your salary share is worked out from today\'s figures and can change until the month ends.',
+    'pending_estimate_hint' => 'Your salary is worked out from your own purchases so far and can change until the month ends.',
     'pending_heading' => 'Pending money',
     'pending_intro' => 'This money is not in your balance. You cannot withdraw it or use it to pay for an order until it is paid.',
     'pending_line' => ':what, order :order',
@@ -94,4 +94,14 @@ return [
     'status_not_received' => 'Not received',
     'not_received_reason' => 'Not received: target was not met',
     'not_received_note' => 'This money was not added to your balance. It does not carry over to the next month.',
+
+    // Month-end items (owner's rule, 2026-11-22): rank royalty, the salary or bonus and the area income of new orders are worked out on the same day.
+    'month_end_heading' => 'Worked out at month end (together, on the same day)',
+    'month_end_intro' => 'Rank royalty, the Dealer Acquisition Target Bonus and area dealer income: these three are worked out on the same day at the end of every month; only those who meet the conditions get them. Everyone else\'s share goes to the company fund.',
+    'month_end_intro_sub' => 'Sub-dealer salary and rank royalty are worked out on the same day at the end of every month; only those who meet the conditions get them.',
+    'month_end_no_amount' => 'Known at month end',
+    'pending_reason_month_end_area' => 'Worked out at month end. If you meet your monthly target it is added to your balance; if not, it goes to the company fund.',
+    'pending_reason_month_end_area_met' => 'Monthly target met. It is added to your balance on the month-end day.',
+    'pending_reason_salary_shared_month_end' => 'This bonus is shared equally at month end among all dealers in Bangladesh who meet their monthly target. How many do is known only at month end, so no amount can be given before then.',
+    'pending_reason_royalty_month_end' => 'Worked out when the month closes. If you meet this month\'s target, the royalty is added to your balance. No amount can be given yet.',
 ];
