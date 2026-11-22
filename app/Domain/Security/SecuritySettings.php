@@ -63,7 +63,7 @@ final class SecuritySettings
         $row = $this->settingRow(self::PasswordResetNoticeKey);
 
         return [
-            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? false) : false,
+            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? true) : true,
             'version' => (int) ($row->version ?? 0),
         ];
     }
@@ -159,7 +159,7 @@ final class SecuritySettings
         $row = $this->settingRow(self::TeamPhonesKey);
 
         return [
-            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? false) : false,
+            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? true) : true,
             'version' => (int) ($row->version ?? 0),
         ];
     }
