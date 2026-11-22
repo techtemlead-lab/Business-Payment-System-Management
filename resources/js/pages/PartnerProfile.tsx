@@ -65,6 +65,7 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
     const contact = sheet.contact ?? {};
     const home = sheet.permanent_address ?? {};
     const place = sheet.place ?? {};
+    const commissionArea = sheet.commission_area ?? {};
     const kyc = sheet.kyc ?? {};
     const network = sheet.network ?? {};
     const sponsor = network.sponsor;
@@ -149,6 +150,12 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                     ...(place.area_code && place.area_code !== place.place_code ? [[t('f_area_code'), place.area_code] as [string, React.ReactNode]] : []),
                     [t('f_union_place_code'), place.union_place_code],
                 ]} />
+
+                {/* Where the area commission of the partner's own new orders goes: the picked places, else the base places. */}
+                <Facts title={t('sec_commission_area')} note={t(`commission_area_${commissionArea.source ?? 'none'}`)} lines={(['union', 'upazila', 'district', 'division'] as const).map((level) => {
+                    const each = commissionArea.levels?.[level];
+                    return [t(`f_${level}`), each?.name ? `${each.name}${each.code ? ` (${each.code})` : ''}` : null] as [string, React.ReactNode];
+                })} />
 
                 <Facts title={t('sec_kyc')} note={kyc.nid && String(kyc.nid).startsWith('••') ? t('nid_masked_note') : undefined} lines={[
                     [t('f_identity_type'), kyc.identity_type ? t(`identity_${kyc.identity_type}`) : null],

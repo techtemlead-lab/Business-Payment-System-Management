@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Geography\PlaceGeographyResolver;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Money;
@@ -17,7 +18,7 @@ use Throwable;
  */
 final class PartnerProfileSheet
 {
-    public function __construct(private PartnerKycDocuments $documents) {}
+    public function __construct(private PartnerKycDocuments $documents, private PlaceGeographyResolver $geography) {}
 
     /**
      * @return array<string, mixed>
@@ -71,6 +72,7 @@ final class PartnerProfileSheet
                 'area_code' => $profile['area_code'] ?? null,
                 'union_place_code' => $profile['union_place_code'] ?? null,
             ],
+            'commission_area' => $this->commissionArea($partner),
             'kyc' => [
                 'identity_type' => $profile['identity_type'] ?? null,
                 'nid' => $this->nid($partner, $viewer),
@@ -89,6 +91,31 @@ final class PartnerProfileSheet
                 'available' => Money::decimal(Money::cents((string) ($wallet->available ?? '0'))),
                 'payouts' => $this->payouts($partner),
             ],
+        ];
+    }
+
+    /**
+     * Where the area commission of this partner's own new orders goes today, read the same way an
+     * order is posted: the four picked places ("chosen"), else the base places below the seat
+     * ("default"), else nowhere ("none").
+     *
+     * @return array{source: string, levels: array<string, array{name: ?string, code: ?string}>}
+     */
+    private function commissionArea(User $partner): array
+    {
+        $geography = $this->geography->forBuyer($partner);
+        $levels = [];
+        foreach (['division', 'district', 'upazila', 'union'] as $level) {
+            $levels[$level] = ['name' => $geography[$level] ?? null, 'code' => $geography['codes'][$level] ?? null];
+        }
+
+        return [
+            'source' => match ($geography['resolution']) {
+                'area_chain' => 'chosen',
+                'place_code' => 'default',
+                default => 'none',
+            },
+            'levels' => $levels,
         ];
     }
 
