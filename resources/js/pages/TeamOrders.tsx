@@ -100,6 +100,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
             <Table
                 searchable={false}
                 tools={false}
+                phoneColumns={['number', 'member_name', 'total']}
                 totalCount={orders.total}
                 rows={orders.data ?? []}
                 empty={translate('portal', 'team_orders_empty')}
