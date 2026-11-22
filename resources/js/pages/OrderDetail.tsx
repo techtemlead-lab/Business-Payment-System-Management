@@ -259,12 +259,6 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
         <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
             canManage={(capabilities.includes('inventory') || capabilities.includes('order_review')) && auth.user.id !== order.user_id} />
-        {pickup && <section className="panel" data-testid="delivery-pickup">
-            <div className="panel-heading"><h2>{translate('order_delivery', 'detail_title')}</h2><span>{translate('order_delivery', 'collect_from_office')}</span></div>
-            <p>{translate('order_delivery', ['dispatched', 'delivered', 'partly_delivered'].includes(order.status)
-                ? 'detail_office_done'
-                : ['approved', 'partially_dispatched'].includes(order.status) ? 'detail_office_ready' : 'detail_office_waiting')}</p>
-        </section>}
         {canChangeDelivery && <section className="panel narrow-panel" data-testid="delivery-change">
             <h2>{translate('order_delivery', 'change_title')}</h2>
             <p className="muted">{translate('order_delivery', 'change_hint')}</p>
@@ -313,7 +307,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <OwedItemsPanel order={order} owedItems={owedItems} owner={owner} canSendGoods={canSendGoods} canRefund={staffOnOrder && capabilities.includes('finance')} unsentOf={unsentOf} />
             {itemsLeft && capabilities.includes('inventory') && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && auth.user.id !== order.user_id && <SupplyDateForm key={`${order.supply_eta ?? ''}|${order.supply_note ?? ''}`} order={order} />}
         </section>
-        <div id="od-claims" className={`two-column${act('od-claims') ? ' od-act' : ''}`}>
+        {/* Sent payments, delivery steps and (for an order collected at the office) how the goods are received: three side by side. */}
+        <div id="od-claims" className={`two-column${pickup ? ' is-three' : ''}${act('od-claims') ? ' od-act' : ''}`}>
             <section className="panel"><h2>{translate('portal', 'payment_claims')}</h2>
                 <Table rows={claims} columns={[
                     { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method'), render: (r: Row) => { const raw = String(r.channel ?? ''); const key = `pay_channel_${raw.toLowerCase()}`; const text = translate('portal', key); return raw === '' ? '—' : (text !== key ? text : raw); } }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
@@ -352,6 +347,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 {owner && parcelOnRoad && <div className="panel" data-testid="partner-received"><p className="muted">{translate('orders_stock', 'received_hint')}</p>
                     <ActionForm action={`/commands/orders/${order.id}/received`} fields={[]} submit={translate('orders_stock', 'received_button')} /></div>}
             </section>
+            {pickup && <section className="panel" data-testid="delivery-pickup">
+                <div className="panel-heading"><h2>{translate('order_delivery', 'detail_title')}</h2><span>{translate('order_delivery', 'collect_from_office')}</span></div>
+                <p>{translate('order_delivery', ['dispatched', 'delivered', 'partly_delivered'].includes(order.status)
+                    ? 'detail_office_done'
+                    : ['approved', 'partially_dispatched'].includes(order.status) ? 'detail_office_ready' : 'detail_office_waiting')}</p>
+            </section>}
         </div>
         {order.note && <div className="notice"><b>{translate('portal', 'order_note')}</b><p>{order.note}</p></div>}
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
