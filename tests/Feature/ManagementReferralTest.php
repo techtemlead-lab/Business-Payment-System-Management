@@ -317,6 +317,7 @@ class ManagementReferralTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', $this->dealerPayload([
             'email' => 'personal-sponsor@example.com',
             'phone' => '01712000022',
+            'birth_certificate_number' => '19911234567890112',
             'place_code' => 'MNHC107',
             'reference_code' => 'MNHC106',
         ]))->assertRedirect('/accounts');

@@ -32,7 +32,7 @@ class SimpleNewAccountShopNameTest extends TestCase
     private function form(string $role, string $code, array $over = []): array
     {
         return [
-            'role' => $role, 'identity_type' => 'nid', 'nid' => '19851234567890123', 'date_of_birth' => '1985-03-03',
+            'role' => $role, 'identity_type' => 'nid', 'nid' => $role === 'dealer' ? '19851234567890123' : '19851234567890124', 'date_of_birth' => '1985-03-03',
             'place_code' => $code, 'name' => 'Md. Rafiq', 'name_bn' => 'মোঃ রফিক', 'father_name' => 'A', 'mother_name' => 'B',
             'phone' => '0171234'.($role === 'dealer' ? '5678' : '5679'), 'email' => $role.'@example.test', 'reference_code' => 'MNHC777', 'status' => 'active', 'reason' => 'Checked',
             ...$over,

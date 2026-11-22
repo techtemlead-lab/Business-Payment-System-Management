@@ -113,6 +113,7 @@ class PartnerBusinessAreaAndHomeAddressTest extends TestCase
             'place_code' => $this->business['upazila']->code,
             'email' => 'second.partner@example.test',
             'phone' => '01812345679',
+            'birth_certificate_number' => '19911234567890112',
         ]))->assertSessionHasErrors(['place_code' => __('portal.acct_val_place_taken')]);
     }
 
