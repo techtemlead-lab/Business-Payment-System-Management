@@ -71,7 +71,8 @@ export default function Applications({ section, data }: { section: string; data:
 /** Today's review dialog as a side panel. The same address, the same fields and the same permission check. */
 function ReviewPanel({ application, onClose, onReject, onSendBack }: { application: Row; onClose: () => void; onReject: () => void; onSendBack: () => void }) {
     const translate = useT();
-    const { auth, portal, staffActions } = usePage<any>().props;
+    const { auth, portal, staffActions, publicPageEnabled } = usePage<any>().props;
+    const dealerListOn = publicPageEnabled?.dealers === true;
     const reviewAddress = `/commands/operations/staff/applications/${application.id}/review`;
     const mayDecide = !(portal === 'manage' || portal === 'sadmin') || actionAllowed(reviewAddress, staffActions, 'post');
     // Staff never decide an application they sent in themselves; the owner may.
@@ -87,7 +88,7 @@ function ReviewPanel({ application, onClose, onReject, onSendBack }: { applicati
         place_code: application.place_code || '',
         sponsor_code: application.sponsor_code || '',
         reason: '',
-        directory_visible: application.role === 'dealer',
+        directory_visible: application.role === 'dealer' && dealerListOn,
         area_dealer: true,
         accept_place_mismatch: false,
     });
@@ -197,7 +198,7 @@ function ReviewPanel({ application, onClose, onReject, onSendBack }: { applicati
                             <small className="field-hint">{translate('joining', 'drawer_area_dealer_hint')}</small>
                         </label>
                     )}
-                    {(form.data.role === 'dealer' || form.data.role === 'sub_dealer') && (
+                    {dealerListOn && (form.data.role === 'dealer' || form.data.role === 'sub_dealer') && (
                         <label className="import-confirmation">
                             <input type="checkbox" checked={form.data.directory_visible} onChange={(event) => form.setData('directory_visible', event.target.checked)} /> {translate('portal', 'acct_directory_visible')}
                             <small className="field-hint">{translate('office_partners', 'directory_visible_hint')}</small>
