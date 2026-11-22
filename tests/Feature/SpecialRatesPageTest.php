@@ -282,10 +282,11 @@ class SpecialRatesPageTest extends TestCase
         $ids = collect($this->page($this->finance, ['person' => $this->partner->id])['special']['conditions'])->pluck('id')->all();
         $waivable = array_keys(SpecialRateModel::Waivable);
 
-        foreach (['area', 'salary', 'rank_join', 'rank_keep', 'rank_bonus', 'bike', 'car', 'cooling_off', 'sub_dealer_extras'] as $id) {
+        foreach (['area', 'salary', 'sub_salary', 'rank_join', 'rank_keep', 'rank_bonus', 'bike', 'car', 'cooling_off', 'sub_dealer_extras'] as $id) {
             $this->assertContains($id, $ids);
         }
-        $this->assertSame(['area', 'bike', 'car', 'cooling_off', 'sub_dealer_extras'], array_values(array_diff($ids, $waivable)), 'These conditions have no per-person switch in the engine.');
+        // The sub-dealer salary steps (10,000 / 20,000 / 40,000) have no per-person switch, like the area income.
+        $this->assertSame(['area', 'sub_salary', 'bike', 'car', 'cooling_off', 'sub_dealer_extras'], array_values(array_diff($ids, $waivable)), 'These conditions have no per-person switch in the engine.');
     }
 
     public function test_a_partner_or_a_person_without_the_finance_permission_cannot_open_the_page(): void

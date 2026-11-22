@@ -65,8 +65,14 @@ export default function FieldSales({ tables, partners, partnerSearch = '', produ
     const orderAction: StaffAction = {
         title: translate('portal', 'ops_submit_partner_order'),
         action: `${commandRoot}/staff/orders`,
-        fields: [pickField(partners, 'user_id', translate('portal', 'ops_fld_partner')), pickField(products, 'items.0.product_id', translate('portal', 'ops_fld_product')), textField('items.0.quantity', translate('portal', 'ops_fld_quantity'), 'number'), ...orderPayment, textField('note', translate('portal', 'ops_fld_order_note'), 'textarea', false)],
-        defaults: { idempotency_key: orderKey },
+        fields: [pickField(partners, 'user_id', translate('portal', 'ops_fld_partner')), pickField(products, 'items.0.product_id', translate('portal', 'ops_fld_product')), textField('items.0.quantity', translate('portal', 'ops_fld_quantity'), 'number'),
+            // Courier (the company decides which) or the partner collects at the office.
+            { name: 'delivery_method', label: translate('order_delivery', 'method_label'), required: true, options: [
+                { value: 'courier', label: translate('order_delivery', 'method_courier_staff') },
+                { value: 'office', label: translate('order_delivery', 'method_office_staff') },
+            ] },
+            ...orderPayment, textField('note', translate('portal', 'ops_fld_order_note'), 'textarea', false)],
+        defaults: { idempotency_key: orderKey, delivery_method: 'courier' },
     };
     const accountTypes = ['dealer', 'sub_dealer'].map((value) => ({ value, label: label(value, translate) }));
     const applicationAction: StaffAction = {

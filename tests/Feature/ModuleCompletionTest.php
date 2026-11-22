@@ -160,9 +160,9 @@ class ModuleCompletionTest extends TestCase
             ['salary' => true, 'royalty' => true, 'rank_incentive' => false], 0, 'Rank rewards checked by hand in this test');
         $buyer = User::factory()->dealer()->create();
         $finance = User::factory()->staff('finance')->create();
-        $order = $this->purchase($buyer, '250000.00', true);
+        $order = $this->purchase($buyer, '500000.00', true);
         $this->actingAs($finance)->post('/commands/commissions/claim-incentive/'.$buyer->id, ['request_key' => (string) Str::uuid()])->assertRedirect();
-        $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '50000.00', 'reference' => 'RANK-REFUND', 'reason' => 'Reduce source after rank award', 'request_key' => (string) Str::uuid()])->assertOk();
+        $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '100000.00', 'reference' => 'RANK-REFUND', 'reason' => 'Reduce source after rank award', 'request_key' => (string) Str::uuid()])->assertOk();
 
         $report = app(ReportData::class)->query($finance, 'rank-incentives', '2026-09-01', '2026-09-30')['query']->get();
 

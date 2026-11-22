@@ -6,6 +6,8 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Orders\OrderReturns;
+use App\Domain\Payouts\PayoutReturns;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
@@ -19,6 +21,14 @@ use Illuminate\Validation\ValidationException;
 
 final class FinancialReadiness
 {
+    /**
+     * Checks that ask a person to act (an order whose commission was never posted, money held too long, paid
+     * money still to give back on a closed order) rather than saying the books disagree. They are listed with
+     * the others, but they do not make the books "not reconciled": the opening check and its fingerprint, which
+     * a slow day could otherwise change, leave them out.
+     */
+    public const AttentionChecks = ['missed_order_batches', 'stale_holdings', 'paid_left_on_closed_orders'];
+
     /**
      * Do the money records agree with each other right now? Each check is a single read of
      * saved rows, so a payment halfway through cannot make one fail.
@@ -83,9 +93,16 @@ final class FinancialReadiness
             // and no such fund is spent below zero.
             'fund_balances' => $this->fundBalancesAgree(),
             // A paid withdrawal debits the partner wallet and credits payout clearing (manual-payout journal).
-            'withdrawal_journals' => ! DB::table('withdrawals as w')->where('w.status', 'paid')
+            // A paid withdrawal whose money came back keeps that journal and has its exact reverse
+            // (manual-payout-return journal); no other withdrawal has a reverse.
+            'withdrawal_journals' => ! DB::table('withdrawals as w')->whereIn('w.status', ['paid', PayoutReturns::Status])
                 ->whereRaw("(w.amount <> COALESCE((SELECT SUM(l.debit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout:' || w.id::text AND l.account = 'wallet_liability' AND l.user_id = w.user_id),0)
-                    OR COALESCE(w.net_amount, w.amount) <> COALESCE((SELECT SUM(l.credit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout:' || w.id::text AND l.account = 'manual_payout_clearing'),0))")->exists(),
+                    OR COALESCE(w.net_amount, w.amount) <> COALESCE((SELECT SUM(l.credit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout:' || w.id::text AND l.account = 'manual_payout_clearing'),0))")->exists()
+                && ! DB::table('withdrawals as w')->where('w.status', PayoutReturns::Status)
+                    ->whereRaw("(w.amount <> COALESCE((SELECT SUM(l.credit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout-return:' || w.id::text AND l.account = 'wallet_liability' AND l.user_id = w.user_id),0)
+                        OR COALESCE(w.net_amount, w.amount) <> COALESCE((SELECT SUM(l.debit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'manual-payout-return:' || w.id::text AND l.account = 'manual_payout_clearing'),0))")->exists()
+                && ! DB::table('journal_entries as e')->whereRaw("e.event_key LIKE 'manual-payout-return:%'")
+                    ->whereRaw("NOT EXISTS (SELECT 1 FROM withdrawals w WHERE 'manual-payout-return:' || w.id::text = e.event_key AND w.status = ?)", [PayoutReturns::Status])->exists(),
             // Approved payroll books the gross pay as expense; paid payroll clears the net pay (payroll.approved and payroll.paid journals).
             'payroll_journals' => ! DB::table('payroll_entries as p')->whereIn('p.status', ['approved', 'paid'])
                 ->whereRaw("p.gross <> COALESCE((SELECT SUM(l.debit) FROM journal_entries e INNER JOIN journal_lines l ON l.entry_id = e.id WHERE e.event_key = 'payroll.approved.' || p.id::text AND l.account = 'payroll_expense'),0)")->exists()
@@ -94,7 +111,35 @@ final class FinancialReadiness
             // The owners' benefits fund rows add up to what each batch left unallocated.
             'benefits_fund_batches' => ! DB::table('commission_batches as b')
                 ->whereRaw("GREATEST(b.unallocated,0) <> COALESCE((SELECT SUM(COALESCE(a.original_amount,a.amount)) FROM commission_allocations a WHERE a.order_id=b.order_id AND a.category = ? AND a.metadata->>'source_allocation_id' IS NULL),0)", [RetainedFundLedger::BenefitsCategory])->exists(),
+            // No credit buying: a finished order holds no paid money beyond the goods the partner
+            // keeps, unless a cancel, return or refund for it is waiting for its approvals.
+            'paid_left_on_closed_orders' => ! $this->paidMoneyLeftOnClosedOrders(),
+            // Attention checks (see AttentionChecks): money waiting for a person, not books that disagree.
+            // Delivered, fully paid orders whose commission was never posted (finance:post-missed-orders posts them).
+            'missed_order_batches' => ! app(MissedOrderPostings::class)->exist(),
+            // Money that has waited longer than the owner's limit for a person to act (the "Old money" list).
+            'stale_holdings' => ! app(StaleHoldings::class)->exist(),
         ];
+    }
+
+    /**
+     * The checks that say whether the books agree, without the attention checks.
+     *
+     * @param  array<string, bool>  $checks
+     * @return array<string, bool>
+     */
+    public static function bookChecks(array $checks): array
+    {
+        return array_diff_key($checks, array_flip(self::AttentionChecks));
+    }
+
+    private function paidMoneyLeftOnClosedOrders(): bool
+    {
+        $orders = DB::table('orders as o')
+            ->whereNotExists(fn ($open) => $open->selectRaw('1')->from('order_return_requests as r')->whereColumn('r.order_id', 'o.id')->whereIn('r.status', OrderReturns::OpenStatuses));
+        OrderReturns::whereMoneyLeft($orders, 'o');
+
+        return $orders->exists();
     }
 
     private function fundBalancesAgree(): bool
@@ -105,15 +150,16 @@ final class FinancialReadiness
             }
         }
 
-        return ! DB::table('reserve_disbursements as r')->where('r.program', FundSpending::Program)->where('r.status', 'paid')
+        // A prize paid in advance draws on its prize fund's rows the same way (PrizeAdvances).
+        return ! DB::table('reserve_disbursements as r')->whereIn('r.program', [FundSpending::Program, PrizeAdvances::Program])->where('r.status', 'paid')
             ->whereIn('r.fund_key', CompanyFunds::AllocationFunds)
             ->whereRaw('r.amount <> COALESCE((SELECT SUM(s.amount) FROM reserve_expense_sources s WHERE s.disbursement_id = r.id),0)')->exists();
     }
 
-    /** True only when every check above has just passed. */
+    /** True only when every book check above has just passed (the attention checks are not book checks). */
     public function booksMatch(): bool
     {
-        return ! in_array(false, $this->checks(), true);
+        return ! in_array(false, self::bookChecks($this->checks()), true);
     }
 
     /**
@@ -189,10 +235,12 @@ final class FinancialReadiness
         }
         // Rule names come back in the reader's language, so they stay out of the fingerprint.
         $policyRules = array_map(fn ($rule) => is_array($rule) ? array_diff_key($rule, ['name' => true]) : $rule, $policy['rules']);
-        $snapshot = ['checks' => $checks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policyRules];
+        $bookChecks = self::bookChecks($checks);
+        $snapshot = ['checks' => $bookChecks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policyRules];
 
-        return [...$snapshot, 'fingerprint' => hash('sha256', json_encode($snapshot, JSON_THROW_ON_ERROR)),
-            'internally_reconciled' => ! in_array(false, $checks, true), 'posting_enabled' => (bool) config('madina.financial_activation'),
+        return [...$snapshot, 'fingerprint' => hash('sha256', json_encode($snapshot, JSON_THROW_ON_ERROR)), 'checks' => $checks,
+            'needs_attention' => self::failedNames(array_diff_key($checks, $bookChecks)),
+            'internally_reconciled' => ! in_array(false, $bookChecks, true), 'posting_enabled' => (bool) config('madina.financial_activation'),
             'opening_verified' => DB::table('financial_verifications')->whereNotNull('verified_at')->exists()];
     }
 

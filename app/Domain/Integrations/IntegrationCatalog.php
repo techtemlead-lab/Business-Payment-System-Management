@@ -16,6 +16,19 @@ final class IntegrationCatalog
     public const ManualCouriers = ['sundarban', 'sa_paribahan', 'karatoa', 'janani', 'continental'];
 
     /**
+     * What a courier's booking system needs before a parcel can be sent to it. A courier with all
+     * of these saved and switched on has its API connected. Pathao takes its client id (or a pasted
+     * token) in the API key box, the rest it needs only to sign in on its own.
+     */
+    public const CourierApiRequiredFields = [
+        'pathao' => ['api_key'],
+        'steadfast' => ['api_key', 'api_secret'],
+        'redx' => ['api_key'],
+        'paperfly' => ['api_key', 'username', 'password'],
+        'ecourier' => ['api_key', 'api_secret', 'user_id', 'package_code'],
+    ];
+
+    /**
      * @return array{label: string, manual: true, fields: list<string>, defaults: array<string, mixed>}
      */
     private static function manualCourier(string $key, string $trackingPage = ''): array

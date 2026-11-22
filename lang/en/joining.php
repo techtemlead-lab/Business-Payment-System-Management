@@ -133,7 +133,7 @@ return [
     'shop_name_label' => 'Shop name',
     'shop_name_hint' => 'Optional. Can be changed later at any time.',
     'more_details' => 'More details (optional)',
-    'more_details_hint' => 'Occupation, village, post office, extra phone and map position — not needed to open the account.',
+    'more_details_hint' => 'Occupation, extra phone and map position — not needed to open the account.',
     'place_pick_hint' => 'Pick the place from the lists: the code is filled in and checked for you. Only type the code if you know it.',
     'place_code_hint' => 'Filled in from the lists. You may type it instead if you know it.',
 ];

@@ -196,6 +196,7 @@ final class FundSpendPartners
             ->join('reserve_disbursements as r', 'r.id', '=', 'p.disbursement_id')
             ->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->where('p.user_id', $partner->id)->where('r.program', FundSpending::Program)->where('r.status', 'paid')
+            ->whereNotExists(fn ($reversed) => $reversed->from('fund_spend_reversals as v')->whereColumn('v.disbursement_id', 'r.id'))
             ->orderByRaw('COALESCE(r.paid_at, r.spent_on::timestamp, r.created_at) DESC')->orderByDesc('p.id')->limit($limit)
             ->selectRaw('p.id, p.share_amount, r.fund_key, r.reason, r.paid_at, r.spent_on, r.created_at, h.name_en, h.name_bn, COALESCE(SUM(p.share_amount) OVER (), 0) AS all_total, COUNT(*) OVER () AS all_count')
             ->get();

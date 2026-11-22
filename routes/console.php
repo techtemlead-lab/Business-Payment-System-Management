@@ -23,6 +23,10 @@ Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOver
 Schedule::command('finance:release-quota-holds')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled area-quota hold release failed.'));
 
+// "Wallet + another method" orders whose rest stayed unpaid for the set days: cancelled, wallet part returned.
+Schedule::command('madina:release-unpaid-wallet-orders')->hourly()->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled release of unpaid wallet-part orders failed.'));
+
 // Treasury event log: picks up new orders, payments and fund movements from the records. Writes nothing back.
 Schedule::command('treasury:project-events')->everyMinute()->withoutOverlapping(10)->onOneServer()
     ->onFailure(fn () => Log::warning('Scheduled event log update failed.'));
@@ -90,6 +94,11 @@ Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezo
 // Portal notice only (no SMS); each one at most once a month, or once a week for inactive partners.
 Schedule::command('partners:progress-alerts')->dailyAt('09:15')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled partner alert run failed.'));
+
+// Money that waited longer than the owner's limit (30 days unless changed): one portal notice a day to the owners,
+// kind by kind, with the amount and where to act. No SMS or email; nothing moves.
+Schedule::command('finance:stale-holdings-notice')->dailyAt('09:20')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled notice about old money waiting for the owner failed.'));
 
 // Partners who share a phone, NID or payout number, or refer themselves: listed for the owner and finance. Flag only.
 Schedule::command('partners:scan-duplicates')->dailyAt('03:30')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()

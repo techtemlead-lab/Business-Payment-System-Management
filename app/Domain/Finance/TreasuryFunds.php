@@ -2,6 +2,8 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Models\Prescription;
 use App\Support\Money;
 use App\Support\MoneyTable;
@@ -107,7 +109,7 @@ final class TreasuryFunds
             search: ['x.what_text', 'x.payee', 'x.reference'],
             filters: [new MoneyTableFilter('what', (string) __('treasury.filter_what'), 'x.line_kind', array_map(
                 fn (string $kind): array => ['value' => $kind, 'label' => (string) __('treasury.out_kind_'.$kind)],
-                ['spend', 'partners', 'moved'],
+                ['spend', 'partners', 'extra', 'moved'],
             ))],
             sorts: ['date' => 'x.date', 'amount' => 'x.amount'],
             defaultSort: 'date',
@@ -237,7 +239,7 @@ final class TreasuryFunds
         if (in_array($fund, ['company_share', 'benefits'], true)) {
             $rows = $this->batchRows($fund);
 
-            return $fund === 'company_share' ? $rows->unionAll($this->clinicRows('p.manufacturer_share', 'p.manufacturer_share > 0')) : $rows;
+            return $fund === 'company_share' ? $rows->unionAll($this->clinicRows('p.manufacturer_share', 'p.manufacturer_share > 0')) : $rows->unionAll($this->splitRemainderRows());
         }
         if ($fund === 'clinic') {
             return $this->clinicRows('p.clinic_fund', 'p.clinic_fund > 0');
@@ -263,6 +265,15 @@ final class TreasuryFunds
             ->selectRaw("('b-' || b.id::text) AS id, b.created_at, o.id AS order_id, o.number AS order_number, u.name AS partner_name, u.dealer_code AS partner_code, u.role AS partner_role, ROUND({$column} * (b.cash_basis - b.refunded_amount) / NULLIF(b.cash_basis, 0), 2) AS amount, '".($company ? 'company_share' : 'owners_share')."' AS category, {$percent} AS percent, '".($company ? 'mrp' : 'paid')."' AS percent_of, b.mrp_basis AS mrp_total, b.cash_basis AS paid, NULL AS reason, NULL AS reason_key");
     }
 
+    /** The paisa left over by the month close's equal splits, which also go to the Commission extra fund (own reason). */
+    private function splitRemainderRows(): Builder
+    {
+        return DB::table('commission_allocations as funds')->leftJoin('orders as o', 'o.id', '=', 'funds.order_id')
+            ->where('funds.category', RetainedFundLedger::BenefitsCategory)->where('funds.status', '!=', 'reversed')->where('funds.amount', '>', 0)
+            ->where('funds.metadata->source', CommissionSettlement::SplitRemainder)
+            ->selectRaw("funds.id::text AS id, funds.created_at, o.id AS order_id, o.number AS order_number, NULL AS partner_name, NULL AS partner_code, NULL AS partner_role, funds.amount, funds.category, NULL::numeric AS percent, NULL AS percent_of, NULL::numeric AS mrp_total, NULL::numeric AS paid, funds.metadata->>'reason' AS reason, funds.metadata->>'reason_key' AS reason_key");
+    }
+
     private function clinicRows(string $amount, string $condition): Builder
     {
         return DB::table('prescriptions as p')->where('p.kind', Prescription::KindClinic)->where('p.status', Prescription::StatusDispensed)->whereRaw($condition)
@@ -278,7 +289,7 @@ final class TreasuryFunds
         }
         $query = $this->spendLines($fund)->unionAll($this->payoutLines($fund));
         if (in_array($fund, FundCatalog::ClosedRowFunds, true)) {
-            $query->unionAll($this->closedMonthLines($fund, true))->unionAll($this->closedMonthLines($fund, false));
+            $query->unionAll($this->closedMonthLines($fund, 'partners'))->unionAll($this->closedMonthLines($fund, 'extra'))->unionAll($this->closedMonthLines($fund, 'moved'));
         }
 
         return $query;
@@ -288,6 +299,7 @@ final class TreasuryFunds
     {
         return DB::table('reserve_disbursements as r')->leftJoin('fund_expense_heads as h', 'h.id', '=', 'r.expense_head_id')
             ->where('r.program', FundSpending::Program)->where('r.status', 'paid')->where('r.fund_key', $fund)
+            ->whereNotExists(fn ($reversed) => $reversed->from('fund_spend_reversals as v')->whereColumn('v.disbursement_id', 'r.id'))
             ->selectRaw("('s-' || r.id::text) AS id, COALESCE(r.spent_on::timestamp, r.paid_at, r.created_at) AS date, 'spend' AS line_kind, COALESCE(h.name_bn, h.name_en, r.program) AS what_text, h.name_en AS what_en, r.payee_name AS payee, NULL::bigint AS partners, r.amount, r.payment_reference AS reference, CASE WHEN r.receipt_path IS NOT NULL THEN r.id END AS receipt_id, NULL AS kind");
     }
 
@@ -306,7 +318,7 @@ final class TreasuryFunds
             ->whereIn('r.status', ['approved', 'paid']))
             ->groupBy('r.id', 'h.name_bn', 'h.name_en', 'partner.name')
             ->havingRaw('SUM(s.amount - s.reversed_amount) <> 0')
-            ->selectRaw("('s-' || r.id::text) AS id, COALESCE(r.spent_on::timestamp, r.paid_at, r.created_at) AS date, 'spend' AS line_kind, COALESCE(h.name_bn, h.name_en, r.program) AS what_text, h.name_en AS what_en, COALESCE(r.payee_name, partner.name) AS payee, NULL::bigint AS partners, SUM(s.amount - s.reversed_amount) AS amount, r.payment_reference AS reference, CASE WHEN r.receipt_path IS NOT NULL THEN r.id END AS receipt_id, r.program AS kind");
+            ->selectRaw("('s-' || r.id::text) AS id, COALESCE(r.spent_on::timestamp, r.paid_at, r.created_at) AS date, 'spend' AS line_kind, CASE WHEN r.program = '".PrizeAdvances::Program."' THEN r.fund_key ELSE COALESCE(h.name_bn, h.name_en, r.program) END AS what_text, h.name_en AS what_en, COALESCE(r.payee_name, partner.name) AS payee, NULL::bigint AS partners, SUM(s.amount - s.reversed_amount) AS amount, r.payment_reference AS reference, CASE WHEN r.receipt_path IS NOT NULL THEN r.id END AS receipt_id, r.program AS kind");
     }
 
     /** Payouts to partners from rows still open, one line per kind and month. */
@@ -320,17 +332,27 @@ final class TreasuryFunds
     }
 
     /**
-     * A closed month's two lines: what partners were paid and what moved to company profit. The
-     * second is the row's whole amount less the first, so the two add up by construction.
+     * A closed month's lines: what partners were paid, the paisa an equal split left for the Commission extra fund, and
+     * what moved to company profit. The last is the row's whole amount less the other two, so they add up by construction.
+     *
+     * @param  'partners'|'extra'|'moved'  $lineKind
      */
-    private function closedMonthLines(string $fund, bool $paidToPartners): Builder
+    private function closedMonthLines(string $fund, string $lineKind): Builder
     {
         $paidOut = 'COALESCE(paid.total, 0) + COALESCE(spent.total, 0)';
-        $amount = $paidToPartners ? "SUM({$paidOut})" : "SUM(funds.amount - ({$paidOut}))";
+        $leftover = 'COALESCE(leftover.total, 0)';
+        $amount = match ($lineKind) {
+            'partners' => "SUM({$paidOut})",
+            'extra' => "SUM({$leftover})",
+            default => "SUM(funds.amount - ({$paidOut}) - {$leftover})",
+        };
         $period = "COALESCE(funds.metadata->>'settled_period', funds.metadata->>'period_month')";
-        $lineKind = $paidToPartners ? 'partners' : 'moved';
+        $leftovers = DB::table('commission_allocations')->where('category', RetainedFundLedger::BenefitsCategory)->where('status', '!=', 'reversed')
+            ->where('metadata->source', CommissionSettlement::SplitRemainder)->whereRaw("metadata->>'source_allocation_id' IS NOT NULL")
+            ->groupByRaw("(metadata->>'source_allocation_id')::bigint")->selectRaw("(metadata->>'source_allocation_id')::bigint AS allocation_id, SUM(amount) AS total");
 
-        return $this->liveRows()->where('funds.status', 'settled')->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
+        return $this->liveRows()->leftJoinSub($leftovers, 'leftover', 'leftover.allocation_id', '=', 'funds.id')
+            ->where('funds.status', 'settled')->whereRaw('('.FundCatalog::rowFundSql().') = ?', [$fund])
             ->groupByRaw($period)->havingRaw("{$amount} <> 0")
             ->selectRaw("('c-{$lineKind}-' || {$period}) AS id, MAX((funds.metadata->>'settled_at')::timestamptz AT TIME ZONE 'UTC') AS date, '{$lineKind}' AS line_kind, {$period} AS what_text, NULL AS what_en, NULL AS payee, NULL::bigint AS partners, {$amount} AS amount, NULL AS reference, NULL::bigint AS receipt_id, 'closed_month' AS kind");
     }
@@ -351,6 +373,9 @@ final class TreasuryFunds
         if ($row->line_kind === 'moved') {
             return (string) __('treasury.out_moved_to_profit');
         }
+        if ($row->line_kind === 'extra') {
+            return (string) __('treasury.out_split_remainder');
+        }
         if ($row->kind === 'closed_month') {
             return (string) __('treasury.out_month_paid', ['month' => (string) $row->what_text]);
         }
@@ -359,6 +384,9 @@ final class TreasuryFunds
         }
         if ($row->line_kind === 'partners') {
             return $this->payoutWord((string) $row->kind);
+        }
+        if ($row->kind === PrizeAdvances::Program) {
+            return (string) __('prize_advances.out_what', ['kind' => (string) __('prize_advances.kind_'.$row->what_text)]);
         }
         $name = app()->getLocale() === 'en' && $row->what_en ? (string) $row->what_en : (string) $row->what_text;
 
@@ -388,7 +416,11 @@ final class TreasuryFunds
             return (string) __('treasury.to_partners', ['count' => (string) $row->partners]);
         }
 
-        return $row->line_kind === 'moved' ? (string) __('treasury.fund_company_profit') : null;
+        return match ($row->line_kind) {
+            'moved' => (string) __('treasury.fund_company_profit'),
+            'extra' => (string) __('treasury.fund_benefits'),
+            default => null,
+        };
     }
 
     /** What can still be spent, for the spend form. */

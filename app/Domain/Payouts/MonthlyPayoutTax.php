@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  *
  * The rule:
  * - The month's total is every withdrawal this partner asked for in the same
- *   Dhaka calendar month that was not rejected or cancelled, plus this one.
+ *   Dhaka calendar month that was not rejected, cancelled or returned, plus this one.
  * - While that total stays below the threshold, no tax is cut.
  * - When the total first reaches the threshold, tax is cut on the whole month's
  *   amount so far (catch-up), so splitting one withdrawal into small ones does
@@ -28,8 +28,11 @@ use Illuminate\Support\Facades\DB;
  */
 final class MonthlyPayoutTax
 {
-    /** Withdrawal statuses that do not count towards the month's total. */
-    public const IgnoredStatuses = ['rejected', 'cancelled'];
+    /**
+     * Withdrawal statuses that do not count towards the month's total. A returned withdrawal gave
+     * its tax back to the wallet (the return reverses the tax withheld), so it no longer counts.
+     */
+    public const IgnoredStatuses = ['rejected', 'cancelled', PayoutReturns::Status];
 
     public function __construct(private CommissionPolicy $policies) {}
 

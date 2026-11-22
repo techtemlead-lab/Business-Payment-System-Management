@@ -22,7 +22,7 @@ return [
     'fund_rank_bonus' => 'র‍্যাঙ্ক বোনাস ফান্ড',
     'fund_rank_reward' => 'সাব-ডিলার র‍্যাঙ্ক ফান্ড',
     'fund_clinic' => 'চেম্বারের ফান্ড',
-    'fund_benefits' => 'মালিক পক্ষের ফান্ড',
+    'fund_benefits' => 'কমিশন এক্সট্রা ফান্ড',
     'fund_salary_reserve' => 'পুরনো বেতনের টাকা',
     'fund_geographic_reserve' => 'পুরনো এলাকার টাকা',
     'fund_referral_reserve' => 'পুরনো স্টাফ কমিশনের টাকা',
@@ -33,8 +33,8 @@ return [
 
     'type_own_dealer_cashback' => 'ডক্টর অনারারিয়াম',
     'type_direct_referral' => 'স্টাফ কমিশন',
-    'type_d2d_gen2' => 'D2D আয় · ২য় প্রজন্ম',
-    'type_d2d_gen3' => 'D2D আয় · ৩য় প্রজন্ম',
+    'type_d2d_gen2' => 'টিমের আয় · ২য় ধাপ',
+    'type_d2d_gen3' => 'টিমের আয় · ৩য় ধাপ',
     'type_area_division' => 'এরিয়া ডিলার আয় · বিভাগ',
     'type_area_district' => 'এরিয়া ডিলার আয় · জেলা',
     'type_area_upazila' => 'এরিয়া ডিলার আয় · উপজেলা',
@@ -248,4 +248,7 @@ return [
     'dl_trial_balance' => 'ট্রায়াল ব্যালেন্স',
     'dl_group_statements' => 'হিসাবরক্ষকের ফাইল',
     'dl_too_many' => 'এক মিনিটে ১৫টির বেশি ফাইল নামানো যায় না। একটু পরে আবার নামান।',
+    'tile_money_back' => 'বন্ধ অর্ডারের টাকা ফেরত দিতে হবে',
+    'out_split_remainder' => 'সমান ভাগের পর বেঁচে যাওয়া পয়সা, কমিশন এক্সট্রা ফান্ডে',
+    'out_kind_extra' => 'কমিশন এক্সট্রা ফান্ডে বেঁচে যাওয়া পয়সা',
 ];

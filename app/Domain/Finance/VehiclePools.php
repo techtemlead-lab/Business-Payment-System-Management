@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The bike and car prizes each have their own pool. A tagged row is the Bike fund's or the Car fund's (see
- * {@see CompanyFunds::fundSql()}); an untagged row is old combined money.
+ * {@see CompanyFunds::fundSql()}); an untagged row is old combined money. A prize paid in advance
+ * ({@see PrizeAdvances}) is counted against its own program exactly like a prize.
  *
  * Every row posted after the split carries metadata.vehicle_pool ("bike" or "car") and belongs wholly to
  * that pool. Rows posted before it have no tag: they are read as half bike and half car, worked out here when
@@ -113,10 +114,16 @@ final class VehiclePools
         $spent = DB::table('reserve_expense_sources')->join('reserve_disbursements', 'disbursement_id', '=', 'reserve_disbursements.id')
             ->whereIn('reserve_disbursements.status', ['approved', 'paid'])->groupBy('reserve_expense_sources.allocation_id')
             ->selectRaw('reserve_expense_sources.allocation_id, SUM(reserve_expense_sources.amount - reserve_expense_sources.reversed_amount) AS total');
-        $awardPaid = fn (string $program) => DB::table('commission_settlement_payouts as p')
+        // What a program has taken from each row: its prizes, and the prizes paid in advance from its pool (PrizeAdvances).
+        $awardPaid = fn (string $program) => DB::query()->fromSub(DB::table('commission_settlement_payouts as p')
             ->join('reserve_disbursements as d', 'p.kind', '=', DB::raw("'award_' || d.id::text"))
-            ->where('d.program', $program)->groupBy('p.allocation_id')
-            ->selectRaw('p.allocation_id, SUM(p.amount - p.reversed_amount) AS total');
+            ->where('d.program', $program)
+            ->selectRaw('p.allocation_id, p.amount - p.reversed_amount AS amount')
+            ->unionAll(DB::table('reserve_expense_sources as s')->join('reserve_disbursements as d', 'd.id', '=', 's.disbursement_id')
+                ->where('d.program', PrizeAdvances::Program)->where('d.fund_key', $program)->whereIn('d.status', ['approved', 'paid'])
+                ->selectRaw('s.allocation_id, s.amount - s.reversed_amount AS amount')), 'taken')
+            ->groupBy('taken.allocation_id')
+            ->selectRaw('taken.allocation_id, SUM(taken.amount) AS total');
 
         $left = '(funds.amount - COALESCE(paid.total, 0) - COALESCE(spent.total, 0))';
         $bikeHalf = 'FLOOR(funds.amount * 100 / 2) / 100';

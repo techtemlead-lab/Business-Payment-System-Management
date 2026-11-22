@@ -2,6 +2,7 @@ import { useForm, usePage } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { rankLabel } from '../shared/rankLabel';
 import { useReasonField } from '../shared/reasonFields';
 
 export default function PartnerBenefitControls({ account }: { account: Row }) {
@@ -76,7 +77,7 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                             <option value="mo">MO</option>
                             <option value="am">AM</option>
                             <option value="sm">SM</option>
-                            <option value="me">ME</option>
+                            <option value="me">{rankLabel('me')}</option>
                         </select>
                     </label>
                 )}

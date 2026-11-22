@@ -21,7 +21,7 @@ use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
-/** Owner decision: the bike and car award amounts are settings, and the car award stays blank until the owner fills it in. */
+/** Owner decision: the bike and car award amounts are settings; they start at ৳3,00,000 and ৳25,00,000 (2026-11-21) and the owner can change or empty them. */
 class CarBikeAwardAmountsTest extends TestCase
 {
     use RefreshDatabase;
@@ -52,20 +52,20 @@ class CarBikeAwardAmountsTest extends TestCase
             ->post('/commands/commissions/rules', ['rules' => ['car_bike_incentive' => ['parameters' => $parameters]]]);
     }
 
-    public function test_bike_award_starts_at_the_quotation_amount_and_car_award_starts_blank(): void
+    public function test_bike_and_car_awards_start_at_the_owners_amounts(): void
     {
         $parameters = $this->rewardRule()['parameters'];
 
         $this->assertSame('300000.00', $parameters['bike_award_amount']);
-        $this->assertNull($parameters['car_award_amount']);
+        $this->assertSame('2500000.00', $parameters['car_award_amount']);
     }
 
-    public function test_bike_target_is_fifty_lakh_when_nothing_has_been_saved(): void
+    public function test_bike_target_is_one_crore_when_nothing_has_been_saved(): void
     {
         CommissionRuleParameter::query()->delete();
 
-        $this->assertSame('5000000.00', CommissionPolicy::defaults()['car_bike_incentive']['parameters']['bike_target']);
-        $this->assertSame('5000000.00', $this->rewardRule()['parameters']['bike_target']);
+        $this->assertSame('10000000.00', CommissionPolicy::defaults()['car_bike_incentive']['parameters']['bike_target']);
+        $this->assertSame('10000000.00', $this->rewardRule()['parameters']['bike_target']);
     }
 
     public function test_a_saved_bike_target_wins_over_the_default_and_seeding_again_leaves_it_alone(): void
@@ -82,7 +82,7 @@ class CarBikeAwardAmountsTest extends TestCase
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         ReferralTreePath::attachUser($dealer->id, null);
-        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00', 'qualifying_volume' => '1000000.00']);
+        RewardMilestoneProgress::query()->forceCreate(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '10000000.00', 'leg_cap_amount' => '2000000.00', 'qualifying_volume' => '1000000.00']);
 
         $this->saveAwards($this->owner, 'sadmin', ['bike_target' => '4000000.00'])
             ->assertRedirect()
@@ -101,7 +101,7 @@ class CarBikeAwardAmountsTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page->where('leaders.targets.bike', '4000000.00'));
 
         $changes = json_decode(DB::table('audit_events')->where('action', 'commissions.rules_updated')->first()->metadata, true)['changes']['car_bike_incentive'];
-        $this->assertSame('5000000.00', $changes['before']['parameters']['bike_target']);
+        $this->assertSame('10000000.00', $changes['before']['parameters']['bike_target']);
         $this->assertSame('4000000.00', $changes['after']['parameters']['bike_target']);
     }
 
@@ -109,7 +109,7 @@ class CarBikeAwardAmountsTest extends TestCase
     {
         $this->saveAwards($this->owner, 'sadmin', ['bike_target' => '-5'])->assertSessionHasErrors('rules');
 
-        $this->assertSame('5000000.00', $this->rewardRule()['parameters']['bike_target']);
+        $this->assertSame('10000000.00', $this->rewardRule()['parameters']['bike_target']);
     }
 
     public function test_no_translation_quotes_a_fixed_bike_target(): void
@@ -130,7 +130,7 @@ class CarBikeAwardAmountsTest extends TestCase
         $parameters = $this->rewardRule()['parameters'];
 
         $this->assertSame('300000.00', $parameters['bike_award_amount']);
-        $this->assertNull($parameters['car_award_amount']);
+        $this->assertSame('2500000.00', $parameters['car_award_amount']);
     }
 
     public function test_the_owner_sets_the_awards_and_the_change_is_audit_logged_without_touching_rates_or_targets(): void
@@ -152,7 +152,7 @@ class CarBikeAwardAmountsTest extends TestCase
         $event = DB::table('audit_events')->where('action', 'commissions.rules_updated')->first();
         $changes = json_decode($event->metadata, true)['changes']['car_bike_incentive'];
         $this->assertSame($this->owner->id, (int) $event->actor_id);
-        $this->assertNull($changes['before']['parameters']['car_award_amount']);
+        $this->assertSame('2500000.00', $changes['before']['parameters']['car_award_amount']);
         $this->assertSame('1500000.00', $changes['after']['parameters']['car_award_amount']);
         $this->assertSame('300000.00', $changes['before']['parameters']['bike_award_amount']);
     }
@@ -169,7 +169,7 @@ class CarBikeAwardAmountsTest extends TestCase
     {
         $this->saveAwards($this->owner, 'sadmin', ['car_award_amount' => '-5'])->assertSessionHasErrors('rules');
 
-        $this->assertNull($this->rewardRule()['parameters']['car_award_amount']);
+        $this->assertSame('2500000.00', $this->rewardRule()['parameters']['car_award_amount']);
     }
 
     public function test_a_staff_change_waits_for_the_owner_like_other_commission_settings(): void
@@ -178,7 +178,7 @@ class CarBikeAwardAmountsTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('success', __('portal.flash_commission_change_pending'));
 
-        $this->assertNull($this->rewardRule()['parameters']['car_award_amount']);
+        $this->assertSame('2500000.00', $this->rewardRule()['parameters']['car_award_amount']);
         $proposed = DB::table('audit_events')->where('action', 'commissions.rules_change_proposed')->first();
         $this->assertSame($this->finance->id, (int) $proposed->actor_id);
         $this->assertSame('1500000.00', json_decode($proposed->metadata, true)['changes']['car_bike_incentive']['after']['parameters']['car_award_amount']);
@@ -188,11 +188,11 @@ class CarBikeAwardAmountsTest extends TestCase
     {
         $this->saveAwards(User::factory()->staff('inventory')->create(), 'manage', ['car_award_amount' => '1500000.00'])->assertForbidden();
 
-        $this->assertNull($this->rewardRule()['parameters']['car_award_amount']);
+        $this->assertSame('2500000.00', $this->rewardRule()['parameters']['car_award_amount']);
         $this->assertDatabaseMissing('audit_events', ['action' => 'commissions.rules_change_proposed']);
     }
 
-    public function test_settings_and_car_and_bike_fund_pages_receive_the_amounts_with_the_car_award_blank(): void
+    public function test_settings_and_car_and_bike_fund_pages_receive_both_award_amounts(): void
     {
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/commissions')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page->where('data.rules', function ($rules): bool {
@@ -200,13 +200,13 @@ class CarBikeAwardAmountsTest extends TestCase
 
                 return $parameters['bike_award_amount'] === '300000.00'
                     && array_key_exists('car_award_amount', $parameters)
-                    && $parameters['car_award_amount'] === null;
+                    && $parameters['car_award_amount'] === '2500000.00';
             }));
 
         $this->actingAs($this->owner)->onPortal('sadmin')->get('/treasury/funds/bike?view=bike')->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('leaders.awards.bike', '300000.00')
-                ->where('leaders.awards.car', null));
+                ->where('leaders.awards.car', '2500000.00'));
     }
 
     public function test_reaching_a_reward_target_pays_nothing_by_itself(): void

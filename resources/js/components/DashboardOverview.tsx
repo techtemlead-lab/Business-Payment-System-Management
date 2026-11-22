@@ -22,10 +22,10 @@ import { useT } from '../shared/i18n/t';
 import CallMeCard from './CallMeCard';
 import { DashboardGrid, IncomeReport } from './PartnerDashboard';
 
-/** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
+/** A progress bar row, or a plain line with no target: kind "amount" (a figure, such as a sub-dealer's salary) or kind "status" (words, such as a dealer's salary state). */
 type TargetRow = {
     key: string;
-    kind?: 'progress' | 'amount';
+    kind?: 'progress' | 'amount' | 'status';
     label: string;
     hint: string;
     value?: string;
@@ -145,8 +145,8 @@ function BalancePill({ amount }: { amount: unknown }) {
     );
 }
 
-/** The home screen shows the two most important targets; the rest are on the ranks page. */
-const HOME_TARGETS = 2;
+/** A rank row that counts team leaders (like 1/3) rather than taka; its numbers have no decimal point. */
+const isCountRow = (target: TargetRow): boolean => target.key === 'rank_reward' && !String(target.current).includes('.');
 
 type QuickAction = { section: string; label: string; icon: React.ComponentType<{ size?: number }>; tone: string; wordGroup?: string };
 
@@ -214,25 +214,27 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         <PartnerProgressButton />
                     </div>
                     <div className="partner-home-target-list">
-                        {targets.slice(0, HOME_TARGETS).map((target) => target.kind === 'amount' ? (
+                        {targets.map((target) => target.kind === 'amount' ? (
                             <article key={target.key} className="partner-home-target-amount">
                                 <div className="partner-home-target-top">
-                                    <b>
-                                        {target.key === 'tour_fund' ? <Plane size={14} /> : <Wallet size={14} />}
-                                        {target.label}
-                                    </b>
+                                    <b>{target.key === 'tour_fund' ? <Plane size={14} /> : <Wallet size={14} />}{target.label}</b>
                                     <span>{money(target.value)}</span>
+                                </div>
+                                <small>{localizeDigits(target.hint)}</small>
+                            </article>
+                        ) : target.kind === 'status' ? (
+                            <article key={target.key} className="partner-home-target-amount">
+                                <div className="partner-home-target-top">
+                                    <b><Wallet size={14} />{target.label}</b>
+                                    <span>{target.value}</span>
                                 </div>
                                 <small>{localizeDigits(target.hint)}</small>
                             </article>
                         ) : (
                             <article key={target.key}>
                                 <div className="partner-home-target-top">
-                                    <b>
-                                        {target.key === 'bike_incentive' ? <Bike size={14} /> : null}
-                                        {target.label}
-                                    </b>
-                                    <span>{number(target.percent)}%</span>
+                                    <b>{target.key === 'bike_incentive' ? <Bike size={14} /> : null}{target.label}</b>
+                                    <span>{isCountRow(target) ? `${number(target.current)}/${number(target.target)}` : `${number(target.percent)}%`}</span>
                                 </div>
                                 <div
                                     className="partner-home-bar"
@@ -244,18 +246,16 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                                 >
                                     <i style={{ width: `${Math.min(100, Number(target.percent) || 0)}%` }} />
                                 </div>
-                                <div className="partner-home-target-meta">
-                                    <span>{translate('portal', 'target_done')} {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
-                                    <span>{translate('portal', 'target_left')} {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
-                                </div>
+                                {!isCountRow(target) && (
+                                    <div className="partner-home-target-meta">
+                                        <span>{translate('portal', 'target_done')} {money(target.current)}</span>
+                                        <span>{translate('portal', 'target_left')} {money(target.remaining)}</span>
+                                    </div>
+                                )}
                                 <small>{localizeDigits(target.hint)}</small>
                             </article>
                         ))}
-                    </div>
-                    {targets.length > HOME_TARGETS && sections.includes('ranks') && (
-                        <Link href={`${base}/ranks`} className="text-link ph-targets-more">{translate('partner_ux', 'all_targets')} <ArrowUpRight size={15} /></Link>
-                    )}
-                </section>
+                    </div>                </section>
             ) : null} />
 
             {/* The big easy-way buttons sit under the money and targets, above the long report. */}

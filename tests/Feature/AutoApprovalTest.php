@@ -74,33 +74,33 @@ class AutoApprovalTest extends TestCase
     public function test_the_scheduled_run_settles_a_closed_month_salary_on_its_own(): void
     {
         $dealer = $this->rangpurDealer();
-        $this->purchase($dealer, '10000.00', '20000.00');
+        $this->purchase($dealer, '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
 
-        $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $dealer->id, 'kind' => 'salary', 'period_month' => '2026-09', 'amount' => '200.00']);
+        $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $dealer->id, 'kind' => 'salary', 'period_month' => '2026-09', 'amount' => '600.00']);
         $this->assertDatabaseMissing('commission_allocations', ['category' => 'dealer_monthly_salary_pool', 'status' => 'pending']);
     }
 
-    public function test_the_scheduled_run_leaves_months_older_than_two_for_a_person(): void
+    public function test_the_scheduled_run_also_closes_a_month_older_than_two(): void
     {
         $dealer = $this->rangpurDealer();
-        $this->purchase($dealer, '10000.00', '20000.00');
-        // September's salary is still unpaid in January: too old for the automatic run.
+        $this->purchase($dealer, '30000.00', '60000.00');
+        // September's salary is still unpaid in January: every ended month is closed, however old.
         $this->travelTo(now()->setDate(2027, 1, 5)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
 
-        $this->assertDatabaseCount('commission_settlement_payouts', 0);
-        $this->assertDatabaseHas('commission_allocations', ['category' => 'dealer_monthly_salary_pool', 'status' => 'pending']);
+        $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $dealer->id, 'kind' => 'salary', 'period_month' => '2026-09', 'amount' => '600.00']);
+        $this->assertDatabaseMissing('commission_allocations', ['category' => 'dealer_monthly_salary_pool', 'status' => 'pending']);
     }
 
     public function test_the_scheduled_run_leaves_salary_alone_when_it_needs_approval(): void
     {
         $owner = User::factory()->staff()->create();
         app(FinanceSettings::class)->saveAutoApproval($owner, false, ['salary' => false, 'royalty' => true, 'rank_incentive' => true], 0, 'Salary needs a finance check');
-        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
@@ -111,7 +111,7 @@ class AutoApprovalTest extends TestCase
 
     public function test_the_scheduled_run_does_not_settle_the_month_that_is_still_open(): void
     {
-        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '30000.00', '60000.00');
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
 
@@ -144,7 +144,7 @@ class AutoApprovalTest extends TestCase
     public function test_nothing_moves_while_money_movement_is_switched_off(): void
     {
         config(['madina.financial_activation' => false]);
-        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
@@ -154,7 +154,7 @@ class AutoApprovalTest extends TestCase
 
     public function test_a_failed_payout_makes_the_scheduled_run_fail_loudly(): void
     {
-        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
         // Any database error during the payout; the trigger is rolled back with the test.
         DB::unprepared("CREATE FUNCTION test_reject_payout() RETURNS trigger AS \$\$ BEGIN RAISE EXCEPTION 'Ledger is locked by a long report.'; END; \$\$ LANGUAGE plpgsql;
@@ -167,13 +167,14 @@ class AutoApprovalTest extends TestCase
             && str_contains((string) ($context['failed']['salary:2026-09'] ?? ''), 'Ledger is locked'));
     }
 
-    /** A dealer keyed to the Rangpur division place code (salary is shared by place code). */
+    /** A union dealer in Rangpur division: his monthly target is ৳30,000. */
     private function rangpurDealer(): User
     {
         $rangpur = PlaceCode::query()->where('level', PlaceCode::LevelDivision)->where('name', 'Rangpur')->first()
             ?? PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district($rangpur)->create())->create();
 
-        return User::factory()->inPlace($rangpur)->create();
+        return User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create())->create();
     }
 
     private function purchase(User $buyer, string $cash, string $mrp): Order

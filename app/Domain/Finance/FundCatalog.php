@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 
 /**
@@ -15,7 +16,7 @@ final class FundCatalog
     public const MonthPools = ['salary_pool', 'royalty_pool', 'rank_bonus'];
 
     /** Funds where a closed month is finished: everything in that row has gone out. */
-    public const ClosedRowFunds = ['salary_pool', 'royalty_pool', 'rank_reward'];
+    public const ClosedRowFunds = ['salary_pool', 'royalty_pool', 'rank_bonus', 'rank_reward'];
 
     /** Old money only. The card appears only while something came in. */
     public const HiddenWhileEmpty = ['car_bike', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
@@ -71,7 +72,12 @@ final class FundCatalog
             $key = $own;
         }
 
-        return $label === $key ? $category : $label;
+        if ($label !== $key) {
+            return $label;
+        }
+
+        // No name found: show the code, but never one of the retired commission names.
+        return CommissionCodeLabel::replaceRetired($category) === $category ? $category : CommissionCodeLabel::fromCode($category);
     }
 
     /** Text amount with an optional sign, as whole paisa. */

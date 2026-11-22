@@ -57,7 +57,7 @@ type PrescriptionRow = {
     subtotal: string;
     discount_total: string;
     total: string;
-    status: 'issued' | 'dispensed';
+    status: 'issued' | 'dispensed' | 'voided';
     manufacturer_share: string;
     clinic_fund: string;
     payment_method: string;
@@ -104,6 +104,26 @@ export type PrescriptionsData = {
     manufacturer_percent?: string;
     report?: ReportData;
 };
+
+/** Takes a clinic sale back: the money and the medicines return. The server checks who may. */
+function VoidSale({ prescriptionId, translate }: { prescriptionId: number; translate: Translate }) {
+    const [open, setOpen] = useState(false);
+    const form = useForm({ reason: '' });
+    if (!open) {
+        return <button type="button" className="button small" onClick={() => setOpen(true)}>{translate('prescription', 'void_sale')}</button>;
+    }
+    return (
+        <form className="action-form" onSubmit={(event) => {
+            event.preventDefault();
+            form.post(`/commands/prescriptions/${prescriptionId}/void-dispense`, { preserveScroll: true, onSuccess: () => setOpen(false) });
+        }}>
+            <small className="muted">{translate('prescription', 'void_sale_hint')}</small>
+            <input aria-label={translate('prescription', 'void_sale_reason')} placeholder={translate('prescription', 'void_sale_reason')} required minLength={5} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
+            <FormErrors errors={form.errors} />
+            <button className="button small dark" disabled={form.processing}>{translate('prescription', 'void_sale_confirm')}</button>
+        </form>
+    );
+}
 
 function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
     return (
@@ -308,6 +328,7 @@ function PrescriptionList({ data, translate, onCopy }: { data: PrescriptionsData
                                         {' · '}{translate('prescription', 'payment_method')}: {translate('prescription', `payment_${row.payment_method}`)}{row.payment_reference ? ` (${translate('prescription', 'payment_ref_short')} ${row.payment_reference})` : ''}
                                     </small>
                                 )}
+                                {data.mode === 'clinic' && row.status === 'dispensed' && row.kind === 'clinic' && <VoidSale prescriptionId={row.id} translate={translate} />}
                                 <span className="rx-actions">
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=bn`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_bn')}</a>
                                     <a className="button small" href={`${base}/prescriptions/${row.id}/print?lang=en`} target="_blank" rel="noopener"><Printer size={15} /> {translate('prescription', 'rx_print_en')}</a>

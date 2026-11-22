@@ -5,6 +5,7 @@ import Shell from '../components/Shell';
 import { Badge, Row, Table, Pagination, money, dateTime, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import SearchSelect from '../components/SearchSelect';
+import FilterPicker, { FilterChips } from '../components/FilterChips';
 import { PartnerTypeCell } from '../components/office/portalShared';
 
 type Filters = { from: string; to: string; member: number | null; status: string | null };
@@ -73,12 +74,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                 </div>
             </div>
             <form className="filter-bar order-filters" onSubmit={event => { event.preventDefault(); if (from && to) go(); }}>
-                <select className="order-period-select" aria-label={translate('portal', 'stmt_quick_range')} value="" onChange={event => { if (event.target.value) go(presetRange(event.target.value)); }}>
-                    <option value="">{translate('portal', 'stmt_quick_range')}</option>
-                    <option value="month">{translate('portal', 'orders_period_month')}</option>
-                    <option value="last_month">{translate('portal', 'orders_period_last_month')}</option>
-                    <option value="year">{translate('portal', 'orders_period_year')}</option>
-                </select>
+                <FilterChips label={translate('portal', 'stmt_quick_range')} showLabel value="" onChange={value => { if (value) go(presetRange(value)); }} options={['month', 'last_month', 'year'].map(value => ({ value, label: translate('portal', `orders_period_${value}`) }))} />
                 <div className="order-dates">
                     <DateInput aria-label={translate('portal', 'stmt_from')} value={from} onChange={event => setFrom(event.target.value)} />
                     <DateInput aria-label={translate('portal', 'stmt_to')} value={to} onChange={event => setTo(event.target.value)} />
@@ -91,10 +87,7 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                     emptyLabel={translate('portal', 'team_orders_all_members')}
                     options={members.map(item => ({ value: String(item.id), label: `${item.name}${item.dealer_code ? ` (${item.dealer_code})` : ''}` }))}
                 />
-                <select aria-label={translate('portal', 'col_status')} value={status} onChange={event => { setStatus(event.target.value); go({ status: event.target.value }); }}>
-                    <option value="">{translate('portal', 'team_orders_all_statuses')}</option>
-                    {statuses.map(item => <option key={item} value={item}>{translate('portal', `status_${item}`)}</option>)}
-                </select>
+                <FilterPicker label={translate('portal', 'col_status')} allLabel={translate('portal', 'team_orders_all_statuses')} maxChips={Infinity} value={status} onChange={value => { setStatus(value); go({ status: value }); }} options={statuses.map(item => ({ value: item, label: translate('portal', `status_${item}`) }))} />
                 <button className="button small dark" type="submit">{translate('portal', 'stmt_show')}</button>
             </form>
             <div className="metric-grid four">

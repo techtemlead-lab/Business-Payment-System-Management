@@ -6,7 +6,7 @@ import { useReasonFields } from '../../shared/reasonFields';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { FUNDS_COMMAND_ROOT, useHeadName } from './FundSpendForm';
 
-export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_add_receipt?: boolean; waits_for_owner?: boolean; waits_for_staff?: boolean; over_budget?: boolean };
+export type SpendApproval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_add_receipt?: boolean; waits_for_owner?: boolean; waits_for_staff?: boolean; over_budget?: boolean; waiting_days?: number; shows_payment?: boolean };
 
 /** Spends waiting for a decision, on the shared table. Everything else opens in a box. */
 export default function SpendApprovals({ table }: { table: MoneyTableData<SpendApproval> }) {
@@ -37,7 +37,7 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
     const headName = useHeadName();
     const reasonOf = useReasonFields();
     const [decision, setDecision] = useState<'approved' | 'rejected' | 'cancel' | null>(null);
-    const reviewForm = useForm<Row>({ decision: '', reason: '', receipt: null });
+    const reviewForm = useForm<Row>({ decision: '', reason: '', receipt: null, not_paid: false });
     const cancelForm = useForm<Row>({ reason: '' });
     const facts: Array<[string, React.ReactNode]> = [
         [translate('treasury', 'col_date'), date(row.spent_on)],
@@ -70,12 +70,16 @@ function ApprovalBox({ row, onClose }: { row: SpendApproval; onClose: () => void
                 {row.reason && <div><dt>{translate('funds', 'fld_note')}</dt><dd>{row.reason}</dd></div>}
                 {row.has_receipt && <div><dt>{translate('treasury', 'col_receipt')}</dt><dd><a className="text-link" href={`/commands/operations/receipts/reserve/${row.id}`}>{translate('treasury', 'view')}</a></dd></div>}
                 {row.over_budget && <div><dt>{translate('funds', 'budget_head')}</dt><dd><Badge status="flagged" /></dd></div>}
+                {row.waiting_days !== undefined && <div><dt>{translate('funds', 'waiting_since')}</dt><dd>{translate('funds', 'waiting_days', { days: String(row.waiting_days) })}</dd></div>}
             </dl>
             {decision ? (
                 <form className="action-form" onSubmit={submit}>
                     {why.shown && <label>{why.label(translate('funds', 'fld_reason'))}
                         <textarea required={why.required} minLength={why.required ? 5 : undefined} maxLength={1000} value={String(reasonForm.data.reason ?? '')} onChange={(event) => reasonForm.setData('reason', event.target.value)} />
                     </label>}
+                    {decision === 'rejected' && row.shows_payment && (
+                        <label className="check"><input type="checkbox" checked={Boolean(reviewForm.data.not_paid)} onChange={(event) => reviewForm.setData('not_paid', event.target.checked)} /> {translate('funds', 'confirm_not_paid')}</label>
+                    )}
                     {decision === 'approved' && row.can_add_receipt && (
                         <label>{translate('self_approval', 'receipt_label')}<input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => reviewForm.setData('receipt', event.target.files?.[0] ?? null)} /></label>
                     )}

@@ -19,4 +19,5 @@ Route::get('/treasury/partners', [TreasuryController::class, 'partners']);
 Route::get('/treasury/partners/{partner}', [TreasuryController::class, 'partner'])->whereNumber('partner');
 Route::get('/treasury/work', [TreasuryController::class, 'work']);
 Route::get('/treasury/profit', [TreasuryController::class, 'profit']);
+Route::get('/treasury/prize-advances', [TreasuryController::class, 'prizeAdvances']);
 Route::get('/treasury/partners/{partner}/income/{part}/pdf', [PartnerIncomeController::class, 'pdfFor'])->whereNumber('partner')->where('part', '[a-z0-9_]+')->middleware('throttle:10,1');

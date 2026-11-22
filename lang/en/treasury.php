@@ -22,7 +22,7 @@ return [
     'fund_rank_bonus' => 'Rank bonus fund',
     'fund_rank_reward' => 'Sub-dealer rank fund',
     'fund_clinic' => 'Clinic fund',
-    'fund_benefits' => "Owners' fund",
+    'fund_benefits' => 'Commission extra fund',
     'fund_salary_reserve' => 'Old salary money',
     'fund_geographic_reserve' => 'Old area money',
     'fund_referral_reserve' => 'Old Staff commission money',
@@ -33,8 +33,8 @@ return [
 
     'type_own_dealer_cashback' => 'Doctor Honorarium',
     'type_direct_referral' => 'Staff commission',
-    'type_d2d_gen2' => 'D2D income · 2nd generation',
-    'type_d2d_gen3' => 'D2D income · 3rd generation',
+    'type_d2d_gen2' => 'Team income · 2nd step',
+    'type_d2d_gen3' => 'Team income · 3rd step',
     'type_area_division' => 'Area dealer income · Division',
     'type_area_district' => 'Area dealer income · District',
     'type_area_upazila' => 'Area dealer income · Upazila',
@@ -248,4 +248,7 @@ return [
     'dl_trial_balance' => 'Trial balance',
     'dl_group_statements' => "Accountant's files",
     'dl_too_many' => 'You can download up to 15 files a minute. Try again in a moment.',
+    'tile_money_back' => 'Money to give back on closed orders',
+    'out_split_remainder' => 'Paisa left over by the equal split, to the Commission extra fund',
+    'out_kind_extra' => 'Leftover paisa to the Commission extra fund',
 ];

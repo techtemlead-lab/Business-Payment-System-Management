@@ -87,7 +87,7 @@ final class RepeatOrderOptions
         return [
             'order_id' => (string) $order->id,
             'number' => (string) $order->number,
-            'ordered_on' => $order->created_at?->toDateString() ?? '',
+            'ordered_on' => $order->created_at?->copy()->timezone((string) config('madina.business_timezone', 'Asia/Dhaka'))->toDateString() ?? '',
             'total' => Money::decimal(Money::cents((string) $order->total)),
             'names' => $order->chargedLines()->pluck('name')->map(fn (mixed $name): string => (string) $name)->values()->all(),
             'items' => $items,

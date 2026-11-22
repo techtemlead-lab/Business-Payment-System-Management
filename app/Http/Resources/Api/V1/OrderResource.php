@@ -13,6 +13,8 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id, 'number' => $this->number, 'user_id' => $this->user_id,
             'status' => $this->status, 'currency' => 'BDT',
+            // "courier" or "office" (the partner collects the goods at the office).
+            'delivery_method' => $this->delivery_method ?? 'courier',
             'total' => $this->total, 'paid' => $this->paid,
             'due_credit' => $this->due_credit, 'outstanding' => $this->resource->outstanding(),
             'note' => $this->note, 'decision_reason' => $this->decision_reason,

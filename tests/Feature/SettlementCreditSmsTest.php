@@ -37,13 +37,15 @@ class SettlementCreditSmsTest extends TestCase
 
     public function test_salary_settlement_sends_localized_credit_sms_once_per_run(): void
     {
-        $dealer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create([
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district(PlaceCode::factory()->division()->create())->create())->create();
+        $dealer = User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create())->create([
             'role' => 'dealer',
             'status' => 'active',
             'phone' => '01720000101',
             'locale' => 'bn',
         ]);
-        $this->purchase($dealer, '10000.00', '20000.00');
+        // ৳30,000 is a union dealer's monthly target, so he is paid the salary.
+        $this->purchase($dealer, '30000.00', '60000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         Config::set('madina.sms.sent', []);
 

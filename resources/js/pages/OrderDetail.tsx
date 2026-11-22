@@ -15,6 +15,8 @@ import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import OrderMoneyBreakdown, { type OrderMoneyBreakdownData } from '../components/OrderMoneyBreakdown';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
 import { returnedByLine } from '../components/office/portalShared';
+import { orderLineDiscountPercent } from '../components/orderLineDiscount';
+import OwedItemsPanel, { type OwedItem } from '../components/OwedItemsPanel';
 
 /** Units of a line still to send: not sent and not closed by a cancel. */
 const unsentOf = (line: Row) => Math.max(0, Number(line.quantity) - Number(line.dispatched) - Number(line.closed ?? 0));
@@ -70,6 +72,26 @@ function DispatchForm({ order, courierChoices, stockByBranch }: { order: Row; co
     </form>;
 }
 
+/**
+ * Store team: the partner took the goods at the office. One step takes everything still to send out of the
+ * chosen branch's stock and marks the order delivered; no courier and no tracking number.
+ */
+function OfficeHandoverForm({ order, stockByBranch }: { order: Row; stockByBranch: BranchStock[] }) {
+    const translate = useT();
+    // One key for this hand-over: a double press records it once.
+    const [handoverKey] = useState(() => randomUuid());
+    const firstBranch = stockByBranch.find(branch => branch.branch_id === order.fulfillment_branch_id) ?? stockByBranch.find(branch => branch.can_send_all) ?? stockByBranch[0];
+    return <section className="panel narrow-panel" data-testid="office-handover">
+        <h2>{translate('order_delivery', 'handover_title')}</h2>
+        <p className="muted">{translate('order_delivery', 'handover_hint')}</p>
+        {order.delivery_method !== 'office' && <p className="notice" role="note">{translate('order_delivery', 'handover_courier_order_note')}</p>}
+        <ActionForm action={`/commands/orders/${order.id}/office-handover`} fields={[
+            ...(stockByBranch.length > 0 ? [{ name: 'branch_id', label: translate('order_delivery', 'handover_branch'), options: stockByBranch.map(branch => ({ value: String(branch.branch_id), label: branch.name })) }] : []),
+            { name: 'note', label: translate('order_delivery', 'handover_note'), type: 'textarea', place: 'order.delivery_confirm' },
+        ]} defaults={{ idempotency_key: handoverKey, ...(firstBranch ? { branch_id: String(firstBranch.branch_id) } : {}) }} submit={translate('order_delivery', 'handover_button')} />
+    </section>;
+}
+
 /** Store team: when the items still waiting for stock are expected to go out (back-order date). */
 function SupplyDateForm({ order }: { order: Row }) {
     const translate = useT();
@@ -118,7 +140,7 @@ function PayWithoutDetails({ orderId, outstanding, payOptions }: { orderId: stri
 
 type BackOrder = { days: number; late: boolean; warn: boolean; days_left: number; deadline_days: number; stock_elsewhere: { branch: string; units: number; can_send_all: boolean }[] };
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], fullPaymentRequired=false, courierChoices=[], payOptions=null, returns=null, handledBy=[], backOrder=null, stockByBranch=[], moneyBreakdown=null }: { moneyBreakdown?: OrderMoneyBreakdownData | null; order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null; returns?: ReturnsData | null; handledBy?: string[]; backOrder?: BackOrder | null; stockByBranch?: BranchStock[] }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, paymentPrompt, backUrl, replacementSlots=[], replacementCandidates=[], fullPaymentRequired=false, courierChoices=[], payOptions=null, returns=null, handledBy=[], backOrder=null, stockByBranch=[], moneyBreakdown=null, owedItems=[] }: { moneyBreakdown?: OrderMoneyBreakdownData | null; owedItems?: OwedItem[]; order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; paymentPrompt: { ask_for_payment: boolean; waiting_for_check: boolean; waiting_amount: string }; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; fullPaymentRequired?:boolean; courierChoices?:{ key: string; label: string }[]; payOptions?:{ account_available: string; account_usable: boolean; account_block: null | 'debt' | 'off' } | null; returns?: ReturnsData | null; handledBy?: string[]; backOrder?: BackOrder | null; stockByBranch?: BranchStock[] }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -133,6 +155,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const sendableOf = (productId: number) => stockByBranch.reduce((sum, branch) => sum + Number(branch.products[String(productId)] ?? 0), 0);
     const returnedOf = returnedByLine(shipments);
     const officeCashWaiting = claims.some(claim => claim.status === 'pending' && claim.channel === 'Office');
+    // The partner collects the goods at the office: no courier, label or tracking for this order.
+    const pickup = order.delivery_method === 'office';
+    const staffOnOrder = auth.user.id !== order.user_id;
+    const canSendGoods = capabilities.includes('inventory') && (staffActions?.inventory?.edit ?? true) && staffOnOrder;
+    const canChangeDelivery = (capabilities.includes('inventory') || capabilities.includes('order_review')) && staffOnOrder
+        && ['submitted', 'held', 'approved'].includes(order.status) && shipments.length === 0;
     const [shareOpen, setShareOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const printUrl = `/orders/${order.id}/invoice/print`;
@@ -175,7 +203,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <div className="order-title"><div><h2><OrderNumber number={String(order.number)} /></h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div className="ops-row is-wrap ops-relative" data-tour="invoice-actions">
             <a className="button small dark" href={pdfUrl}>{translate('portal','download_invoice')}</a>
             <a className="button small" href={printUrl} target="_blank" rel="noopener noreferrer">{translate('portal','print_invoice')}</a>
-            {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && auth.user.id !== order.user_id && ['approved', 'partially_dispatched', 'dispatched'].includes(order.status) && <a className="button small" data-testid="shipping-label-link" href={`/orders/${order.id}/shipping-label`} target="_blank" rel="noopener noreferrer">{translate('shipping_label','print_label')}</a>}
+            {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && auth.user.id !== order.user_id && !pickup && ['approved', 'partially_dispatched', 'dispatched'].includes(order.status) && <a className="button small" data-testid="shipping-label-link" href={`/orders/${order.id}/shipping-label`} target="_blank" rel="noopener noreferrer">{translate('shipping_label','print_label')}</a>}
             <button type="button" className="button small" onClick={() => setShareOpen((v) => !v)}>{translate('portal','share_invoice')}</button>
             {shareOpen && (
                 <div className="panel odt-share-menu" data-tour="invoice-share-menu">
@@ -197,6 +225,20 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
         <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
             canManage={(capabilities.includes('inventory') || capabilities.includes('order_review')) && auth.user.id !== order.user_id} />
+        {pickup && <section className="panel" data-testid="delivery-pickup">
+            <div className="panel-heading"><h2>{translate('order_delivery', 'detail_title')}</h2><span>{translate('order_delivery', 'collect_from_office')}</span></div>
+            <p>{translate('order_delivery', ['dispatched', 'delivered', 'partly_delivered'].includes(order.status)
+                ? 'detail_office_done'
+                : ['approved', 'partially_dispatched'].includes(order.status) ? 'detail_office_ready' : 'detail_office_waiting')}</p>
+        </section>}
+        {canChangeDelivery && <section className="panel narrow-panel" data-testid="delivery-change">
+            <h2>{translate('order_delivery', 'change_title')}</h2>
+            <p className="muted">{translate('order_delivery', 'change_hint')}</p>
+            <ActionForm action={`/commands/orders/${order.id}/delivery-method`} fields={[
+                { name: 'delivery_method', label: translate('order_delivery', 'change_label'), required: true, options: (['courier', 'office'] as const).filter(method => method !== (pickup ? 'office' : 'courier')).map(method => ({ value: method, label: translate('order_delivery', `method_${method}_staff`) })) },
+                { name: 'note', label: translate('order_delivery', 'change_note'), type: 'textarea', place: 'order.courier_change' },
+            ]} defaults={{ delivery_method: pickup ? 'courier' : 'office' }} submit={translate('order_delivery', 'change_submit')} />
+        </section>}
 
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
@@ -214,7 +256,13 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ...(anyGivenBack ? [{ key: 'given_back', title: translate('orders_stock', 'kind_return'), align: 'right' as const, render: (line: Row) => number(line.returned ?? 0) }] : []),
                 ...(anyClosed ? [{ key: 'closed', title: translate('orders_stock', 'kind_cancel'), align: 'right' as const, render: (line: Row) => number(line.closed ?? 0) }] : []),
                 { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(unsentOf(line)) },
-                { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) }, { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
+                { key: 'mrp', title: translate('office_orders', 'col_mrp'), render: line => line.is_free || !Number(line.mrp) ? '—' : money(line.mrp) },
+                { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) },
+                { key: 'discount_pct', title: translate('portal', 'col_discount_pct'), align: 'right', render: line => {
+                    const percent = orderLineDiscountPercent(line);
+                    return percent === null ? '—' : `${number(percent)}%`;
+                } },
+                { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
             ]} />
             {itemsLeft && open && <p className="muted">
                 <b>{translate('portal', 'supply_eta_label')}:</b> {order.supply_eta ? date(order.supply_eta) : translate('portal', 'supply_eta_unknown')}
@@ -228,6 +276,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     {backOrder.stock_elsewhere.length > 0 && <p>{translate('orders_stock', 'back_order_stock_elsewhere', { branches: backOrder.stock_elsewhere.map(item => `${item.branch} (${number(item.units)})`).join(', ') })}</p>}
                 </>}
             </div>}
+            <OwedItemsPanel order={order} owedItems={owedItems} owner={owner} canSendGoods={canSendGoods} canRefund={staffOnOrder && capabilities.includes('finance')} unsentOf={unsentOf} />
             {itemsLeft && capabilities.includes('inventory') && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && auth.user.id !== order.user_id && <SupplyDateForm key={`${order.supply_eta ?? ''}|${order.supply_note ?? ''}`} order={order} />}
         </section>
         <div className="two-column">
@@ -307,15 +356,22 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', place: 'order.decision' },
             ]} submit={translate('portal', 'record_decision')} />
         </section>}
-        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} stockByBranch={stockByBranch} /></section>}
+        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && !pickup && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>{translate('portal', 'dispatch_available_items')}</h2>
+            <p><Link className="button dark" data-testid="choose-courier-link" href={`/orders/${order.id}/courier`}>{translate('courier', 'pick_open_link')}</Link></p><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} stockByBranch={stockByBranch} /></section>}
+        {canSendGoods && itemsLeft && ['approved', 'partially_dispatched'].includes(order.status) && !parcelOnRoad && <OfficeHandoverForm key={`${order.id}-${shipments.length}`} order={order} stockByBranch={stockByBranch} />}
         <section className="panel"><h2>{translate('portal', 'order_activity')}</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
                 const eventKey = `event_${event.action.replaceAll('.', '_')}`;
                 const courierLabel = translate('courier', eventKey);
                 const portalLabel = translate('portal', eventKey);
-                const title = courierLabel !== eventKey ? courierLabel : portalLabel !== eventKey ? portalLabel : label(event.action.replaceAll('.', ' '));
-                const detail = event.action === 'order.courier_changed'
+                const deliveryLabel = translate('order_delivery', eventKey);
+                const paymentLabel = translate('order_payment', eventKey);
+                const title = courierLabel !== eventKey ? courierLabel : portalLabel !== eventKey ? portalLabel : deliveryLabel !== eventKey ? deliveryLabel : paymentLabel !== eventKey ? paymentLabel : label(event.action.replaceAll('.', ' '));
+                const detail = event.action === 'order.delivery_changed'
+                    ? translate('order_delivery', 'changed_from_to', { from: translate('order_delivery', `method_${metadata?.from}_staff`), to: translate('order_delivery', `method_${metadata?.to}_staff`) }) + (metadata?.note ? ` · ${metadata.note}` : '')
+                    : event.action === 'order.office_handover' ? (metadata?.note ?? null)
+                    : event.action === 'order.courier_changed'
                     ? translate('courier', 'changed_from_to', { from: String(metadata?.from_label ?? ''), to: String(metadata?.to_label ?? '') }) + (metadata?.note ? ` · ${metadata.note}` : '')
                     : event.action === 'shipment.courier_status' && metadata?.to ? translate('courier', `status_${metadata.to}`)
                     : event.action === 'order.courier_auto_skipped' ? (metadata?.reason ? translate('portal', `courier_skip_reason_${metadata.reason}`) : null)

@@ -111,7 +111,7 @@ class EnforceStaffActions
             return $next($request);
         }
         $prescribing = in_array($controller, ['PrescriptionToolsController', 'PrescriptionLetterheadController', 'PrescriberPublicToolsController', 'ClinicRecordsController'], true)
-            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
+            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense', 'voidDispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
             return $next($request);
@@ -220,14 +220,14 @@ class EnforceStaffActions
             },
             'FinanceOperationsController' => match ($method) {
                 'prepare' => [['payroll'], 'create'],
-                'payrollReview', 'payrollPay', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
+                'payrollReview', 'payrollPay', 'payrollVoid', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
                 'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
             },
             'IdentityReviewController' => [['finance'], 'edit'],
             'FundSpendingController' => match ($method) {
-                'review' => [['finance'], 'approve'],
+                'review', 'reverse' => [['finance'], 'approve'],
                 'storeHead', 'updateHead', 'saveBudget' => [['finance'], 'edit'],
                 default => [['finance'], 'create'],
             },
@@ -238,7 +238,9 @@ class EnforceStaffActions
             'CommissionController' => [['finance'], $method === 'updatePolicy' ? 'edit' : 'approve'],
             'FinancialPreviewController' => [['finance'], 'view'],
             'CommissionPageController' => [['finance'], $method === 'split' ? 'view' : 'create'],
-            'WithdrawalController' => [['finance'], $method === 'limits' ? 'edit' : 'approve'],
+            'WithdrawalController' => [['finance'], in_array($method, ['limits', 'methods', 'week'], true) ? 'edit' : 'approve'],
+            // A new bank file is a finance download, as on the accounting page; "the bank did not send it" is a payout decision.
+            'PayoutBatchController' => [['finance'], $method === 'notSent' ? 'approve' : 'create'],
             'InventoryController' => [['inventory'], 'create'],
             'StockLotController' => [['inventory'], $method === 'requestTransfer' ? 'create' : 'edit'],
             'OrderController' => match ($method) {
@@ -270,8 +272,11 @@ class EnforceStaffActions
                 'confirm' => [['finance'], 'approve'],
                 default => null,
             },
-            // Courier parcels: change courier, try a refused booking again, mark picked up.
-            'CourierShipmentController' => [['inventory', 'order_review'], 'edit'],
+            // Courier parcels: change courier, try a refused booking again, mark picked up. Courier or office
+            // pickup changes like the courier; handing goods over at the office is a dispatch.
+            'CourierShipmentController' => $method === 'officeHandover' ? [['inventory'], 'edit'] : [['inventory', 'order_review'], 'edit'],
+            // Owed goods: the dispatch desk records and sends them; a refund instead is a finance approval.
+            'OwedItemsController' => $method === 'cancel' ? [['finance'], 'approve'] : [['inventory'], 'edit'],
             'TrainingController', 'PartnerEventController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
@@ -310,7 +315,11 @@ class EnforceStaffActions
             // Payroll-only MD and Chairman are owners but must not rewrite SMS or email, including password texts (D11).
             'MessageTemplateController' => [['content'], 'edit'],
             'PartnerFileController' => [['accounts'], 'edit'],
-            'AccountingController' => [['finance'], $method === 'saveApprovalLimit' ? 'edit' : 'create'],
+            'AccountingController' => [['finance'], match ($method) {
+                'saveApprovalLimit' => 'edit',
+                'reviewRemittance' => 'approve',
+                default => 'create',
+            }],
             'PurchasingController' => [['inventory'], in_array($method, ['updateSupplier', 'archiveSupplier', 'restoreSupplier', 'sendOrder', 'cancelOrder'], true) ? 'edit' : 'create'],
             'StockCountController' => [['inventory'], match ($method) {
                 'approve', 'reject' => 'approve',

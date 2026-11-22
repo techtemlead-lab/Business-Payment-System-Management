@@ -5,6 +5,7 @@ import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
 import { AutoSelect } from '../../SearchSelect';
+import FilterPicker from '../../FilterChips';
 
 export type StaffFieldOption = { value: string; label: string; channel?: string };
 export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string; place?: ReasonPlace };
@@ -103,10 +104,7 @@ export function SectionTableSearch({ table }: { table: StaffSectionTable }) {
                 </div>
             )}
             {statuses.length > 0 && (
-                <select className="order-status-select" aria-label={translate('office_staff', 'col_status')} value={filter?.status ?? ''} onChange={(event) => apply({ status: event.target.value })}>
-                    <option value="">{translate('office_staff', 'col_status')}</option>
-                    {statuses.map((status) => <option key={status} value={status}>{label(status, translate)}</option>)}
-                </select>
+                <FilterPicker maxChips={Infinity} label={translate('office_staff', 'col_status')} value={filter?.status ?? ''} onChange={(value) => apply({ status: value })} options={statuses.map((status) => ({ value: status, label: label(status, translate) }))} />
             )}
             {Boolean(filter?.q || filter?.status) && (
                 <div className="order-filter-actions">

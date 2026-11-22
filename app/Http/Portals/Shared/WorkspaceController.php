@@ -29,6 +29,7 @@ use App\Domain\Orders\OrderPaymentPrompt;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderReturns;
 use App\Domain\Orders\OrderWatchers;
+use App\Domain\Orders\OwedItems;
 use App\Domain\Orders\ShipmentTracking;
 use App\Domain\Orders\UplineReplacementOptions;
 use App\Domain\Pricing\ProductPricing;
@@ -402,6 +403,7 @@ class WorkspaceController extends Controller
             'handledBy' => app(OrderWatchers::class)->seen($order, $u),
             'backOrder' => app(BackOrders::class)->forOrder($order, $u),
             'stockByBranch' => $u->staff() ? app(BackOrders::class)->stockByBranch($order) : [],
+            'owedItems' => app(OwedItems::class)->open((int) $order->user_id, 20),
             'moneyBreakdown' => app(OrderMoneyReport::class)->breakdown($order, $u, TreasuryAccess::showsOwnerFunds($u, (string) PortalHost::current($r))),
             'outstanding' => $order->outstanding(),
             'paymentPrompt' => app(OrderPaymentPrompt::class)->for($order, $claims),

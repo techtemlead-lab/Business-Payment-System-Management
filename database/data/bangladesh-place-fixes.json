@@ -1,0 +1,314 @@
+{
+ "description": "Corrections to the default place list found on 2026-11-21 (see PlaceDataFixes). The main list already has them applied; this file tells the loader what to do to a database built from the older list: move unions by code under the right upazila, switch off the duplicate copies and the old plain Natai (never one that is referenced), clear base places of metropolitan areas. Sources: Banglapedia and Wikipedia (no BBS/LGD page covers the newest upazilas).",
+ "accessed": "2026-11-21",
+ "moves": [
+  {
+   "code": "102042",
+   "name": "Eidgaon",
+   "from_parent_code": "1205",
+   "to_parent_code": "1206",
+   "source_url": "https://en.wikipedia.org/wiki/Eidgaon_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists these five unions for Eidgaon Upazila (the northern five unions of Cox's Bazar Sadar, upazila since 26 July 2021); the same names sit under Coxsbazar Sadar in our list. No BBS/LGD page could be read."
+  },
+  {
+   "code": "102043",
+   "name": "Islamabad",
+   "from_parent_code": "1205",
+   "to_parent_code": "1206",
+   "source_url": "https://en.wikipedia.org/wiki/Eidgaon_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists these five unions for Eidgaon Upazila (the northern five unions of Cox's Bazar Sadar, upazila since 26 July 2021); the same names sit under Coxsbazar Sadar in our list. No BBS/LGD page could be read."
+  },
+  {
+   "code": "102044",
+   "name": "Islampur",
+   "from_parent_code": "1205",
+   "to_parent_code": "1206",
+   "source_url": "https://en.wikipedia.org/wiki/Eidgaon_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists these five unions for Eidgaon Upazila (the northern five unions of Cox's Bazar Sadar, upazila since 26 July 2021); the same names sit under Coxsbazar Sadar in our list. No BBS/LGD page could be read."
+  },
+  {
+   "code": "102045",
+   "name": "Jalalabad",
+   "from_parent_code": "1205",
+   "to_parent_code": "1206",
+   "source_url": "https://en.wikipedia.org/wiki/Eidgaon_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists these five unions for Eidgaon Upazila (the northern five unions of Cox's Bazar Sadar, upazila since 26 July 2021); the same names sit under Coxsbazar Sadar in our list. No BBS/LGD page could be read."
+  },
+  {
+   "code": "102049",
+   "name": "Pokkhali",
+   "from_parent_code": "1205",
+   "to_parent_code": "1206",
+   "source_url": "https://en.wikipedia.org/wiki/Eidgaon_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists these five unions for Eidgaon Upazila (the northern five unions of Cox's Bazar Sadar, upazila since 26 July 2021); the same names sit under Coxsbazar Sadar in our list. No BBS/LGD page could be read."
+  },
+  {
+   "code": "102157",
+   "name": "Guimara",
+   "from_parent_code": "1224",
+   "to_parent_code": "1220",
+   "source_url": "https://en.wikipedia.org/wiki/Guimara_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists Guimara, Hafchhari and Sindukchhari for Guimara Upazila (upazila since 30 Nov 2020). Guimara sits under Matiranga and Hafchari under Ramgarh in our list. Matiranga no longer lists Guimara (Wikipedia); citypopulation.de names Matiranga as a parent of Guimara Upazila. Matiranga no longer lists Guimara (Wikipedia); citypopulation.de names Matiranga as a parent of Guimara Upazila."
+  },
+  {
+   "code": "102170",
+   "name": "Hafchari",
+   "from_parent_code": "1227",
+   "to_parent_code": "1220",
+   "source_url": "https://en.banglapedia.org/index.php/Ramgarh_Upazila",
+   "confidence": "high",
+   "note": "Hafchhari was a union of Ramgarh (Banglapedia, old Ramgarh Upazila: Pathachhara, Ramgarh, Hapchhari) and is listed for Guimara Upazila by English and Bangla Wikipedia; citypopulation.de (BBS 2022) lists Guimara with parents Matiranga, Ramgarh and Mahalchhari. Ramgarh no longer lists it."
+  },
+  {
+   "code": "104025",
+   "name": "Bongshikunda North",
+   "from_parent_code": "1439",
+   "to_parent_code": "1443",
+   "source_url": "https://en.wikipedia.org/wiki/Madhyanagar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists Banshikunda Uttar/Dakkhin, Chamradani and Madhyanagar for Madhyanagar Upazila (upazila since 28 July 2021); the same unions sit under Dharmapasha in our list."
+  },
+  {
+   "code": "104026",
+   "name": "Bongshikunda South",
+   "from_parent_code": "1439",
+   "to_parent_code": "1443",
+   "source_url": "https://en.wikipedia.org/wiki/Madhyanagar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists Banshikunda Uttar/Dakkhin, Chamradani and Madhyanagar for Madhyanagar Upazila (upazila since 28 July 2021); the same unions sit under Dharmapasha in our list."
+  },
+  {
+   "code": "104027",
+   "name": "Chamordani",
+   "from_parent_code": "1439",
+   "to_parent_code": "1443",
+   "source_url": "https://en.wikipedia.org/wiki/Madhyanagar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists Banshikunda Uttar/Dakkhin, Chamradani and Madhyanagar for Madhyanagar Upazila (upazila since 28 July 2021); the same unions sit under Dharmapasha in our list."
+  },
+  {
+   "code": "104030",
+   "name": "Madhyanagar",
+   "from_parent_code": "1439",
+   "to_parent_code": "1443",
+   "source_url": "https://en.wikipedia.org/wiki/Madhyanagar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia lists Banshikunda Uttar/Dakkhin, Chamradani and Madhyanagar for Madhyanagar Upazila (upazila since 28 July 2021); the same unions sit under Dharmapasha in our list."
+  },
+  {
+   "code": "100362",
+   "name": "Baligram",
+   "from_parent_code": "1039",
+   "to_parent_code": "1038",
+   "source_url": "https://en.wikipedia.org/wiki/Dasar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia: Dasar thana was formed with five unions of Kalkini (Gopalpur, Kazibakai, Baligram, Dasar, Nabagram), upazila since 26 July 2021. Our list has them under Kalkini (Dashar = Dasar)."
+  },
+  {
+   "code": "100365",
+   "name": "Dashar",
+   "from_parent_code": "1039",
+   "to_parent_code": "1038",
+   "source_url": "https://en.wikipedia.org/wiki/Dasar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia: Dasar thana was formed with five unions of Kalkini (Gopalpur, Kazibakai, Baligram, Dasar, Nabagram), upazila since 26 July 2021. Our list has them under Kalkini (Dashar = Dasar)."
+  },
+  {
+   "code": "100367",
+   "name": "Gopalpur",
+   "from_parent_code": "1039",
+   "to_parent_code": "1038",
+   "source_url": "https://en.wikipedia.org/wiki/Dasar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia: Dasar thana was formed with five unions of Kalkini (Gopalpur, Kazibakai, Baligram, Dasar, Nabagram), upazila since 26 July 2021. Our list has them under Kalkini (Dashar = Dasar)."
+  },
+  {
+   "code": "100368",
+   "name": "Kazibakai",
+   "from_parent_code": "1039",
+   "to_parent_code": "1038",
+   "source_url": "https://en.wikipedia.org/wiki/Dasar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia: Dasar thana was formed with five unions of Kalkini (Gopalpur, Kazibakai, Baligram, Dasar, Nabagram), upazila since 26 July 2021. Our list has them under Kalkini (Dashar = Dasar)."
+  },
+  {
+   "code": "100371",
+   "name": "Nabogram",
+   "from_parent_code": "1039",
+   "to_parent_code": "1038",
+   "source_url": "https://en.wikipedia.org/wiki/Dasar_Upazila",
+   "confidence": "medium",
+   "note": "Wikipedia: Dasar thana was formed with five unions of Kalkini (Gopalpur, Kazibakai, Baligram, Dasar, Nabagram), upazila since 26 July 2021. Our list has them under Kalkini (Dashar = Dasar)."
+  }
+ ],
+ "duplicates": [
+  {
+   "code": "101745",
+   "name": "Bara Uthan",
+   "parent_code": "1181",
+   "keep_code": "101714",
+   "source_url": "https://en.wikipedia.org/wiki/Karnaphuli_Upazila",
+   "confidence": "medium",
+   "note": "Karnaphuli became an upazila (490th) in 2016 and Wikipedia lists exactly these five unions for it; the copies under Patiya are the old listing. Patiya keeps its other 17 unions."
+  },
+  {
+   "code": "101749",
+   "name": "Char Lakshya",
+   "parent_code": "1181",
+   "keep_code": "101715",
+   "source_url": "https://en.wikipedia.org/wiki/Karnaphuli_Upazila",
+   "confidence": "medium",
+   "note": "Karnaphuli became an upazila (490th) in 2016 and Wikipedia lists exactly these five unions for it; the copies under Patiya are the old listing. Patiya keeps its other 17 unions."
+  },
+  {
+   "code": "101750",
+   "name": "Char Patharghata",
+   "parent_code": "1181",
+   "keep_code": "101716",
+   "source_url": "https://en.wikipedia.org/wiki/Karnaphuli_Upazila",
+   "confidence": "medium",
+   "note": "Karnaphuli became an upazila (490th) in 2016 and Wikipedia lists exactly these five unions for it; the copies under Patiya are the old listing. Patiya keeps its other 17 unions."
+  },
+  {
+   "code": "101757",
+   "name": "Juldha",
+   "parent_code": "1181",
+   "keep_code": "101717",
+   "source_url": "https://en.wikipedia.org/wiki/Karnaphuli_Upazila",
+   "confidence": "medium",
+   "note": "Karnaphuli became an upazila (490th) in 2016 and Wikipedia lists exactly these five unions for it; the copies under Patiya are the old listing. Patiya keeps its other 17 unions."
+  },
+  {
+   "code": "101764",
+   "name": "Sikalbaha",
+   "parent_code": "1181",
+   "keep_code": "101718",
+   "source_url": "https://en.wikipedia.org/wiki/Karnaphuli_Upazila",
+   "confidence": "medium",
+   "note": "Karnaphuli became an upazila (490th) in 2016 and Wikipedia lists exactly these five unions for it; the copies under Patiya are the old listing. Patiya keeps its other 17 unions."
+  },
+  {
+   "code": "102002",
+   "name": "Bagmara (North)",
+   "parent_code": "1202",
+   "keep_code": "101941",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102003",
+   "name": "Bagmara (South)",
+   "parent_code": "1202",
+   "keep_code": "101942",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102005",
+   "name": "Belgor (North)",
+   "parent_code": "1202",
+   "keep_code": "101943",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102006",
+   "name": "Belgor (South)",
+   "parent_code": "1202",
+   "keep_code": "101944",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102007",
+   "name": "Bhuloin (North)",
+   "parent_code": "1202",
+   "keep_code": "101945",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102008",
+   "name": "Bhuloin (South)",
+   "parent_code": "1202",
+   "keep_code": "101946",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102014",
+   "name": "Perul (North)",
+   "parent_code": "1202",
+   "keep_code": "101947",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  },
+  {
+   "code": "102015",
+   "name": "Perul (South)",
+   "parent_code": "1202",
+   "keep_code": "101948",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai upazila (9 Jan 2017) was formed from eight unions of Cumilla Sadar South; the copies under Sadarsouth are the old listing. Sadarsouth keeps Baropara, Bijoypur, Chuwara, Goliara, Jorkanoneast, Jorkanonwest."
+  }
+ ],
+ "additions": [
+  {
+   "code": "104541",
+   "level": "union",
+   "name": "Sindukchhari",
+   "parent_code": "1220",
+   "sort_order": 4,
+   "bn_name": "সিন্দুকছড়ি",
+   "kind": "union",
+   "source_url": "https://en.banglapedia.org/index.php/Mahalchhari_Upazila",
+   "confidence": "high",
+   "note": "Sindukchhari was a union of Mahalchhari (Banglapedia, old Mahalchhari Upazila lists it; the current Mahalchhari list does not) and is listed for Guimara Upazila by English and Bangla Wikipedia; BBS 2022 population 8,985 (citypopulation.de). Code = next free union number of the numbering rule (never renumbered), not a BBS geocode."
+  },
+  {
+   "code": "104542",
+   "level": "union",
+   "name": "Bakai Uttar",
+   "parent_code": "1197",
+   "sort_order": 9,
+   "bn_name": "বাকই উত্তর",
+   "kind": "union",
+   "source_url": "https://en.wikipedia.org/wiki/Lalmai_Upazila",
+   "confidence": "medium",
+   "note": "Lalmai Upazila (9 Jan 2017) has nine unions, the ninth Bakai North, taken from Laksam (English and Bangla Wikipedia; BBS 2022 population 21,127 at citypopulation.de). Laksam keeps its union Bakoi (101935); a news item says about 20 villages of Bakai North still depend on Laksam. No source says Bakoi is the same union, so Bakoi is not moved. Code = next free union number of the numbering rule."
+  }
+ ],
+ "needs_owner": [
+  {
+   "place": "Bakoi (101935, Laksam)",
+   "detail": "Possibly the parent of Lalmai's Bakai Uttar (about 20 villages moved); not verified, left under Laksam."
+  }
+ ],
+ "legacy_unions": [
+  {
+   "name": "Natai",
+   "parent_code": "1159",
+   "replaced_by": [
+    "MNHC101489 Natai (Dakshin)",
+    "MNHC101490 Natai (Uttar)"
+   ],
+   "source_url": "https://en.banglapedia.org/index.php/Brahmanbaria_Sadar_Upazila",
+   "confidence": "high",
+   "note": "Banglapedia, English and Bangla Wikipedia and BBS (citypopulation.de) all list two unions, Natai Dakshin and Natai Uttar, and no single Natai. A plain Natai row without a code is switched off when nothing refers to it; if something does, it stays on and the dry run names the exact ids."
+  }
+ ]
+}

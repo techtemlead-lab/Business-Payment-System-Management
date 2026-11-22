@@ -7,6 +7,7 @@ import OfficePage from './office/OfficePage';
 import Figures from './office/Figures';
 import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
+import FilterPicker from './FilterChips';
 import { businessMonth, localizeDigits } from '../business-date';
 
 /** One place on the board. Amount is null when the owner hides the taka figures. */
@@ -117,12 +118,13 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
     );
     const topTenTotal = entries.reduce((sum, entry) => sum + Math.round(Number(entry.amount ?? 0) * 100), 0) / 100;
     const divisionPicker = (
-        <select aria-label={translate('portal', 'top_sellers_division_pick')} value={chosenDivision} onChange={(event) => visit({ division: event.target.value })}>
-            <option value="">{translate('portal', 'top_sellers_division_none')}</option>
-            {(board.divisions ?? []).map((division) => (
-                <option key={division.id} value={String(division.id)}>{division.name}</option>
-            ))}
-        </select>
+        <FilterPicker
+            label={translate('portal', 'top_sellers_division_pick')}
+            allLabel={translate('portal', 'top_sellers_division_none')}
+            value={chosenDivision}
+            onChange={(value) => visit({ division: value })}
+            options={(board.divisions ?? []).map((division) => ({ value: String(division.id), label: division.name }))}
+        />
     );
 
     return (
@@ -144,7 +146,7 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
                         </div>
                     )}
                     <div className="mt-toolbar">
-                        <ReportFilterSheet><label>{translate('portal', 'top_sellers_division_pick')}{divisionPicker}</label>{datePickers}</ReportFilterSheet>
+                        <ReportFilterSheet><div className="mt-sheet-field">{divisionPicker}</div>{datePickers}</ReportFilterSheet>
                         <div className="mt-views" role="group" aria-label={translate('portal', 'top_sellers_pick_month')}>
                             {board.months.map((month, index) => (
                                 <button key={month} type="button" className="mt-view" aria-pressed={!period && month === board.month} onClick={() => visit({ month })}>

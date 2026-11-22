@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The prizes a partner has already earned but that are not in the wallet yet: the one-time rank prize (MO, AM, SM, ME)
+ * The prizes a partner has already earned but that are not in the wallet yet: the one-time rank prize (MO, AM, SM, ED)
  * of a rank the partner holds, and a bike or car prize whose sales target is met. They are shown as waiting with a
  * plain reason, never as received. It only reads rows that already exist and writes nothing: amounts, rules and the
  * moment of posting stay exactly as the engine has them.
@@ -24,6 +24,9 @@ use Illuminate\Support\Facades\DB;
  */
 final class PartnerRewardsWaiting
 {
+    /** @var array<int, string|null>|null the partner's dealer kind when the caller already knows it */
+    private ?array $kinds = null;
+
     public function __construct(private CommissionQualification $qualification, private CommissionPolicy $policies, private ReserveService $reserves) {}
 
     /**
@@ -43,10 +46,10 @@ final class PartnerRewardsWaiting
         $rulesOf = function () use (&$rules, $context): array {
             return $rules ??= $context['rules'] ?? $this->policies->snapshot(false)['rules'];
         };
+        // The dashboard passes the dealer's kind it already read, so the royalty check reads no seats again.
+        $this->kinds = $context['kinds'] ?? null;
         $milestones = $context['milestones'] ?? RewardMilestoneProgress::query()->where('user_id', $partner->id)->whereIn('milestone_type', ['bike', 'car'])->get()->keyBy('milestone_type');
-        if ($partner->role === 'sub_dealer') {
-            return [...$this->vehiclePrizes($partner, $milestones, $rulesOf), ...$this->tourFund($partner)];
-        }
+        // A sub-dealer may hold a rank too (owner's rule of 2026-11-21); one who holds none reads no rank lines.
         $rank = array_key_exists('rank', $context) ? $context['rank'] : DealerRank::query()->where('user_id', $partner->id)->first();
         $holdsRank = $rank !== null && in_array($rank->current_rank, CommissionSettlement::LeadershipRanks, true);
 
@@ -54,6 +57,7 @@ final class PartnerRewardsWaiting
             ...($holdsRank ? $this->rankPrizes($partner, $rank, $rulesOf) : []),
             ...$this->vehiclePrizes($partner, $milestones, $rulesOf),
             ...($holdsRank ? $this->royaltyNote($partner, $rulesOf) : []),
+            ...($partner->role === 'sub_dealer' ? $this->tourFund($partner) : []),
         ];
     }
 
@@ -66,7 +70,7 @@ final class PartnerRewardsWaiting
      */
     private function royaltyNote(User $partner, Closure $rules): array
     {
-        $paidAs = (string) ($this->qualification->paidAs((int) $partner->id, null, $rules())['paid_as_rank'] ?? 'dealer');
+        $paidAs = (string) ($this->qualification->paidAs((int) $partner->id, null, $rules(), $this->kinds)['paid_as_rank'] ?? 'dealer');
         if (! in_array($paidAs, CommissionSettlement::LeadershipRanks, true)) {
             return [];
         }
@@ -107,7 +111,7 @@ final class PartnerRewardsWaiting
         $reached = collect($rank->qualification_history ?? [])->pluck('rank')->push($rank->current_rank)
             ->filter(fn ($code): bool => is_string($code) && CommissionSettlement::rankAtLeast((string) $rank->current_rank, $code))
             ->unique();
-        $kept = ($this->qualification->paidAs((int) $partner->id, null, $rules)['paid_as_rank'] ?? 'dealer') === $rank->current_rank;
+        $kept = ($this->qualification->paidAs((int) $partner->id, null, $rules, $this->kinds)['paid_as_rank'] ?? 'dealer') === $rank->current_rank;
         $lines = [];
         foreach (CommissionSettlement::LeadershipRanks as $code) {
             if (! $reached->contains($code) || in_array($code, $paid, true)) {

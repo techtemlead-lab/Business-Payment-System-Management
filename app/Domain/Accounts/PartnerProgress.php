@@ -5,6 +5,9 @@ namespace App\Domain\Accounts;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\DealerKinds;
+use App\Domain\Commissions\MonthlyTargets;
+use App\Domain\Finance\Percentage;
 use App\Domain\Finance\ReserveService;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
@@ -26,6 +29,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class PartnerProgress
 {
+    /**
+     * The sub-dealer tour fund is hidden from the progress pop-up and the home targets card until the company decides to show it.
+     * Set this to true to bring it back; the money and the data are untouched either way.
+     */
+    public const ShowTourFund = false;
+
     public function __construct(
         private CommissionQualification $qualification,
         private CommissionPolicy $policy,
@@ -66,11 +75,13 @@ final class PartnerProgress
                 $showSubDealerFunds => $this->subDealerSalary($user, $rules, $month, $monthlyVolume),
                 default => null,
             },
-            'rank' => $isDealer && DashboardManagement::partnerFeatureEnabled($user, 'ranks')
+            // Sub-dealers hold ranks too under the owner's rule of 2026-11-21.
+            'rank' => ($isDealer || MonthlyTargets::subDealersEarnRanks($rules)) && DashboardManagement::partnerFeatureEnabled($user, 'ranks')
                 ? $this->dealerRank($user, $rules, $month)
                 : null,
             'rewards' => DashboardManagement::partnerFeatureEnabled($user, 'rewards') ? $this->rewards($user, $rules) : [],
-            'tour' => $showSubDealerFunds ? $this->tour($user, $rules, $month) : null,
+            // @phpstan-ignore booleanAnd.leftAlwaysFalse (a code switch, off until the company shows the tour fund again)
+            'tour' => self::ShowTourFund && $showSubDealerFunds ? $this->tour($user, $rules, $month) : null,
         ];
     }
 
@@ -84,7 +95,9 @@ final class PartnerProgress
     private function dealerSalary(User $user, array $rules, string $month, int $monthlyVolume): array
     {
         $isOn = CommissionPolicy::rate($rules, 'dealer_monthly_salary')->basisPoints > 0;
-        $target = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
+        $kind = app(DealerKinds::class)->of((int) $user->id);
+        $target = MonthlyTargets::dealerTarget($rules, $kind);
         $isWaived = PartnerBenefitControls::waivesSalaryVolume($user);
         $isMet = $isWaived || $monthlyVolume >= $target;
         $estimate = null;
@@ -92,10 +105,15 @@ final class PartnerProgress
             $plan = $this->settlement->salaryPlan($month);
             $mine = collect($plan['dealers'])->firstWhere('user_id', (int) $user->id);
             // The dealer's division row is found by its place code id, never by its name.
-            $division = $mine !== null && $mine['division_id'] !== null
-                ? collect($plan['divisions'])->firstWhere('division_id', $mine['division_id'])
-                : null;
+            $division = match (true) {
+                $mine === null => null,
+                // One salary fund for all of Bangladesh (owner's rule of 2026-11-21).
+                $mine['nationwide'] => collect($plan['divisions'])->firstWhere('nationwide', true),
+                $mine['division_id'] !== null => collect($plan['divisions'])->firstWhere('division_id', $mine['division_id']),
+                default => null,
+            };
             $estimate = [
+                'nationwide' => (bool) ($mine['nationwide'] ?? false),
                 'share' => $mine['share'] ?? '0.00',
                 'division' => $mine['division'] ?? null,
                 'division_pool' => $division['pool'] ?? '0.00',
@@ -112,14 +130,17 @@ final class PartnerProgress
                 default => 'not_met',
             },
             'rate' => (string) $rules['dealer_monthly_salary']['percentage'],
+            'dealer_kind' => $kind,
+            'nationwide' => MonthlyTargets::usesMonthlyTargets($rules),
             ...$this->moneyBar($monthlyVolume, $target),
             'estimate' => $estimate,
         ];
     }
 
     /**
-     * Sub-dealer salary: a flat share of every paid and delivered purchase, with no minimum,
-     * paid when the month is closed. The amount is the month's pending salary already set aside.
+     * Sub-dealer salary. Under the owner's rule of 2026-11-21 it is a step of his own month's purchase (1%, 2% or 3%
+     * from ৳10,000, ৳20,000 and ৳40,000): the bar runs toward the next step, and "earned" is what the month close would
+     * pay from the salary set aside so far. Older rules paid a flat share with no minimum.
      *
      * @param  array<string, array<string, mixed>>  $rules
      * @return array<string, mixed>
@@ -127,6 +148,22 @@ final class PartnerProgress
     private function subDealerSalary(User $user, array $rules, string $month, int $monthlyVolume): array
     {
         $earned = $this->subDealerSalarySetAside((int) $user->id, $month);
+        $tiers = MonthlyTargets::salaryTiers($rules);
+        if ($tiers !== []) {
+            $tierBasisPoints = (int) MonthlyTargets::salaryBasisPoints($rules, $monthlyVolume);
+            $next = collect($tiers)->first(fn (array $tier): bool => $tier['volume'] > $monthlyVolume);
+
+            return [
+                'kind' => 'sub_dealer_tiers',
+                'status' => CommissionPolicy::rate($rules, 'sub_dealer_salary')->basisPoints > 0 ? 'earning' : 'off',
+                'rate' => (string) $rules['sub_dealer_salary']['percentage'],
+                'tiers' => array_map(fn (array $tier): array => ['volume' => Money::decimal($tier['volume']), 'pct' => Percentage::fromBasisPoints($tier['basis_points'])->decimal()], $tiers),
+                'tier_pct' => Percentage::fromBasisPoints($tierBasisPoints)->decimal(),
+                'next_pct' => $next !== null ? Percentage::fromBasisPoints($next['basis_points'])->decimal() : null,
+                ...$this->moneyBar($monthlyVolume, $next['volume'] ?? $tiers[count($tiers) - 1]['volume']),
+                'earned' => Money::decimal(MonthlyTargets::tierShare($earned, $tierBasisPoints, Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints)),
+            ];
+        }
 
         return [
             'kind' => 'sub_dealer_flat',

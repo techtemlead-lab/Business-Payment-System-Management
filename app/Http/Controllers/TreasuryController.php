@@ -10,6 +10,7 @@ use App\Domain\Finance\EventLog;
 use App\Domain\Finance\FundSpendPartners;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\PartnerMoneyList;
+use App\Domain\Finance\PrizeAdvances;
 use App\Domain\Finance\ProfitAndLoss;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\RewardLeaderList;
@@ -45,7 +46,7 @@ class TreasuryController extends Controller
         return Inertia::render('TreasuryFunds', [...$this->shared($request), 'cards' => $funds->cards($this->showsOwnerFunds($request)), 'partner_totals' => $funds->partnerTotals(), 'waiting_for_delivery' => OrderMoneyReport::receivedWaitingForDelivery()]);
     }
 
-    public function fund(Request $request, string $fund, TreasuryFunds $funds, RewardLeaderList $leaders): Response
+    public function fund(Request $request, string $fund, TreasuryFunds $funds, RewardLeaderList $leaders, PrizeAdvances $advances): Response
     {
         abort_unless(TreasuryAccess::mayOpenFunds($request->user()), 403);
         $card = $funds->card($fund, $this->showsOwnerFunds($request));
@@ -63,11 +64,41 @@ class TreasuryController extends Controller
                 default => $leaders->table($request, $view, $leaderFigures['targets'][$view]),
             },
             'leaders' => $leaderFigures,
+            // Bike and car prizes paid in advance and not settled yet: owners and finance only (PrizeAdvances).
+            'advances' => in_array($fund, ['bike', 'car', 'car_bike'], true) && PrizeAdvances::canView($request->user()) ? [
+                'open' => $advances->open($fund === 'car_bike' ? null : [$fund]),
+                'can_give' => PrizeAdvances::canGive($request->user()),
+            ] : null,
             'spend' => $card['spendable'] ? [
                 'heads' => DB::table('fund_expense_heads')->where('is_active', true)->orderBy('name_en')->get(['id', 'name_en', 'name_bn', 'for_tours']),
                 'methods' => PayoutReceipts::Methods,
                 'available' => $funds->spendable($fund),
             ] : null,
+        ]);
+    }
+
+    /**
+     * Bike and car prizes paid in advance: the open ones with their age, the give form for the Super Admin (a partner can
+     * be chosen ahead through ?partner=), and the last ones settled, recovered or written off.
+     */
+    public function prizeAdvances(Request $request, PrizeAdvances $advances): Response
+    {
+        $viewer = $request->user();
+        abort_unless(PrizeAdvances::canView($viewer), 403);
+        $partnerId = filter_var($request->query('partner'), FILTER_VALIDATE_INT);
+        $partner = $partnerId === false ? null : User::query()->whereKey($partnerId)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->first(['id', 'name', 'dealer_code', 'role']);
+        $kind = $request->query('kind');
+
+        return Inertia::render('TreasuryPrizeAdvances', [
+            ...$this->shared($request),
+            'open' => $advances->open(),
+            'finished' => $advances->finished(),
+            'can_give' => PrizeAdvances::canGive($viewer),
+            'funds' => $advances->fundFigures(),
+            'preset' => [
+                'partner' => $partner === null ? null : ['id' => $partner->id, 'name' => $partner->name, 'code' => $partner->dealer_code, 'role' => $partner->role],
+                'kind' => is_string($kind) && in_array($kind, ['bike', 'car'], true) ? $kind : 'bike',
+            ],
         ]);
     }
 

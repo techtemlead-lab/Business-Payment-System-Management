@@ -65,6 +65,10 @@ return [
     // app:backup-prune deletes local backups older than this, but always keeps the newest few.
     'backup_retention_days' => (int) env('MADINA_BACKUP_RETENTION_DAYS', 14),
     'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
+    // Withheld tax or salary deductions owed longer than this show on Money tasks and the office home.
+    'payable_stale_days' => (int) env('MADINA_PAYABLE_STALE_DAYS', 45),
+    // A fund spend still waiting for its checker after this many days shows on Money tasks and the office home.
+    'fund_spend_stale_days' => (int) env('MADINA_FUND_SPEND_STALE_DAYS', 7),
     // Run app:backup-restore-drill on the 2nd of every month at 05:00 Dhaka (needs CREATEDB for the app's DB user).
     'restore_drill_monthly' => (bool) env('MADINA_RESTORE_DRILL_MONTHLY', false),
     // Where serious problems are sent (OP-02). Off until a Telegram bot + chat or an email address is set.
@@ -123,12 +127,21 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+    // Owner, 2026-11-21: withdrawals are paid as cash at the office for now. These are only the starting values;
+    // the owner switches each method on or off in Finance settings (WithdrawalMethods).
+    'withdrawal_methods_default' => array_values(array_filter(array_map('trim', explode(',', (string) env('MADINA_WITHDRAWAL_METHODS', 'Office'))))),
+    // Owner, 2026-11-21: withdrawals are asked for on Wednesday and paid on Thursday. Starting value only;
+    // the owner changes the days or switches the rule off in Finance settings (WithdrawalWeek).
+    'withdrawal_weekly_window' => (bool) env('MADINA_WITHDRAWAL_WEEKLY_WINDOW', true),
 
     // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.
     'agreement_required_default' => (bool) env('MADINA_AGREEMENT_REQUIRED_DEFAULT', true),
     // Owner decision: nobody orders without paying the whole order first. This is only the starting
     // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
     'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),
+    // "Wallet + another method": days the rest may stay unpaid (other payment turned down or never sent)
+    // before the order is cancelled by itself and the wallet part goes back (madina:release-unpaid-wallet-orders).
+    'wallet_part_unpaid_days' => (int) env('MADINA_WALLET_PART_UNPAID_DAYS', 3),
     // Printable order invoice letterhead (matches partner invoice template layout).
     'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', ''),
     'invoice_marketed_by' => env('MADINA_INVOICE_MARKETED_BY', ''),

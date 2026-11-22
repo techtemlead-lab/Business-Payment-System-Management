@@ -6,6 +6,7 @@ use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\FundBudgets;
 use App\Domain\Finance\FundSpending;
 use App\Domain\Finance\FundSpendPartners;
+use App\Domain\Finance\FundSpendReversals;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
 use App\Support\ReasonFields;
@@ -83,8 +84,8 @@ class FundSpendingController extends Controller
     public function review(Request $request, int $id, FundSpending $spending): RedirectResponse|JsonResponse
     {
         $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => ReasonFields::rule('money.fund_spend_review', 1000, 5),
-            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120']);
-        $spending->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null), $request->file('receipt'));
+            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120', 'not_paid' => 'sometimes|boolean']);
+        $spending->review($request->user(), $id, $data['decision'], ReasonFields::text($data['reason'] ?? null), $request->file('receipt'), (bool) ($data['not_paid'] ?? false));
 
         return $this->done($request, [], __($data['decision'] === 'approved' ? 'funds.flash_spend_approved' : 'funds.flash_spend_rejected'), $data['decision'] === 'approved' ? $this->budgets->warningFor($id) : null);
     }
@@ -109,6 +110,15 @@ class FundSpendingController extends Controller
         $spending->cancel($request->user(), $id, ReasonFields::text($data['reason'] ?? null));
 
         return $this->done($request, [], __('self_approval.flash_spend_cancelled'));
+    }
+
+    /** Records that the money of a paid spend came back: the correction for a spend that should not have been paid. */
+    public function reverse(Request $request, int $id, FundSpendReversals $reversals): RedirectResponse|JsonResponse
+    {
+        $data = $request->validate(['reason' => 'required|string|min:5|max:1000', 'returned_on' => 'required|date_format:Y-m-d|before_or_equal:today']);
+        $reversals->reverse($request->user(), $id, trim($data['reason']), $data['returned_on']);
+
+        return $this->done($request, [], __('funds.flash_spend_reversed'));
     }
 
     public function storeHead(Request $request, FundSpending $spending): RedirectResponse|JsonResponse

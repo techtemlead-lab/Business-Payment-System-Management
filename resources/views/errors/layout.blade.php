@@ -39,7 +39,7 @@
             <p class="ref-error-body">@yield('message')</p>
             <div class="ref-error-actions">
                 <a href="/" class="ref-primary-button">{{ __('site.error_back_home') }}</a>
-                <a href="/contact" class="ref-secondary-button">{{ __('site.contact_us') }}</a>
+                <a href="{{ \App\Support\PortalHost::publicPath('/contact') }}" class="ref-secondary-button">{{ __('site.contact_us') }}</a>
             </div>
         </article>
     </main>

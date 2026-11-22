@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Row, money, number, date, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -13,6 +13,7 @@ export type ReturnsData = {
     refundable_now: string;
     paid_left: string;
     paid_from_account_left: string;
+    kept_value: string;
     refunds: Row[];
     history: Row[];
     partner_can_cancel: boolean;
@@ -27,11 +28,14 @@ export type ReturnsData = {
 
 const cents = (value: string | number) => Math.round(Number(value || 0) * 100);
 
-/** Highest refund for the units chosen: money not tied to goods the partner keeps, never above what is left of the payment. */
-function maxRefund(data: ReturnsData, kind: string, units: Record<number, number>): number {
+/**
+ * The refund for the units chosen, as the server works it out: everything paid and not given back
+ * yet, less the goods the partner still keeps. No credit buying, so it must be given back in full.
+ */
+function owedRefund(data: ReturnsData, kind: string, units: Record<number, number>): number {
     const goods = kind === 'refund' ? 0 : data.lines.reduce((sum, line) => sum + (line.is_free ? 0 : cents(line.unit_price) * (units[line.line_id] ?? 0)), 0);
 
-    return Math.min(cents(data.paid_left), cents(data.refundable_now) + goods);
+    return Math.max(0, cents(data.paid_left) - Math.max(0, cents(data.kept_value) - goods));
 }
 
 function LineInputs({ lines, field, units, onChange }: { lines: ReturnLine[]; field: 'can_cancel' | 'can_return'; units: Record<number, number>; onChange: (next: Record<number, number>) => void }) {
@@ -66,15 +70,17 @@ function ConfirmBox({ orderNumber, amount, method, unitCount, kind, needsSecond,
     </div>;
 }
 
-/** Refund amount (never filled in), method and, for returns, the branch. */
-function MoneyFields({ data, form, kind, maxCents }: { data: ReturnsData; form: any; kind: string; maxCents: number }) {
+/** Refund amount (filled in with what is owed), method and, for returns, the branch. */
+function MoneyFields({ data, form, kind, owedCents }: { data: ReturnsData; form: any; kind: string; owedCents: number }) {
     const translate = useT();
 
     return <>
         <label>{translate('orders_stock', 'refund_amount')}
             <input inputMode="decimal" autoComplete="off" value={form.data.refund_amount} placeholder="0" aria-describedby="refund-amount-hint"
                 onChange={event => form.setData('refund_amount', event.target.value.replace(/[^\d.]/g, ''))} />
-            <small id="refund-amount-hint" className="field-hint">{translate('orders_stock', 'refund_amount_hint', { max: money((maxCents / 100).toFixed(2)).replace('৳', '') })}</small>
+            <small id="refund-amount-hint" className="field-hint">{owedCents > 0
+                ? translate('orders_stock', 'refund_amount_hint_exact', { amount: money((owedCents / 100).toFixed(2)).replace('৳', '') })
+                : translate('orders_stock', 'refund_amount_hint_none')}</small>
         </label>
         <fieldset className="plain-fieldset">
             <legend>{translate('orders_stock', 'refund_method')}</legend>
@@ -104,7 +110,14 @@ function StaffForm({ order, data, request }: { order: Row; data: ReturnsData; re
     const [units, setUnits] = useState<Record<number, number>>(request ? requestUnits : kind === 'cancel' ? allUnsent : {});
     const [confirming, setConfirming] = useState(false);
     const form = useForm({ refund_amount: '', refund_method: 'cash', branch_id: String(data.default_branch_id ?? data.branches[0]?.id ?? ''), reason: '' });
-    const maxCents = maxRefund(data, kind, units);
+    const owedCents = owedRefund(data, kind, units);
+    // The amount starts at what is owed for the goods chosen; the person still reads and confirms it.
+    useEffect(() => {
+        if (data.can_refund) {
+            form.setData('refund_amount', owedCents > 0 ? (owedCents / 100).toFixed(2) : '');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [owedCents, data.can_refund]);
     const amount = cents(form.data.refund_amount);
     const unitCount = kind === 'refund' ? 0 : Object.values(units).reduce((sum, value) => sum + value, 0);
     const fixedUnits = Boolean(request) || (kind === 'cancel' && data.whole_order_only);
@@ -128,13 +141,13 @@ function StaffForm({ order, data, request }: { order: Row; data: ReturnsData; re
         </label>}
         {kind === 'cancel' && data.whole_order_only && <p className="muted">{translate('orders_stock', 'whole_order_only')}</p>}
         {kind !== 'refund' && !fixedUnits && <LineInputs lines={data.lines} field={kind === 'cancel' ? 'can_cancel' : 'can_return'} units={units} onChange={next => { setUnits(next); setConfirming(false); }} />}
-        {data.can_refund ? <MoneyFields data={data} form={form} kind={kind} maxCents={maxCents} /> : null}
+        {data.can_refund ? <MoneyFields data={data} form={form} kind={kind} owedCents={owedCents} /> : owedCents > 0 && <p className="muted">{translate('orders_stock', 'err_refund_right')}</p>}
         {note.shown && <label>{note.label(translate('orders_stock', 'note_label'))}<textarea maxLength={1000} required={note.required} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
         <FormErrors errors={form.errors} />
         {confirming
             ? <ConfirmBox orderNumber={String(order.number)} amount={amount} method={form.data.refund_method} unitCount={unitCount} kind={kind}
                 needsSecond={!data.acts_alone} processing={form.processing} onYes={send} onBack={() => setConfirming(false)} />
-            : <button className="button dark" disabled={form.processing || amount > maxCents || (kind === 'refund' && amount <= 0) || (kind !== 'refund' && unitCount === 0)}>
+            : <button className="button dark" disabled={form.processing || (data.can_refund ? amount !== owedCents : owedCents > 0) || (kind === 'refund' && amount <= 0) || (kind !== 'refund' && unitCount === 0)}>
                 {translate('orders_stock', request ? 'approve_submit' : 'start_submit')}
             </button>}
     </form>;

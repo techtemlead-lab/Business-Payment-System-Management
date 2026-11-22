@@ -112,4 +112,6 @@ return [
     'col_total' => 'মোট',
     'find_partner' => 'পার্টনার খুঁজুন',
     'table_search' => 'খুঁজুন',
+    'void_salary' => 'অনুমোদন বাতিল করুন',
+    'part_month_review' => 'এই বেতন দেখে নিন: অ্যাকাউন্টটি :date তারিখে বন্ধ হয়েছে, তাই :month_days দিনের মধ্যে :days দিনের বেতন।',
 ];

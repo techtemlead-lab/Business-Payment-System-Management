@@ -58,6 +58,7 @@ final class PartnerRegistrationForm
 
         $sponsor = $partner->sponsor_id ? User::query()->whereKey($partner->sponsor_id)->first(['name', 'dealer_code']) : null;
         $sponsorText = $sponsor ? trim($sponsor->name.' ('.($sponsor->dealer_code ?? '—').')') : '';
+        $home = PartnerProfileCard::permanentAddress($profile);
 
         return [
             ['title' => $t('section_account'), 'rows' => [
@@ -78,13 +79,20 @@ final class PartnerRegistrationForm
                 $row($t('f_extra_contact'), $digits($text($profile['extra_contact'] ?? ''))),
                 $row($t('f_email'), $text($partner->email)),
             ]],
-            ['title' => $t('section_address'), 'rows' => [
+            // Where the person lives, then where the partner does business: two separate places.
+            ['title' => $t('section_permanent_address'), 'rows' => [
+                $row($t('f_division'), $text($home['division'])),
+                $row($t('f_district'), $text($home['district'])),
+                $row($t('f_upazila'), $text($home['upazila'])),
+                $row($t('f_union'), $text($home['union'])),
+                $row($t('f_village'), $text($home['village'])),
+                $row($t('f_post_office'), $text($home['post_office'])),
+            ]],
+            ['title' => $t('section_business_area'), 'rows' => [
                 $row($t('f_division'), $text($partner->division)),
                 $row($t('f_district'), $text($partner->district)),
                 $row($t('f_upazila'), $text($profile['upazila'] ?? '')),
                 $row($t('f_union'), $text($profile['union'] ?? '')),
-                $row($t('f_village'), $text($profile['village'] ?? '')),
-                $row($t('f_post_office'), $text($profile['post_office'] ?? '')),
                 $row($t('f_place_code'), $text($profile['place_code'] ?? '')),
             ]],
             ['title' => $t('section_business'), 'rows' => [

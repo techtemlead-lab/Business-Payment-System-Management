@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionReversal;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\CompanyFunds;
 use App\Domain\Finance\OwnerApprovalLimits;
+use App\Domain\Finance\PendingPaymentChecks;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockLots;
 use App\Domain\Security\OwnerExemption;
@@ -17,6 +18,7 @@ use App\Support\Audit;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\ReasonFields;
+use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -36,7 +38,8 @@ use Illuminate\Validation\ValidationException;
  * unless that person is the owner: anyone else's approval waits for a second person with the
  * refund right. Money paid from the partner's account goes back there first; the rest goes to
  * the account or is handed over in cash, as the approver chose. A refund can never return money
- * for goods the partner keeps.
+ * for goods the partner keeps, and (no credit buying) every taka paid beyond the goods kept goes
+ * back in the same step: a cancel, return or refund that gives back less is refused.
  */
 final class OrderReturns
 {
@@ -66,6 +69,12 @@ final class OrderReturns
 
     /** The order status when every delivered unit came back and nothing else is left. */
     public const OrderReturned = 'returned';
+
+    /** Orders with nothing left to send or bring back: any paid money not owed for kept goods must have gone back. */
+    public const FinishedStatuses = ['cancelled', 'rejected', self::OrderReturned, 'delivered', MixedOutcomeDecisions::PartlyDelivered];
+
+    /** The office order list filter (?status=money_back): finished orders with paid money still to give back. */
+    public const MoneyBackFilter = 'money_back';
 
     /** Before approval only the whole order may be cancelled. */
     private const WholeOrderOnly = ['submitted', 'held'];
@@ -149,6 +158,13 @@ final class OrderReturns
 
                 return ['id' => null, 'cancelled_now' => true];
             }
+            // Only a wallet part was paid and the rest never came: cancelled at once, the wallet part goes back.
+            $walletPart = app(WalletPartRelease::class);
+            if ($kind === self::KindCancel && $walletPart->cancelsAtOnce($locked)) {
+                $walletPart->cancel($partner, $locked, $reason);
+
+                return ['id' => null, 'cancelled_now' => true];
+            }
             $id = $this->insertRequest($locked, $partner, $kind, $units, $reason);
             $this->event($locked, $partner, self::ActionRequested, ['request_id' => $id, 'kind' => $kind, 'lines' => $this->linesForRecord($units), 'reason' => $reason]);
             Audit::notifyStaffFirst(
@@ -210,8 +226,13 @@ final class OrderReturns
             }
             $branch = $request->kind === self::KindReturn ? $this->returnBranch($order, $branchId) : null;
             $units = $this->storedUnits($request);
+            $this->assertNoPaymentWaiting($order, $request->kind);
             // Checked again now: something may have changed since the partner asked.
             $this->checkedUnits($order, $request->kind, $this->unitsAsLines($units), byStaff: true, allowEmpty: $request->kind === self::KindRefund);
+            // Paid money that must go back needs someone with the refund right, even when the amount was left empty.
+            if ($this->owedCents($order, $request->kind, $units) > 0) {
+                abort_unless(OrderRefund::canRefund($actor), 403, __('orders_stock.err_refund_right'));
+            }
             $this->assertRefundFits($order, $request->kind, $units, $cents);
             $this->assertMethodUsable($method, $order, $cents);
             DB::table('order_return_requests')->where('id', $request->id)->update([
@@ -258,6 +279,7 @@ final class OrderReturns
                 app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Refund, (string) $request->refund_amount, 'request');
             }
             $units = $this->storedUnits($request);
+            $this->assertNoPaymentWaiting($order, $request->kind);
             $this->checkedUnits($order, $request->kind, $this->unitsAsLines($units), byStaff: true, allowEmpty: $request->kind === self::KindRefund);
             $cents = Money::cents((string) $request->refund_amount);
             $this->assertRefundFits($order, $request->kind, $units, $cents);
@@ -342,6 +364,8 @@ final class OrderReturns
             'refundable_now' => Money::decimal($this->refundableCents($order)),
             'paid_left' => Money::decimal($this->paidLeftCents($order)),
             'paid_from_account_left' => Money::decimal($this->accountLeftCents($order)),
+            // Value of the goods kept or still owed, so the form can work out the exact amount to give back.
+            'kept_value' => Money::decimal($this->keptValueCents($order, [])),
             'refunds' => $refunds->map(fn (object $row): array => (array) $row)->all(),
             'history' => $history->map(fn (object $row): array => (array) $row)->all(),
             'partner_can_cancel' => $isPartner && $open === null && in_array($order->status, ['submitted', 'held', 'approved'], true)
@@ -601,15 +625,89 @@ final class OrderReturns
      */
     private function assertRefundFits(Order $order, string $kind, array $units, int $cents): void
     {
-        $order->load('lines');
-        $paidLeft = Money::cents((string) $order->paid) - $this->refundedCents($order);
-        $after = $kind === self::KindRefund ? [] : [$kind => $units];
-        $max = max(0, $paidLeft - $this->keptValueCents($order, $after));
-        if ($cents > $max) {
-            throw ValidationException::withMessages(['refund_amount' => __('orders_stock.err_refund_too_much', ['max' => LocalDigits::text(Money::grouped(Money::decimal($max)))])]);
+        $owed = $this->owedCents($order, $kind, $units);
+        if ($cents > $owed) {
+            throw ValidationException::withMessages(['refund_amount' => __('orders_stock.err_refund_too_much', ['max' => LocalDigits::text(Money::grouped(Money::decimal($owed)))])]);
         }
         if ($kind === self::KindRefund && $cents <= 0) {
             throw ValidationException::withMessages(['refund_amount' => __('orders_stock.err_refund_zero')]);
+        }
+        // No credit buying (owner's rule): nothing paid may stay on goods that are not kept. No
+        // deduction is allowed today, so the whole amount owed goes back in one step.
+        if ($cents < $owed) {
+            throw ValidationException::withMessages(['refund_amount' => __('orders_stock.err_refund_whole', ['amount' => LocalDigits::text(Money::grouped(Money::decimal($owed)))])]);
+        }
+    }
+
+    /**
+     * Paisa the partner must get back once this change is carried out: everything paid and not
+     * given back yet, less the value of the goods they keep or are still owed.
+     *
+     * @param  array<int, int>  $units
+     */
+    private function owedCents(Order $order, string $kind, array $units): int
+    {
+        $order->load('lines');
+        $after = $kind === self::KindRefund ? [] : [$kind => $units];
+
+        return max(0, $this->paidLeftCents($order) - $this->keptValueCents($order, $after));
+    }
+
+    /**
+     * SQL for the paid money still to give back on an order: paid, less refunds, less the value
+     * of the goods kept or still owed. The same sum as {@see self::refundableCents()}.
+     */
+    public static function moneyLeftSql(string $orders = 'orders'): string
+    {
+        $cameBack = "COALESCE((SELECT SUM((item.value->>'quantity')::int) FROM shipments AS parcel CROSS JOIN LATERAL json_array_elements(parcel.lines) AS item(value)"
+            ." WHERE parcel.order_id = {$orders}.id AND parcel.status = 'returned' AND item.value->>'line_id' = line.id::text), 0)";
+        $kept = 'COALESCE((SELECT SUM(GREATEST(0, (line.quantity - line.dispatched - line.closed) + (line.dispatched - '.$cameBack.' - line.returned)) * line.unit_price)'
+            ." FROM order_lines AS line WHERE line.order_id = {$orders}.id AND NOT COALESCE(line.is_free, false)), 0)";
+        $refunded = "COALESCE((SELECT SUM(refund.amount) FROM order_refunds AS refund WHERE refund.order_id = {$orders}.id), 0)";
+
+        return "GREATEST(0, {$orders}.paid - {$refunded} - {$kept})";
+    }
+
+    /**
+     * Finished orders that still hold paid money for the partner. Opening-balance orders carry
+     * old balances and never go through a cancel or return, so they stay out.
+     */
+    public static function whereMoneyLeft(QueryBuilder $query, string $orders = 'orders'): void
+    {
+        $query->whereIn($orders.'.status', self::FinishedStatuses)
+            ->where($orders.'.is_opening_balance', false)
+            ->whereRaw(self::moneyLeftSql($orders).' > 0');
+    }
+
+    /**
+     * How many finished orders still hold paid money for the partner, and how much in all.
+     *
+     * @return array{count: int, amount: string}
+     */
+    public static function moneyToGiveBack(): array
+    {
+        $query = DB::table('orders');
+        self::whereMoneyLeft($query);
+        $row = $query->selectRaw('COUNT(*) AS orders_count, COALESCE(SUM('.self::moneyLeftSql().'), 0) AS total')->first();
+
+        return ['count' => (int) $row->orders_count, 'amount' => Money::decimal(Money::cents((string) $row->total))];
+    }
+
+    /**
+     * Bank or mobile payments on this order that nobody has checked yet: the money may really
+     * have arrived, so the order is not closed or turned down until each one is decided. A
+     * "pay at the office" claim is not money in hand and is closed with the order, as before.
+     */
+    public static function hasPaymentWaiting(Order $order): bool
+    {
+        return PendingPaymentChecks::query()->where('payment_claims.order_id', $order->id)
+            ->where('payment_claims.channel', '<>', OrderService::OfficeChannel)->exists();
+    }
+
+    private function assertNoPaymentWaiting(Order $order, string $kind): void
+    {
+        if ($kind === self::KindCancel && self::hasPaymentWaiting($order)) {
+            throw ValidationException::withMessages(['request' => __('orders_stock.err_payment_waiting')]);
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\ReserveService;
@@ -58,6 +59,8 @@ class PartnerMoneyTrailLocaleTest extends TestCase
     public function test_hold_release_journal_and_notice_use_partner_locale(): void
     {
         $admin = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        // The target is the division dealer's one monthly target, not the seat's own quota.
+        app(CommissionPolicy::class)->update(User::factory()->staff('super_admin')->create(), ['dealer_monthly_salary' => ['parameters' => ['division_target' => '100.00']]]);
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $area = User::factory()->inPlace($rangpur)->create([
             'role' => 'dealer',
@@ -98,6 +101,8 @@ class PartnerMoneyTrailLocaleTest extends TestCase
         $quotaOrder->update(['status' => 'delivered', 'paid' => '100.00']);
         app(CommissionPosting::class)->process($quotaOrder);
 
+        // Decided once the month has ended, even with the target met.
+        $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
         app(ReserveService::class)->release($admin, $hold->id, 'Original monthly quota achieved');
 
         $description = DB::table('journal_entries')

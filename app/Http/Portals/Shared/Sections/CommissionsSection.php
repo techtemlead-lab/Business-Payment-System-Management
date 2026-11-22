@@ -179,7 +179,7 @@ final class CommissionsSection implements WorkspaceSection
                 'monthly_volume' => (float) ($eval['monthly_volume'] ?? Money::decimal($volumeByUser[$rank->user_id] ?? 0)),
                 'one_time_incentive_paid' => (bool) $rank->one_time_incentive_paid,
             ];
-        });
+        })->sortBy([['is_qualified', 'desc'], ['monthly_volume', 'desc'], ['user_id', 'asc']])->values();
 
         $settledHistory = $this->plainJournalRows(DB::table('journal_entries')
             ->where('event_key', 'like', 'commissions.%')

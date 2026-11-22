@@ -21,6 +21,7 @@ import Profile from '../components/office/sections/Profile';
 import Network,{TreeShowMore} from '../components/office/sections/Network';
 import Notifications,{PartnerCirculars} from '../components/office/sections/Notifications';
 import ShareFeedback from '../components/office/sections/ShareFeedback';
+import {OwedItemsList} from '../components/OwedItemsPanel';
 import {SectionLoading,options,pageTotalLabel,Filter,type FilterSelect} from '../components/office/portalShared';
 /**
  * Office-only screens load on demand, so a dealer's phone never downloads the website editor,
@@ -106,6 +107,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {staff&&['orders','deliveries'].includes(section)&&d.no_branch_assigned&&<p className="notice" role="status">{translate('portal','orders_no_branch')}</p>}
  {['orders','deliveries','reports'].includes(section)&&<Orders {...sectionProps}/>}
  {section==='deliveries'&&staff&&d.courier_board&&<CourierBoard board={d.courier_board}/>}
+ {section==='deliveries'&&staff&&Array.isArray(d.owed_items)&&d.owed_items.length>0&&<OwedItemsList items={d.owed_items}/>}
  {section==='catalog'&&(staff?<div data-tour="catalog-grid"><ProductManagementHub products={d.products} allProducts={d.all_catalog_products||d.products} featuredOrderProducts={d.featured_order_products||[]} categories={d.categories||[]} catalogCategories={d.catalog_categories||[]} usedCategories={d.used_categories||[]} catalogUnits={d.catalog_units||[]} customization={d.customization||{}} defaults={d.defaults||{}} filters={filters} catalogFilters={d.catalog_filters} productsPage={d.products_page} canCreate={Boolean(d.can_create_product)} canOpenProduct={Boolean(d.can_open_product)} onCreateProduct={()=>open('product')}/></div>:<div data-tour="catalog-grid"><PartnerCatalogDirectory products={d.products} categories={d.categories} filters={filters}/></div>)}
  {section==='purchase'&&!staff&&<div data-tour="purchase-matrix"><ProductPurchaseMatrix repeatOrders={d.repeat_orders||[]} runningSchemes={d.running_schemes||[]} products={d.products} categories={d.categories||[]} subCategories={d.sub_categories||[]} collectionAccounts={sharedCollectionAccounts || []} fullPaymentRequired={Boolean(d.full_payment_required)} courierChoices={d.courier_choices||[]} initialProductId={typeof window!=='undefined'?new URLSearchParams(window.location.search).get('product_id'):null}/></div>}
  {['accounts','sub-dealers'].includes(section)&&<Accounts {...sectionProps}/>}

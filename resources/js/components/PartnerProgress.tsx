@@ -11,9 +11,21 @@ type DealerSalary = Bar & {
     kind: 'dealer_pool';
     status: 'off' | 'waived' | 'met' | 'not_met';
     rate: string;
-    estimate: { share: string; division: string | null; division_pool: string; qualifiers: number } | null;
+    /** One salary fund for all of Bangladesh (owner's rule of 2026-11-21) instead of one per division. */
+    nationwide?: boolean;
+    estimate: { share: string; division: string | null; division_pool: string; qualifiers: number; nationwide?: boolean } | null;
 };
 type SubDealerSalary = { kind: 'sub_dealer_flat'; status: 'off' | 'earning'; rate: string; current: string; earned: string };
+/** The owner's salary steps (2026-11-21): the bar runs toward the next step; tier_pct is what the month earns now. */
+type SubDealerTiers = Bar & {
+    kind: 'sub_dealer_tiers';
+    status: 'off' | 'earning';
+    rate: string;
+    tiers: { volume: string; pct: string }[];
+    tier_pct: string;
+    next_pct: string | null;
+    earned: string;
+};
 type NextRank = Bar & { rank: string; measure: 'own_purchases' | 'team_leaders'; required_rank?: string; depth?: number; award: string | null };
 type Rank = {
     current: string;
@@ -32,7 +44,7 @@ type Tour = {
     requests_waiting: number;
     is_active: boolean;
 };
-type Progress = { role: string; period: Period; salary: DealerSalary | SubDealerSalary | null; rank: Rank | null; rewards: Reward[]; tour: Tour | null };
+type Progress = { role: string; period: Period; salary: DealerSalary | SubDealerSalary | SubDealerTiers | null; rank: Rank | null; rewards: Reward[]; tour: Tour | null };
 
 type Translate = ReturnType<typeof useT>;
 
@@ -96,11 +108,38 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
     );
 }
 
-function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSalary; period: Period }) {
+function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSalary | SubDealerTiers; period: Period }) {
     const translate = useT();
     const title = translate('portal', 'pp_salary_title');
     if (salary.status === 'off') {
         return <Section icon={<Wallet size={16} />} title={title}><StatusLine ok={null}>{translate('portal', 'pp_switched_off')}</StatusLine></Section>;
+    }
+    if (salary.kind === 'sub_dealer_tiers') {
+        const [first, second, third] = salary.tiers;
+        const whole = (value: string) => number(String(Math.floor(Number(value))));
+        const earning = Number(salary.tier_pct) > 0;
+
+        return (
+            <Section icon={<Wallet size={16} />} title={title}>
+                {first && second && third && (
+                    <p className="pp-how">
+                        {translate('portal', 'pp_salary_sub_tiers_how', {
+                            t1: whole(first.volume), p1: number(first.pct),
+                            t2: whole(second.volume), p2: number(second.pct),
+                            t3: whole(third.volume), p3: number(third.pct),
+                        })}
+                    </p>
+                )}
+                <ProgressBar bar={salary} label={title} tone={salary.next_pct === null ? 'ok' : 'brand'} />
+                <StatusLine ok={earning}>{earning ? translate('portal', 'pp_salary_sub_now', { pct: number(salary.tier_pct) }) : translate('portal', 'pp_salary_sub_none')}</StatusLine>
+                {salary.next_pct === null
+                    ? <StatusLine ok>{translate('portal', 'pp_salary_sub_top')}</StatusLine>
+                    : <StatusLine ok={null}>{translate('portal', 'pp_salary_sub_next', { left: money(salary.left), end: date(period.ends_on), pct: number(salary.next_pct) })}</StatusLine>}
+                <dl className="pp-figures">
+                    <div><dt>{translate('portal', 'pp_salary_sub_earned')}</dt><dd className="is-strong">{money(salary.earned)}</dd></div>
+                </dl>
+            </Section>
+        );
     }
     if (salary.kind === 'sub_dealer_flat') {
         return (
@@ -116,7 +155,7 @@ function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSal
 
     return (
         <Section icon={<Wallet size={16} />} title={title}>
-            <p className="pp-how">{translate('portal', 'pp_salary_dealer_how', { target: money(salary.target), rate: number(salary.rate) })}</p>
+            <p className="pp-how">{translate('portal', salary.nationwide ? 'pp_salary_dealer_nationwide_how' : 'pp_salary_dealer_how', { target: money(salary.target), rate: number(salary.rate) })}</p>
             {salary.status !== 'waived' && <ProgressBar bar={salary} label={title} tone={salary.status === 'met' ? 'ok' : 'brand'} />}
             {salary.status === 'waived' && <StatusLine ok>{translate('portal', 'pp_salary_waived')}</StatusLine>}
             {salary.status === 'met' && <StatusLine ok>{translate('portal', 'pp_salary_met')}</StatusLine>}
@@ -126,9 +165,9 @@ function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSal
             {salary.estimate && (
                 <div className="pp-estimate">
                     <p>
-                        {translate('portal', 'pp_salary_estimate', {
+                        {translate('portal', salary.estimate.nationwide ? 'pp_salary_estimate_nationwide' : 'pp_salary_estimate', {
                             share: money(salary.estimate.share),
-                            division: salary.estimate.division || '—',
+                            division: salary.estimate.division || 'â€”',
                             pool: money(salary.estimate.division_pool),
                             people: number(salary.estimate.qualifiers),
                         })}
@@ -156,7 +195,7 @@ function RankSection({ rank, period }: { rank: Rank; period: Period }) {
                     <p className="pp-how">
                         {next.measure === 'own_purchases'
                             ? translate('portal', 'pp_rank_next_purchase_how', { target: money(next.target) })
-                            : translate('portal', 'pp_rank_next_team_how', {
+                            : translate('portal', 'pp_rank_next_lines_how', {
                                 needed: number(next.target),
                                 rank: rankName(String(next.required_rank)),
                                 depth: number(next.depth ?? 0),
@@ -188,7 +227,7 @@ function RankSection({ rank, period }: { rank: Rank; period: Period }) {
                         <StatusLine ok>{translate('portal', 'pp_keep_admin', { rank: rankName(keep.rank) })}</StatusLine>
                     ) : (
                         <>
-                            <p className="pp-how">{translate('portal', 'pp_keep_how', { target: money(keep.target) })}</p>
+                            <p className="pp-how">{translate('portal', 'pp_keep_target_how', { target: money(keep.target) })}</p>
                             <ProgressBar bar={keep} label={translate('portal', 'pp_keep_title', { rank: rankName(keep.rank) })} tone={keep.status === 'qualified' ? 'ok' : 'brand'} />
                             {keep.status === 'qualified' && <StatusLine ok>{translate('portal', 'pp_keep_qualified')}</StatusLine>}
                             {keep.status === 'grace_period' && <StatusLine ok>{translate('portal', 'pp_keep_grace', { days: number(keep.grace_days) })}</StatusLine>}
@@ -375,7 +414,7 @@ function PartnerProgressModal({ onClose }: { onClose: () => void }) {
                         </p>
                         {progress.salary && <SalarySection salary={progress.salary} period={progress.period} />}
                         {progress.rank && <RankSection rank={progress.rank} period={progress.period} />}
-                        {progress.rewards.length > 0 && <RewardsSection rewards={progress.rewards} isSubDealer={progress.role === 'sub_dealer'} />}
+                        {progress.rewards.length > 0 && <RewardsSection rewards={progress.rewards} isSubDealer={progress.role === 'sub_dealer' && progress.rank === null} />}
                         {progress.tour && <TourSection tour={progress.tour} />}
                         <p className="pp-footnote">{translate('portal', 'pp_counts_note')}</p>
                     </>

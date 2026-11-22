@@ -177,17 +177,22 @@ class PayoutHoldsAndReviewTest extends TestCase
         $this->assertSame($other->id, (int) DB::table('withdrawals')->where('id', $id)->value('payer_id'));
     }
 
-    public function test_paid_with_receipt_later_then_the_receipt_is_attached(): void
+    public function test_receipt_later_is_refused_and_an_older_payout_still_takes_its_receipt(): void
     {
         $partner = $this->partnerWithWallet('5000.00');
         $id = $this->withdraw($partner, '1000.00');
         app(ManualPayoutService::class)->review(User::factory()->staff('finance')->create(), $id, 'approved', 'Checked');
         $payer = User::factory()->staff('finance')->create();
 
+        // Owner, 2026-11-21: the transfer screenshot comes before "paid", because the partner is shown it.
         $this->actingAs($payer)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/record-payment', [
             'method' => 'bkash', 'wallet_number' => '01700000000', 'payment_reference' => 'BKX7Q2M9TA', 'receipt_later' => '1',
             'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent from the phone',
-        ])->assertSessionHasNoErrors();
+        ])->assertSessionHasErrors(['receipt' => __('office_withdrawal.err_proof_first')]);
+        $this->assertSame('approved', DB::table('withdrawals')->where('id', $id)->value('status'));
+
+        // A payout recorded earlier as "receipt later" still takes its receipt.
+        app(ManualPayoutService::class)->settle($payer, $id, ['method' => 'bkash', 'wallet_number' => '01700000000'], null, 'BKX7Q2M9TA', now()->subHour()->utc()->toDateTimeString(), 'Sent from the phone', null, true);
         $row = DB::table('withdrawals')->where('id', $id)->first();
         $this->assertSame('paid', $row->status);
         $this->assertTrue((bool) $row->receipt_due);

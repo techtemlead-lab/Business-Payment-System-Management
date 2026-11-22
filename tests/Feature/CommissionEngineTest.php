@@ -159,7 +159,7 @@ class CommissionEngineTest extends TestCase
         $this->assertEquals(500.00, (float) $buyerWalletAfter->available);
     }
 
-    public function test_dealer_promoted_to_mo_upon_reaching_two_point_five_lakh_turnover(): void
+    public function test_dealer_promoted_to_mo_upon_reaching_five_lakh_turnover(): void
     {
         $service = app(CommissionService::class);
 
@@ -168,10 +168,10 @@ class CommissionEngineTest extends TestCase
 
         DealerRank::firstOrCreate(
             ['user_id' => $dealer->id],
-            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 230000.00]
+            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 480000.00]
         );
 
-        // Buyer makes a ৳20,000 order, taking cumulative to ৳250,000 (৳2.5L MO target)
+        // Buyer makes a ৳20,000 order, taking cumulative to ৳5,00,000 (the ৳5L MO target)
         $order = $this->commissionOrder([
             'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => hash('sha256', 'test2'),
@@ -187,7 +187,7 @@ class CommissionEngineTest extends TestCase
         $rankRecord = DealerRank::where('user_id', $dealer->id)->first();
         $this->assertEquals('mo', $rankRecord->current_rank);
         $this->assertNotNull($rankRecord->achieved_at);
-        $this->assertEquals(250000.00, (float) $rankRecord->lifetime_purchase_total);
+        $this->assertEquals(500000.00, (float) $rankRecord->lifetime_purchase_total);
     }
 
     public function test_anti_whale_branch_capping_truncates_excess_volume(): void
@@ -205,15 +205,15 @@ class CommissionEngineTest extends TestCase
         $leg2 = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'sponsor_id' => $leader->id]);
         ReferralTreePath::attachUser($leg2->id, $leader->id);
 
-        // Record ৳15,00,000 purchases in Leg 1 (Exceeds ৳8,00,000 Bike cap)
+        // Record ৳25,00,000 purchases in Leg 1 (Exceeds ৳20,00,000 Bike cap)
         $this->commissionOrder([
             'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => hash('sha256', 'test3'),
             'number' => 'ORD-LEG1-WHALE',
             'user_id' => $leg1->id,
             'status' => 'delivered',
-            'total' => '1500000.00',
-            'paid' => '1500000.00',
+            'total' => '2500000.00',
+            'paid' => '2500000.00',
         ]);
 
         // Record ৳4,00,000 purchases in Leg 2
@@ -230,16 +230,16 @@ class CommissionEngineTest extends TestCase
         // Evaluate Bike Milestone
         $eval = $service->evaluateAntiWhaleLegs($leader->id, 'bike');
 
-        // Total raw volume is 15L + 4L = 19L
-        $this->assertEquals(1900000.00, $eval['raw_team_volume']);
+        // Total raw volume is 25L + 4L = 29L
+        $this->assertEquals(2900000.00, $eval['raw_team_volume']);
 
-        // Qualifying volume must be capped at 8L for Leg 1 + 4L for Leg 2 = 12L
-        $this->assertEquals(1200000.00, $eval['qualifying_volume']);
+        // Qualifying volume must be capped at 20L for Leg 1 + 4L for Leg 2 = 24L
+        $this->assertEquals(2400000.00, $eval['qualifying_volume']);
 
-        // Leg 1 excess must be exactly 7L
+        // Leg 1 excess must be exactly 5L
         $leg1Breakdown = collect($eval['legs'])->firstWhere('dealer_id', $leg1->id);
-        $this->assertEquals(800000.00, $leg1Breakdown['qualifying_volume']);
-        $this->assertEquals(700000.00, $leg1Breakdown['excess_volume']);
+        $this->assertEquals(2000000.00, $leg1Breakdown['qualifying_volume']);
+        $this->assertEquals(500000.00, $leg1Breakdown['excess_volume']);
 
         // Leg 2 has 0 excess
         $leg2Breakdown = collect($eval['legs'])->firstWhere('dealer_id', $leg2->id);

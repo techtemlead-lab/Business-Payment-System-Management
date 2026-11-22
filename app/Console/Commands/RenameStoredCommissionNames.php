@@ -28,6 +28,7 @@ class RenameStoredCommissionNames extends Command
     public const OldNames = [
         'own_dealer_cashback' => ['Own purchase cashback'],
         'direct_referral' => ['Direct referral'],
+        'd2d_multitier' => ['Team share (2nd + 3rd generation)'],
         'dealer_monthly_salary' => ['Dealer monthly salary pool'],
         'additional_rank' => ['Sub-dealer additional rank reserve'],
         'sub_dealer_salary' => ['Sub-dealer monthly salary'],

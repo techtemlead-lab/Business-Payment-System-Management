@@ -32,6 +32,7 @@ class Product extends Model
         'dated_schemes' => 'free_product_id',
         'goods_receipt_lines' => 'product_id',
         'order_lines' => 'product_id',
+        'owed_items' => 'product_id',
         'prescription_lines' => 'product_id',
         'product_concern_product' => 'product_id',
         'purchase_order_lines' => 'product_id',

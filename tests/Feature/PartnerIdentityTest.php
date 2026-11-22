@@ -193,13 +193,14 @@ class PartnerIdentityTest extends TestCase
         $this->assertSame($home['targets'][0]['remaining'], $home['card']['target_left']);
     }
 
-    public function test_a_sub_dealer_has_no_rank_or_target_box(): void
+    public function test_a_sub_dealer_has_a_rank_box_but_no_target_left_box(): void
     {
         $sub = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'profile' => []]);
 
         $card = app(PartnerDashboardHome::class)->for($sub)['card'];
 
-        $this->assertNull($card['rank']);
+        // Sub-dealers can hold ranks too (owner's rule of 2026-11-21); the "left of target" box is the dealer's alone.
+        $this->assertSame('dealer', $card['rank']);
         $this->assertNull($card['target_left']);
         $this->assertSame('0.00', $card['month_purchase']);
     }

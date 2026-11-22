@@ -17,7 +17,6 @@ use App\Support\DashboardManagement;
 use App\Support\Money;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -59,21 +58,25 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame(Money::decimal(app(CommissionQualification::class)->monthlyVolume($dealer->id, '2026-09')), $salary['current']);
         $this->assertSame('4000.00', $salary['current']);
         $this->assertSame($target, $salary['target']);
-        $this->assertSame('6000.00', $salary['left']);
-        $this->assertEquals(40.0, $salary['percent']);
+        $this->assertSame('26000.00', $salary['left']);
+        $this->assertEquals(13.3, $salary['percent']);
         $this->assertNull($salary['estimate']);
+        // No area seat and no appointed place: the rule's minimum is the target.
+        $this->assertNull($salary['dealer_kind']);
+        $this->assertTrue($salary['nationwide']);
         $this->assertSame('2.00', $salary['rate']);
     }
 
     public function test_dealer_who_met_the_target_sees_the_share_settlement_then_pays(): void
     {
-        // The salary pool is shared inside the division place code the dealers' districts belong to.
+        // One salary pool for all of Bangladesh, shared by the dealers who met their own target (a union dealer: ৳30,000).
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
-        $dealer = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create();
-        $neighbour = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Dinajpur']))->create();
-        $belowTarget = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Nilphamari']))->create();
-        $this->purchase($dealer, '12000.00', '24000.00');
-        $this->purchase($neighbour, '10000.00', '20000.00');
+        $upazila = PlaceCode::factory()->upazila(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create(['name' => 'Pirganj']);
+        $dealer = User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create(['name' => 'Chaitrakul']))->create();
+        $neighbour = User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create(['name' => 'Kabilpur']))->create();
+        $belowTarget = User::factory()->inPlace(PlaceCode::factory()->union($upazila)->create(['name' => 'Tukuria']))->create();
+        $this->purchase($dealer, '40000.00', '80000.00');
+        $this->purchase($neighbour, '30000.00', '60000.00');
         $this->purchase($belowTarget, '3000.00', '6000.00');
 
         $salary = $this->progress($dealer)->assertOk()->json('data.salary');
@@ -84,8 +87,10 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame('0.00', $salary['left']);
         $this->assertSame($estimate['share'], $salary['estimate']['share']);
         $this->assertSame(2, $salary['estimate']['qualifiers']);
-        // 2% of the division's ৳25,000 of purchases, shared by the two dealers who met the target.
-        $this->assertSame('500.00', $salary['estimate']['division_pool']);
+        // 2% of the country's ৳73,000 of purchases, shared by the two dealers who met the target.
+        $this->assertTrue($salary['estimate']['nationwide']);
+        $this->assertSame('1460.00', $salary['estimate']['division_pool']);
+        $this->assertSame('730.00', $salary['estimate']['share']);
 
         $this->travelTo(now()->setDate(2026, 10, 1));
         $paid = collect(app(CommissionService::class)->settleMonthlySalaryPool('2026-09')['distributed'])->firstWhere('user_id', $dealer->id);
@@ -152,8 +157,8 @@ class PartnerProgressPopupTest extends TestCase
 
         $this->assertSame(Money::decimal(Money::cents((string) DealerRank::query()->where('user_id', $dealer->id)->value('lifetime_purchase_total'))), $next['current']);
         $this->assertSame('100000.00', $next['current']);
-        $this->assertSame('150000.00', $next['left']);
-        $this->assertEquals(40.0, $next['percent']);
+        $this->assertSame('400000.00', $next['left']);
+        $this->assertEquals(20.0, $next['percent']);
     }
 
     public function test_mo_dealer_sees_team_leaders_needed_for_am_and_rank_keeping_from_paid_as(): void
@@ -186,7 +191,7 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame('demoted', $rank['keep']['status']);
         $this->assertSame($paidAs['monthly_volume'], $rank['keep']['current']);
         $this->assertSame($paidAs['required_volume'], $rank['keep']['target']);
-        $this->assertSame('3000.00', $rank['keep']['left']);
+        $this->assertSame('28000.00', $rank['keep']['left']);
         $this->assertSame(['rank' => 'mo', 'amount' => '5000.00', 'status' => 'waiting'], $rank['award']);
     }
 
@@ -194,6 +199,8 @@ class PartnerProgressPopupTest extends TestCase
     {
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
+        // The prize is paid only to a leader who met this month's target (৳30,000 for a dealer with no seat).
+        $this->purchase($leader, '30000.00', '60000.00');
         // ৳5 lakh funds ৳10,000; the buyer's own MO reward (paid at once) takes half.
         $this->purchase(User::factory()->create(), '500000.00', '1000000.00');
         $this->assertTrue(app(CommissionService::class)->claimOneTimeRankIncentive($leader->id)['success']);
@@ -201,7 +208,7 @@ class PartnerProgressPopupTest extends TestCase
         $rank = $this->progress($leader)->json('data.rank');
 
         $this->assertSame(['rank' => 'mo', 'amount' => '5000.00', 'status' => 'paid'], $rank['award']);
-        $this->assertSame('grace_period', $rank['keep']['status']);
+        $this->assertSame('qualified', $rank['keep']['status']);
     }
 
     public function test_bike_reward_progress_matches_the_reward_check_and_shows_when_reached(): void
@@ -232,7 +239,7 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame('reached', collect($this->progress($leader)->json('data.rewards'))->firstWhere('type', 'bike')['status']);
     }
 
-    public function test_sub_dealer_sees_flat_salary_and_tour_fund_that_settlement_and_reserves_use(): void
+    public function test_sub_dealer_sees_his_salary_step_that_settlement_uses_and_no_tour_fund(): void
     {
         $sub = User::factory()->create(['role' => 'sub_dealer']);
         ReferralTreePath::attachUser($sub->id, null);
@@ -241,37 +248,26 @@ class PartnerProgressPopupTest extends TestCase
         $data = $this->progress($sub, 'subdealer')->assertOk()->json('data');
 
         $this->assertSame('sub_dealer', $data['role']);
-        $this->assertSame('sub_dealer_flat', $data['salary']['kind']);
+        $this->assertSame('sub_dealer_tiers', $data['salary']['kind']);
         $this->assertSame('earning', $data['salary']['status']);
         $this->assertSame('3.00', $data['salary']['rate']);
+        // ৳12,000 reaches the first step (1%); the bar runs on to the 2% step at ৳20,000.
         $this->assertSame('12000.00', $data['salary']['current']);
-        $this->assertSame('360.00', $data['salary']['earned']);
-        $this->assertNull($data['rank']);
+        $this->assertSame('20000.00', $data['salary']['target']);
+        $this->assertSame('8000.00', $data['salary']['left']);
+        $this->assertSame('1.00', $data['salary']['tier_pct']);
+        $this->assertSame('2.00', $data['salary']['next_pct']);
+        // 3% of ৳12,000 is set aside (৳360); at the 1% step he gets a third of it.
+        $this->assertSame('120.00', $data['salary']['earned']);
+        // Sub-dealers hold ranks too: his first goal is MO on his own purchases.
+        $this->assertSame('dealer', $data['rank']['current']);
+        $this->assertSame('mo', $data['rank']['next']['rank']);
         $this->assertSame(['bike', 'car'], array_column($data['rewards'], 'type'));
-        $this->assertSame('saving', $data['tour']['status']);
-        $this->assertSame('360.00', $data['tour']['saved_this_month']);
-        $this->assertSame('360.00', $data['tour']['saved_total']);
-        $this->assertSame('360.00', $data['tour']['available']);
-        $this->assertSame('0.00', $data['tour']['used']);
-        $this->assertSame(0, $data['tour']['requests_waiting']);
+        $this->assertNull($data['tour'], 'The tour fund is hidden while PartnerProgress::ShowTourFund is off.');
 
         $this->travelTo(now()->setDate(2026, 10, 1));
         $paid = collect(app(CommissionService::class)->settleMonthlySalaryPool('2026-09')['distributed'])->firstWhere('user_id', $sub->id);
         $this->assertSame($data['salary']['earned'], $paid['amount']);
-    }
-
-    public function test_sub_dealer_tour_fund_shows_money_already_used_for_a_tour(): void
-    {
-        $sub = User::factory()->create(['role' => 'sub_dealer']);
-        $this->purchase($sub, '12000.00', '20000.00');
-        $fund = DB::table('commission_allocations')->where('user_id', $sub->id)->where('category', 'sub_dealer_tour')->first();
-        DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $sub->id, 'kind' => 'award_1',
-            'period_month' => '2026-09', 'amount' => '100.00', 'refunded_basis' => '0.00', 'created_at' => now(), 'updated_at' => now()]);
-
-        $tour = $this->progress($sub, 'subdealer')->json('data.tour');
-
-        $this->assertSame('260.00', $tour['available']);
-        $this->assertSame('100.00', $tour['used']);
     }
 
     public function test_sub_dealer_with_salary_switched_off_on_the_dashboard_sees_no_salary_or_tour(): void

@@ -93,6 +93,11 @@ final class PortalHost
      */
     public static function publicPath(string $path): string
     {
+        // A full address, a mail or phone link and a spot on the same page are already complete;
+        // putting a slash in front of them would turn "https://example.com/about" into "/https://...".
+        if (preg_match('#^(?:[a-z][a-z0-9+.-]*:|//|\#)#i', $path) === 1) {
+            return $path;
+        }
         $path = str_starts_with($path, '/') ? $path : '/'.$path;
         $request = self::optionalRequest();
         if (! $request instanceof Request || self::activePreviewPortal($request) === 'public') {

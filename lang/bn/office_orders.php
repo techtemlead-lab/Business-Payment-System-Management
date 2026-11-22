@@ -37,4 +37,5 @@ return [
     'stage_with_courier' => 'কুরিয়ারে আছে',
     'col_address' => 'ঠিকানা',
     'col_mrp' => 'MRP',
+    'money_back' => 'টাকা ফেরত দিতে হবে',
 ];

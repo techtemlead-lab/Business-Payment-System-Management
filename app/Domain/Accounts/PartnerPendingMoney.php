@@ -2,9 +2,12 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\MonthlyTargets;
 use App\Domain\Finance\FundCatalog;
+use App\Domain\Finance\Percentage;
 use App\Domain\Finance\ReserveService;
 use App\Models\DealerRank;
 use App\Models\RewardMilestoneProgress;
@@ -187,10 +190,23 @@ final class PartnerPendingMoney
             'amount' => FundCatalog::decimalOf($cents), 'order_number' => null, 'reason' => 'month_end', 'estimate' => $estimate,
         ];
         if ($partner->role === 'sub_dealer') {
-            return DB::table('commission_allocations')->where('user_id', $partner->id)->where('category', 'sub_dealer_salary')->where('status', 'pending')
+            $rows = DB::table('commission_allocations')->where('user_id', $partner->id)->where('category', 'sub_dealer_salary')->where('status', 'pending')
                 ->where('amount', '>', 0)->groupByRaw("metadata->>'period_month'")->orderByRaw("metadata->>'period_month' DESC")
-                ->selectRaw("metadata->>'period_month' AS month, SUM(amount) AS amount")->get()
-                ->map(fn (object $row): array => $line((string) $row->month, FundCatalog::centsOf($row->amount), false))->all();
+                ->selectRaw("metadata->>'period_month' AS month, SUM(amount) AS amount")->get();
+            if ($rows->isEmpty()) {
+                return [];
+            }
+            // Owner's rule of 2026-11-21: only the salary step his own month reached is his, so the line shows that part
+            // of what was set aside (an estimate until the month closes). Older rules showed all of it.
+            $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
+            $setAsideRate = Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints;
+
+            return $rows->map(function (object $row) use ($partner, $rules, $setAsideRate, $line): array {
+                $cents = FundCatalog::centsOf($row->amount);
+                $step = MonthlyTargets::salaryBasisPoints($rules, $this->qualification->monthlyVolume((int) $partner->id, (string) $row->month));
+
+                return $step === null ? $line((string) $row->month, $cents, false) : $line((string) $row->month, MonthlyTargets::tierShare($cents, $step, $setAsideRate), true);
+            })->filter(fn (array $item): bool => FundCatalog::centsOf($item['amount']) > 0)->values()->all();
         }
         if ($partner->role !== 'dealer' || $partner->status !== 'active') {
             return [];

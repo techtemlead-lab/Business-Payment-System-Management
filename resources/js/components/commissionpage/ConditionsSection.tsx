@@ -9,7 +9,8 @@ import type { BuyerType, Condition, ConditionNumber } from './shared';
 type Translate = (key: string, replace?: Record<string, string | number>) => string;
 
 /** Targets that must stay above zero: a zero target would make everyone qualify (CommissionPolicy::TargetParameters). */
-const MUST_BE_ABOVE_ZERO = ['mo_target', 'bike_target', 'car_target'];
+const MUST_BE_ABOVE_ZERO = ['mo_target', 'bike_target', 'car_target', 'division_target', 'district_target', 'upazila_target', 'union_target',
+    'sub_dealer_royalty_target', 'tier1_volume', 'tier2_volume', 'tier3_volume'];
 /** Counts the engine wants at least one of (CommissionPolicy::validateSchedule). */
 const AT_LEAST_ONE = ['am_count', 'sm_count', 'me_count'];
 /** Award amounts may stay blank until the owner decides. */
@@ -23,6 +24,9 @@ function shown(entry: ConditionNumber, t: Translate): string {
     if (entry.unit === 'money') {
         // Whole takas read better without ".00".
         return /^d+.00$/.test(entry.value) ? `৳ ${number(entry.value)}` : money(entry.value);
+    }
+    if (entry.unit === 'percent') {
+        return `${number(entry.value)}%`;
     }
 
     return number(entry.value);
@@ -102,6 +106,9 @@ function numberProblem(entry: ConditionNumber, raw: string): string {
         }
 
         return MUST_BE_ABOVE_ZERO.includes(entry.param) && Number(value) === 0 ? 'err_above_zero' : '';
+    }
+    if (entry.unit === 'percent') {
+        return /^\d{1,3}(\.\d{1,2})?$/.test(value) && Number(value) <= 100 ? '' : 'err_number';
     }
     if (!/^\d{1,3}$/.test(value)) {
         return 'err_whole';

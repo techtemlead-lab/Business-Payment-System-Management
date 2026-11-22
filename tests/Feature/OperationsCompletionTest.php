@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionReversal;
 use App\Domain\Finance\FinancialReadiness;
@@ -233,13 +234,22 @@ class OperationsCompletionTest extends TestCase
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $area = User::factory()->inPlace($rangpur)->create();
         $buyer = User::factory()->inPlace($rangpur)->create();
+        // The target a share is held against is the dealer's one monthly target (a division dealer: the division target),
+        // written on the share when the order is posted.
+        $owner = User::factory()->staff('super_admin')->create();
+        app(CommissionPolicy::class)->update($owner, ['dealer_monthly_salary' => ['parameters' => ['division_target' => '100.00']]]);
         $assignment = AreaDealerAssignment::create(['user_id' => $area->id, 'level' => 'division', 'place_code_id' => $rangpur->id, 'division' => 'Rangpur', 'zone_name' => 'Rangpur', 'monthly_quota' => '100', 'is_active' => true]);
         $order = $this->postedOrder($buyer);
         $hold = CommissionAllocation::where('order_id', $order->id)->where('category', 'area_division')->firstOrFail();
+        $this->assertSame('100.00', (string) $hold->metadata['monthly_quota']);
         $url = '/api/v1/operations/holds/'.$hold->id.'/release';
         $this->actingAs($admin)->postJson($url, ['reason' => 'Review monthly area quota'])->assertUnprocessable();
         $assignment->update(['monthly_quota' => '1000']);
+        app(CommissionPolicy::class)->update($owner, ['dealer_monthly_salary' => ['parameters' => ['division_target' => '1000000.00']]]);
         $this->postedOrder($area);
+        // The target is met, but a share is decided once the month has ended.
+        $this->postJson($url, ['reason' => 'Original monthly quota achieved'])->assertUnprocessable()->assertJsonPath('errors.hold.0', __('portal.err_hold_month_open'));
+        $this->travelTo(now()->addMonthNoOverflow()->startOfMonth()->addDay());
         $this->postJson($url, ['reason' => 'Original monthly quota achieved'])->assertOk();
         $this->assertSame('available', $hold->fresh()->status);
     }
