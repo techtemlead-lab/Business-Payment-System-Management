@@ -694,12 +694,81 @@ function reportPageSeen() {
     }
 }
 
+/**
+ * Phones: long marketing cards and the footer link list fold up under their heading. The folding
+ * only switches on after this script ran (html.ref-fold-ready), so without JavaScript or on
+ * a wide screen everything stays open.
+ */
+function initMobileFolds() {
+    const phone = window.matchMedia('(max-width: 767px)');
+    const root = document.documentElement;
+    const toggles = [...document.querySelectorAll<HTMLElement>('[data-mobile-fold] > [data-fold-toggle]')];
+    if (!toggles.length) return;
+
+    const sync = () => {
+        root.classList.toggle('ref-fold-ready', phone.matches);
+        toggles.forEach((toggle) => {
+            if (phone.matches) {
+                toggle.setAttribute('role', 'button');
+                toggle.tabIndex = 0;
+                toggle.setAttribute('aria-expanded', toggle.parentElement?.classList.contains('is-open') ? 'true' : 'false');
+            } else {
+                toggle.removeAttribute('role');
+                toggle.removeAttribute('tabindex');
+                toggle.removeAttribute('aria-expanded');
+            }
+        });
+    };
+    const flip = (toggle: HTMLElement) => {
+        if (!phone.matches) return;
+        const open = toggle.parentElement?.classList.toggle('is-open') ?? false;
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    toggles.forEach((toggle) => {
+        toggle.addEventListener('click', () => flip(toggle));
+        toggle.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                flip(toggle);
+            }
+        });
+    });
+    phone.addEventListener('change', sync);
+    sync();
+}
+
+/** Phones: the product filter opens as a bottom sheet from the "Filter" button. */
+function initFilterSheet() {
+    const sheet = document.querySelector<HTMLElement>('[data-filter-sheet]');
+    const opener = document.querySelector<HTMLButtonElement>('[data-filter-sheet-open]');
+    if (!sheet || !opener) return;
+    const backdrop = document.querySelector<HTMLElement>('.ref-filter-backdrop');
+    const setOpen = (open: boolean) => {
+        sheet.classList.toggle('is-open', open);
+        document.body.classList.toggle('ref-filter-sheet-open', open);
+        opener.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (backdrop) backdrop.hidden = !open;
+        if (open) {
+            sheet.querySelector<HTMLElement>('input, button')?.focus({ preventScroll: true });
+        } else {
+            opener.focus({ preventScroll: true });
+        }
+    };
+    opener.addEventListener('click', () => setOpen(true));
+    document.querySelectorAll<HTMLElement>('[data-filter-sheet-close]').forEach((node) => node.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && sheet.classList.contains('is-open')) setOpen(false);
+    });
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initAnnouncementTickers();
         initScrollReveal();
         initFaqAccordions();
         initMdMessageToggles();
+        initMobileFolds();
+        initFilterSheet();
         bindLocaleSwitchForms();
         initPageProgressNavigation();
         prefetchLikelyNextPages();
@@ -710,6 +779,8 @@ if (document.readyState === 'loading') {
     initScrollReveal();
     initFaqAccordions();
     initMdMessageToggles();
+    initMobileFolds();
+    initFilterSheet();
     bindLocaleSwitchForms();
     initPageProgressNavigation();
     prefetchLikelyNextPages();

@@ -277,5 +277,15 @@
     @endif
 </section>
 @include('reference.partials.product-reviews')
+@php
+    $stickyPhone = trim((string) ($siteCustomization['contact_phone'] ?? ''));
+    $stickyWhatsapp = trim((string) ($siteCustomization['whatsapp_link'] ?? ''));
+@endphp
+@if($stickyPhone !== '' || $stickyWhatsapp !== '')
+<div class="ref-product-sticky" role="group" aria-label="{{ __('site.product_sticky_actions') }}">
+    @if($stickyPhone !== '')<a href="{{ \App\Support\SiteCustomization::phoneLink($stickyPhone) }}" class="is-call"><i class="fa-solid fa-phone" aria-hidden="true"></i><span>{{ __('site.contact_action_call') }}</span></a>@endif
+    @if($stickyWhatsapp !== '')<a href="{{ $stickyWhatsapp }}" class="is-chat" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>{{ __('site.contact_action_whatsapp') }}</span></a>@endif
+</div>
+@endif
 </main>
 @endsection

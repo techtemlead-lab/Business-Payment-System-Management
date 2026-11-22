@@ -1,0 +1,90 @@
+/*
+ * Owner and staff sign-in pages (company/auth.blade.php) at phone width (mobile fix round, 2026-11-22).
+ * Loaded through auth-motion.css, which these pages already load after dashboard.css.
+ * Only the show-password wrapper has a rule outside the phone query: it must not change the desktop layout.
+ */
+.company-pass-field {
+    display: contents;
+}
+.company-pass-toggle {
+    display: none;
+}
+
+@media (max-width: 767px) {
+    body.company-auth .company-auth-main {
+        padding-top: 20px;
+        padding-bottom: 24px;
+    }
+    body.company-auth .company-auth-toolbar {
+        gap: 8px;
+        align-items: center;
+    }
+    body.company-auth .company-auth-toolbar .theme-toggle,
+    body.company-auth .company-auth-toolbar .language-switcher button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    body.company-auth .company-auth-card {
+        padding: 24px 18px;
+    }
+    body.company-auth .company-auth-card > p {
+        font-size: 14px;
+        line-height: 1.7;
+    }
+    body.company-auth .company-auth-card .action-form label {
+        font-size: 15px;
+    }
+    body.company-auth .company-auth-card .action-form input:not([type="checkbox"]):not([type="radio"]) {
+        font-size: 16px;
+        min-height: 48px;
+    }
+    body.company-auth .company-auth-card .action-form > .button {
+        min-height: 52px;
+        font-size: 17px;
+    }
+    body.company-auth .company-pass-field {
+        position: relative;
+        display: block;
+    }
+    body.company-auth .company-pass-field input {
+        padding-right: 52px;
+    }
+    body.company-auth .company-pass-toggle {
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border: 0;
+        background: transparent;
+        color: #64748b;
+    }
+    body.company-auth .company-pass-toggle[aria-pressed="true"] {
+        color: #011627;
+    }
+    html[data-theme="dark"] body.company-auth .company-pass-toggle {
+        color: #9fb4c8;
+    }
+    /* Forgot-password and the cross-sign-in links: full-width rows, 48 px tall. */
+    body.company-auth .company-auth-help {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.4;
+        padding-top: 12px;
+        margin-top: 18px;
+        font-size: 0; /* hides the "·" separators between the links */
+    }
+    body.company-auth .company-auth-help a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        font-size: 15px;
+        font-weight: 600;
+    }
+    body.company-auth .company-auth-footer {
+        font-size: 13px;
+    }
+}

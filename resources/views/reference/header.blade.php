@@ -194,6 +194,11 @@
                 <span>{{ __('site.day_night_mode') }}</span>
             </button>
         </div>
+        <div class="ref-mobile-drawer-group ref-mobile-drawer-identity">
+            @if($showBismillah)<p class="ref-drawer-bismillah"@if(\App\Support\SiteChrome::isArabic($bismillahText)) lang="ar" dir="rtl"@endif>{{ $bismillahText }}</p>@endif
+            <p class="ref-drawer-legal">{{ __('site.top_bar_trade_licence') }}: <b>{{ \App\Support\LocalDigits::text(\App\Support\SiteFacts::tradeLicence()) }}</b></p>
+            <p class="ref-drawer-legal">{{ __('site.top_bar_trademark') }}: <b>{{ \App\Support\SiteFacts::trademarkNumber() }}</b></p>
+        </div>
         <div class="ref-mobile-drawer-group ref-mobile-drawer-auth-group">
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-drawer-btn ref-drawer-btn-primary">
