@@ -8,6 +8,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\RankRoyaltyFunds;
 use App\Domain\Finance\MonthCloseStatus;
 use App\Domain\Finance\RewardFundCheck;
 use App\Domain\Orders\OrderListFilter;
@@ -143,7 +144,7 @@ final class CommissionsSection implements WorkspaceSection
         $salaryPoolAllocations = CommissionAllocation::whereIn('category', ['dealer_monthly_salary_pool', 'sub_dealer_salary'])->where('metadata->period_month', $currentMonth)
             ->where('status', 'pending')
             ->get();
-        $rankPoolAllocations = CommissionAllocation::where('category', 'rank_royalty_pool')->where('metadata->period_month', $currentMonth)
+        $rankPoolAllocations = CommissionAllocation::whereIn('category', RankRoyaltyFunds::allCategories())->where('metadata->period_month', $currentMonth)
             ->where('status', 'pending')
             ->get();
         $maturing = CommissionAllocation::where('status', 'maturing')

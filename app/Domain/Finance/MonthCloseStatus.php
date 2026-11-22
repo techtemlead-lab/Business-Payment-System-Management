@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\RankRoyaltyFunds;
 use App\Support\LocalDigits;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -18,7 +19,8 @@ final class MonthCloseStatus
     /** @var array<string, list<string>> */
     public const KindCategories = [
         'salary' => ['dealer_monthly_salary_pool', 'sub_dealer_salary'],
-        'royalty' => ['rank_royalty_pool'],
+        // The four rank funds of newer orders and the single fund of older ones (RankRoyaltyFunds).
+        'royalty' => ['rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool'],
         // The sub-dealer extra kept in the old rank fund (orders whose extra went there) closes each month too.
         'additional_rank' => ['additional_rank_pool'],
     ];
@@ -78,7 +80,7 @@ final class MonthCloseStatus
      */
     private function monthRows(): array
     {
-        $kindSql = "CASE WHEN category = 'rank_royalty_pool' THEN 'royalty' WHEN category = 'additional_rank_pool' THEN 'additional_rank' ELSE 'salary' END";
+        $kindSql = 'CASE WHEN category IN ('.RankRoyaltyFunds::sqlList().") THEN 'royalty' WHEN category = 'additional_rank_pool' THEN 'additional_rank' ELSE 'salary' END";
 
         return DB::table('commission_allocations')
             ->whereIn('category', array_merge(...array_values(self::KindCategories)))

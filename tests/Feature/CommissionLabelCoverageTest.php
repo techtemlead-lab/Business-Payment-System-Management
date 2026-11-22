@@ -21,7 +21,7 @@ class CommissionLabelCoverageTest extends TestCase
     /** @var list<string> Commission allocation categories a ledger row, statement or report can carry. */
     public const Categories = [
         'own_dealer_cashback', 'direct_referral', 'd2d_gen2', 'd2d_gen3', 'area_division', 'area_district', 'area_upazila', 'area_union',
-        'area_management', 'dealer_monthly_salary_pool', 'sub_dealer_salary', 'rank_royalty_pool', 'rank_incentive_pool', 'company_marketing_fund',
+        'area_management', 'dealer_monthly_salary_pool', 'sub_dealer_salary', 'rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool', 'rank_incentive_pool', 'company_marketing_fund',
         'car_bike_incentive_fund', 'additional_rank_pool', 'sub_dealer_tour', 'sub_dealer_extra_fund', 'company_profit_fund', 'no_commission_to_company',
         'dealer_salary_settlement_reserve', 'sub_dealer_salary_settlement_reserve', 'rank_royalty_settlement_reserve',
         'direct_referral_breakage', 'd2d_gen2_breakage', 'd2d_gen3_breakage',
