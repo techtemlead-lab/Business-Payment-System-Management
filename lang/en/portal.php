@@ -6271,8 +6271,6 @@ return [
     'pp_salary_met' => 'Target met. You get a share of this month\'s salary.',
     'pp_salary_not_met' => 'Buy :left more by :end to get this month\'s salary.',
     'pp_salary_waived' => 'The office gave you salary without the purchase target.',
-    'pp_salary_estimate' => 'If the month ended today, you would get :share. (:division division fund: :pool · dealers sharing it: :people)',
-    'pp_salary_estimate_note' => 'This grows as more orders come in. The final amount is paid after the month ends.',
     'pp_salary_sub_how' => 'No minimum purchase. You get :rate% of every purchase that is paid and delivered. It is paid after the month ends.',
     'pp_salary_sub_bought' => 'Bought this month',
     'pp_salary_sub_earned' => 'Salary earned so far',
@@ -6954,7 +6952,6 @@ return [
     'pp_keep_target_how' => 'Buy at least :target yourself this month to get your rank\'s royalty share. It is paid after the month ends.',
     'report_area_nationwide' => 'All of Bangladesh',
     'pp_salary_dealer_nationwide_how' => 'Buy at least :target from the company this month (paid and delivered). Then the :rate% Dealer Acquisition Target Bonus fund of all of Bangladesh is shared equally among all dealers in the country who reached their own target.',
-    'pp_salary_estimate_nationwide' => 'If the month ended today, you would get :share. (Fund for all of Bangladesh: :pool · dealers sharing it: :people)',
     'retained_reason_unclaimed_national_salary' => 'No dealer in Bangladesh met his monthly target, so this salary went to company profit.',
     'retained_reason_rank_prize_surplus' => 'The rank prize fund had more than the prizes still waiting need, so this part went to company profit at the month close.',
     'status_voided' => 'Undone',
@@ -7011,4 +7008,5 @@ return [
     'acct_area_chain_incomplete' => 'Pick all four places: division, district, upazila / thana and union.',
     'event_account_area_chain_updated' => 'Partner area for the area commission changed',
     'event_site_website_url_normalised' => 'Website address in the site settings corrected',
+    'pp_salary_dealer_no_amount' => 'This bonus is shared equally at month end among all dealers in Bangladesh who meet their target. How many do is known only at month end, so the amount cannot be told before the month ends.',
 ];

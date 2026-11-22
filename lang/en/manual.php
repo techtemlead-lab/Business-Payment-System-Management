@@ -229,7 +229,7 @@ return [
     'my_progress_o2' => 'You can see whether your rank prize has been given or is still due.',
     'my_progress_t1' => 'Only orders that are paid and delivered are counted. Orders waiting for payment checking are not counted yet.',
     'my_progress_t2' => 'Open it once more before you place your last order of the month.',
-    'my_progress_w1' => 'The salary amount shown is only an estimate. The real amount is paid after the month ends.',
+    'my_progress_w1' => 'No Dealer Acquisition Target Bonus amount is shown before the month ends, because how many dealers share it is known only then. The Sub-dealer salary amount shown is only an estimate; the real amount is paid after the month ends.',
     'office_chat_badge' => 'Chat with the office',
     'office_chat_title' => 'Messages between partners and the office',
     'office_chat_summary' => 'Partners send messages and photos to the office. The owner decides which staff reply.',
