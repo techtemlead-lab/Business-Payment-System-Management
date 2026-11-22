@@ -5,6 +5,7 @@ import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, dateTime, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import OrderReturnsPanel, { ReturnsData } from '../components/OrderReturnsPanel';
 import OrderNumber from '../components/OrderNumber';
+import { ProofLink, proofKindOf } from '../components/ProofViewer';
 import { actionAllowed } from '../components/action-permissions';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
@@ -284,6 +285,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 <Table rows={claims} columns={[
                     { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method'), render: (r: Row) => { const raw = String(r.channel ?? ''); const key = `pay_channel_${raw.toLowerCase()}`; const text = translate('portal', key); return raw === '' ? '—' : (text !== key ? text : raw); } }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
                     { key: 'status', title: translate('portal', 'col_status'), render: claim => <Badge status={claim.status} /> }, { key: 'reason', title: translate('portal', 'review_note') },
+                    // Only the office checking payments may open the dealer's screenshot; the file route refuses anybody else.
+                    ...(capabilities.includes('finance') ? [{ key: 'proof', title: translate('portal', 'payment_proof_col'), render: (claim: Row) => claim.has_proof ? <ProofLink className="text-link" href={`/commands/operations/receipts/payment/${claim.id}`} kind={proofKindOf(claim.proof_mime)}>{translate('portal', 'payment_proof_view')}</ProofLink> : translate('portal', 'payment_proof_none') }] : []),
                 ]} />
                 {claims.every(claim => !['Office', 'Account'].includes(String(claim.channel))) && <p className="muted">{translate('portal', 'claim_not_verified_hint')}</p>}
                 {capabilities.includes('finance') && !canVerify && claims.some(claim => claim.status === 'pending') && <p className="notice">{translate('portal', 'payment_view_only_note')}</p>}

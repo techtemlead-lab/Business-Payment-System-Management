@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { ArrowUpRight } from 'lucide-react';
 import { Badge, channelLabel, dateTime, label, money, type Row } from './UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
+import { ProofLink, proofKindOf } from './ProofViewer';
 import { joined } from './treasury/format';
 import { orderDue, PartnerTypeCell } from './office/portalShared';
 import { useT } from '../shared/i18n/t';
@@ -48,7 +49,7 @@ export default function PaymentsQueue({ data, onReview, actions, picked, onPick 
                 <>
                     {channelLabel(row.channel, translate) || '—'}
                     {row.reference && <small className="cell-sub cell-nowrap" title={row.reference}>{row.reference}</small>}
-                    {row.has_proof && <small className="cell-sub"><a className="text-link" href={`/commands/operations/receipts/payment/${row.id}`} target="_blank" rel="noopener">{translate('portal', 'payment_proof_view')}</a></small>}
+                    {row.has_proof && <small className="cell-sub"><ProofLink className="text-link" href={`/commands/operations/receipts/payment/${row.id}`} kind={proofKindOf(row.proof_mime)}>{translate('portal', 'payment_proof_view')}</ProofLink></small>}
                 </>
             ),
         },
