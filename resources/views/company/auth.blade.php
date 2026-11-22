@@ -75,7 +75,7 @@
         <form class="action-form" method="post" action="{{ $mode==='login'?'/login':($mode==='forgot'?'/forgot-password':'/reset-password') }}">@csrf
             @if($mode==='reset')<input type="hidden" name="token" value="{{ $token }}">@endif
             <label>{{ $mode==='login'?__('auth_ui.email_or_phone'):__('auth_ui.email') }}<input type="{{ $mode==='login'?'text':'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email',$email??'') }}" placeholder="{{ $mode==='login'?__('auth_ui.email_or_phone_placeholder'):__('auth_ui.email_placeholder') }}"></label>
-            @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="8" @endif></label>@endif
+            @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<span class="company-pass-field"><input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="8" @endif><button type="button" class="company-pass-toggle" data-company-pass aria-label="{{ __('auth_ui.show_password') }}" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></span></label>@endif
             @if($mode==='reset')<label>{{ __('auth_ui.confirm_password') }}<input type="password" name="password_confirmation" required minlength="8" maxlength="200" autocomplete="new-password"></label><p class="muted">{{ __('auth_ui.password_rules') }}</p>@endif
             @if($mode === 'login' && app(\App\Domain\Auth\SignInGuard::class)->captchaRequired(request()))
                 @include('partials.login-captcha')
@@ -97,6 +97,17 @@
     </section>
     <p class="company-auth-footer">{{ \App\Support\SiteCustomization::brandName() }} · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
 </main>
+<script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
+document.querySelectorAll('[data-company-pass]').forEach(function (button) {
+    button.addEventListener('click', function () {
+        var input = button.parentElement && button.parentElement.querySelector('input');
+        if (!input) { return; }
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.setAttribute('aria-pressed', show ? 'true' : 'false');
+    });
+});
+</script>
 @include('partials.auth-ready')
 </body>
 </html>
