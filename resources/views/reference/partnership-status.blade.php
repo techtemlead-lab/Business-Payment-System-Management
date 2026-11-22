@@ -63,7 +63,7 @@
             </div>
             <div class="ref-field-group">
                 <span class="ref-field-label">{{ __('site.partner_date_of_birth') }}</span>
-                <div style="display:flex;gap:8px;">
+                <div class="ref-dob-row" style="display:flex;gap:8px;">
                     <select name="dob_day" aria-label="{{ __('joining.dob_day') }}" class="ref-input-control">
                         <option value="">{{ __('joining.dob_day') }}</option>
                         @for($d = 1; $d <= 31; $d++)<option value="{{ $d }}" @selected((int) $birthDay === $d)>{{ $d }}</option>@endfor
@@ -95,7 +95,7 @@
         </div>
         <div class="ref-field-group">
             <label for="status-phone" class="ref-field-label"><span>{{ __('site.mobile') }}</span></label>
-            <input id="status-phone" name="phone" type="tel" value="{{ old('phone', $application->phone_entered ?? '') }}" maxlength="30" placeholder="01XXXXXXXXX" class="ref-input-control">
+            <input id="status-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" value="{{ old('phone', $application->phone_entered ?? '') }}" maxlength="30" placeholder="01XXXXXXXXX" class="ref-input-control">
         </div>
         <button type="submit" class="ref-partner-submit-btn"><span>{{ __('joining.status_check') }}</span></button>
     </form>

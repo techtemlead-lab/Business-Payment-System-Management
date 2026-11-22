@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useForm, usePage } from '@inertiajs/react';
-import { FormErrors, date, label, money, number } from '../components/UI';
+import { DateInput, FormErrors, date, label, money, number } from '../components/UI';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../components/MoneyTable';
 import TreasuryPage from '../components/treasury/TreasuryPage';
+import { ProofLink } from '../components/ProofViewer';
 import { FundFigures, type FundCardData } from '../components/treasury/FundCard';
 import FundSpendForm, { FUNDS_COMMAND_ROOT, type FundSpendOptions } from '../components/treasury/FundSpendForm';
 import RewardLeaders, { VehiclePoolsPanel, type RewardAward, type RewardLeaderFigures, type RewardLeaderRow } from '../components/treasury/RewardLeaders';
@@ -98,7 +99,7 @@ export default function TreasuryFund({ card, view, table, spend, leaders, advanc
         { key: 'what', title: translate('treasury', 'col_for'), phone: 'title', render: (row) => <><b>{row.what}</b>{row.reference && <small className="cell-sub">{row.reference}</small>}</> },
         { key: 'to', title: translate('treasury', 'col_to'), phone: 'sub', render: (row) => row.to ?? '—' },
         { key: 'amount', title: translate('treasury', 'went_out'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
-        { key: 'receipt', title: translate('treasury', 'col_receipt'), phone: 'hide', render: (row) => (row.receipt_url ? <a className="text-link" href={row.receipt_url}>{translate('treasury', 'view')}</a> : '—') },
+        { key: 'receipt', title: translate('treasury', 'col_receipt'), phone: 'hide', render: (row) => (row.receipt_url ? <ProofLink className="text-link" href={row.receipt_url}>{translate('treasury', 'view')}</ProofLink> : '—') },
         // A paid spend whose money came back is corrected here; the server checks who may.
         ...(spend ? [{ key: 'correct', title: '', phone: 'hide' as const, render: (row: MoneyOutRow) => (/^s-\d+$/.test(String(row.id)) ? <ReverseSpend spendId={String(row.id).slice(2)} /> : null) }] : []),
     ];
@@ -161,7 +162,7 @@ function ReverseSpend({ spendId }: { spendId: string }) {
             form.post(`${FUNDS_COMMAND_ROOT}/spends/${spendId}/reverse`, { preserveScroll: true, onSuccess: () => setOpen(false) });
         }}>
             <small className="muted">{translate('funds', 'reverse_spend_hint')}</small>
-            <label>{translate('funds', 'reverse_returned_on')}<input type="date" required value={form.data.returned_on} onChange={(event) => form.setData('returned_on', event.target.value)} /></label>
+            <label>{translate('funds', 'reverse_returned_on')}<DateInput required value={form.data.returned_on} onChange={(event) => form.setData('returned_on', event.target.value)} /></label>
             <input aria-label={translate('funds', 'fld_reason')} placeholder={translate('funds', 'fld_reason')} required minLength={5} maxLength={1000} value={form.data.reason} onChange={(event) => form.setData('reason', event.target.value)} />
             <FormErrors errors={form.errors} />
             <div className="ops-row is-inline">

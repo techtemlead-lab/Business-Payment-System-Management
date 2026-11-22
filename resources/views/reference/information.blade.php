@@ -96,8 +96,18 @@
 @if($publicPageEnabled['partnership'] ?? true)
 <p class="ref-field-hint" style="margin:0 0 12px;"><i class="fa-solid fa-handshake" aria-hidden="true"></i> {{ __('joining.contact_partner_hint') }} <a href="/partnership#partner-apply"><b>{{ __('site.become_a_partner') }}</b></a></p>
 @endif
+@php
+    $quickPhone = \App\Support\SiteCustomization::phoneLink((string) ($siteCustomization['contact_phone'] ?? ''));
+    $quickWhatsapp = trim((string) ($siteCustomization['whatsapp_link'] ?? ''));
+    $quickEmail = trim((string) ($siteCustomization['contact_email'] ?? ''));
+@endphp
+<nav class="ref-contact-quick" aria-label="{{ __('site.contact_quick_actions') }}">
+    @if(filled($siteCustomization['contact_phone'] ?? null))<a href="{{ $quickPhone }}" class="is-call"><i class="fa-solid fa-phone" aria-hidden="true"></i><span>{{ __('site.contact_action_call') }}</span></a>@endif
+    @if($quickWhatsapp !== '')<a href="{{ $quickWhatsapp }}" class="is-chat" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>{{ __('site.contact_action_whatsapp') }}</span></a>@endif
+    @if($quickEmail !== '')<a href="mailto:{{ $quickEmail }}" class="is-mail"><i class="fa-solid fa-envelope" aria-hidden="true"></i><span>{{ __('site.contact_action_email') }}</span></a>@endif
+</nav>
 <div class="ref-contact-grid">
-    <section class="ref-content-card">
+    <section class="ref-content-card ref-contact-info-card">
         <h2>{{ $chrome('contact_company_title', $siteCustomization['contact_company_title'] ?? null) }}</h2>
         @if($content)<div class="ref-content-prose">{{ $content->body }}</div>@endif
         <div class="ref-contact-topic">
@@ -148,7 +158,7 @@
         <a href="/dealers" class="ref-primary-button ref-contact-dealers">{{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>
         @endif
     </section>
-    <section class="ref-content-card">
+    <section class="ref-content-card ref-contact-form-card">
         <h2>{{ $chrome('contact_form_title', $siteCustomization['contact_form_title'] ?? null) }}</h2>
         <div id="enquiry-status" class="ref-form-status">
             @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
@@ -157,9 +167,9 @@
         <form class="ref-form" action="/enquiries" method="post">
             @csrf
             <label for="enquiry-name">{{ $chrome('contact_form_name') }}</label>
-            <input id="enquiry-name" name="name" value="{{ old('name') }}" maxlength="150" required autocomplete="name">
+            <input id="enquiry-name" name="name" enterkeyhint="next" value="{{ old('name') }}" maxlength="150" required autocomplete="name">
             <label for="enquiry-phone">{{ $chrome('contact_form_phone') }}</label>
-            <input id="enquiry-phone" type="tel" name="phone" value="{{ old('phone') }}" maxlength="30" required autocomplete="tel">
+            <input id="enquiry-phone" type="tel" inputmode="tel" name="phone" value="{{ old('phone') }}" maxlength="30" required autocomplete="tel">
             <label for="enquiry-topic">{{ $chrome('contact_form_topic') }}</label>
             @php
                 $selectedTopic = old('topic', request('topic'));
@@ -298,13 +308,14 @@
     'lead' => $content->body ?? $chrome('partnership_hero_lead', $siteCustomization['partnership_hero_lead'] ?? null),
     'icon' => 'fa-handshake-angle',
 ])
+<a href="#partner-apply" class="ref-apply-sticky"><i class="fa-solid fa-handshake-angle" aria-hidden="true"></i><span>{{ __('site.partnership_apply_now') }}</span></a>
 <h2 class="ref-section-heading">{{ $chrome('partnership_why_title', $siteCustomization['partnership_why_title'] ?? null) }}</h2>
 <div class="ref-about-sections-grid is-four">
     @foreach([1,2,3,4] as $i)
-    <section class="ref-content-card">
+    <section class="ref-content-card" data-mobile-fold>
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-leaf','fa-clipboard-check','fa-laptop','fa-map-location-dot'][$i-1] }}" aria-hidden="true"></i></div>
-        <h2>{{ $chrome('partnership_benefit'.$i.'_title', $siteCustomization['partnership_benefit'.$i.'_title'] ?? null) }}</h2>
-        <p>{{ $chrome('partnership_benefit'.$i.'_desc', $siteCustomization['partnership_benefit'.$i.'_desc'] ?? null) }}</p>
+        <h2 data-fold-toggle>{{ $chrome('partnership_benefit'.$i.'_title', $siteCustomization['partnership_benefit'.$i.'_title'] ?? null) }}</h2>
+        <p data-fold-body>{{ $chrome('partnership_benefit'.$i.'_desc', $siteCustomization['partnership_benefit'.$i.'_desc'] ?? null) }}</p>
     </section>
     @endforeach
 </div>
@@ -313,10 +324,10 @@
     <p class="ref-eligible-lead">{{ $chrome('partnership_eligible_lead', $siteCustomization['partnership_eligible_lead'] ?? null) }}</p>
     <div class="ref-about-sections-grid is-four">
         @foreach([1, 2, 3, 4] as $i)
-        <section class="ref-content-card">
+        <section class="ref-content-card" data-mobile-fold>
             <div class="ref-about-icon"><i class="fa-solid {{ ['fa-user-doctor', 'fa-prescription-bottle-medical', 'fa-hospital', 'fa-kit-medical'][$i - 1] }}" aria-hidden="true"></i></div>
-            <h2>{{ $chrome('partnership_eligible'.$i.'_title', $siteCustomization['partnership_eligible'.$i.'_title'] ?? null) }}</h2>
-            <p>{{ $chrome('partnership_eligible'.$i.'_desc', $siteCustomization['partnership_eligible'.$i.'_desc'] ?? null) }}</p>
+            <h2 data-fold-toggle>{{ $chrome('partnership_eligible'.$i.'_title', $siteCustomization['partnership_eligible'.$i.'_title'] ?? null) }}</h2>
+            <p data-fold-body>{{ $chrome('partnership_eligible'.$i.'_desc', $siteCustomization['partnership_eligible'.$i.'_desc'] ?? null) }}</p>
         </section>
         @endforeach
     </div>
@@ -414,7 +425,7 @@
         @endphp
         <div class="ref-form-section">
             <div class="ref-section-header">
-                <span class="ref-section-num">1</span>
+                <span class="ref-section-num">{{ \App\Support\LocalDigits::text(1) }}</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('partner_profile.form_referrer_title') }}</h3>
                 </div>
@@ -437,7 +448,7 @@
         {{-- Section 1: Partnership Tier Selection --}}
         <div class="ref-form-section">
             <div class="ref-section-header">
-                <span class="ref-section-num">2</span>
+                <span class="ref-section-num">{{ \App\Support\LocalDigits::text(2) }}</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_tier') }}</h3>
                 </div>
@@ -482,7 +493,7 @@
         {{-- Section 2: Personal & Contact Information --}}
         <div class="ref-form-section">
             <div class="ref-section-header">
-                <span class="ref-section-num">3</span>
+                <span class="ref-section-num">{{ \App\Support\LocalDigits::text(3) }}</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_personal') }}</h3>
                 </div>
@@ -528,7 +539,7 @@
                 @endphp
                 <div class="ref-field-group">
                     <span class="ref-field-label"><span>{{ __('site.partner_date_of_birth') }} <span class="ref-req">*</span></span></span>
-                    <div style="display:flex;gap:8px;">
+                    <div class="ref-dob-row" style="display:flex;gap:8px;">
                         <select name="dob_day" aria-label="{{ __('joining.dob_day') }}" class="ref-input-control">
                             <option value="">{{ __('joining.dob_day') }}</option>
                             @for($d = 1; $d <= 31; $d++)<option value="{{ $d }}" @selected($birthDay === $d)>{{ $d }}</option>@endfor
@@ -567,7 +578,7 @@
         {{-- Section 3: Proposed Business Territory --}}
         <div class="ref-form-section">
             <div class="ref-section-header">
-                <span class="ref-section-num">4</span>
+                <span class="ref-section-num">{{ \App\Support\LocalDigits::text(4) }}</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_location') }}</h3>
                 </div>
@@ -598,7 +609,7 @@
         {{-- Section 4: Experience / Additional Notes --}}
         <div class="ref-form-section" style="border-bottom:0;padding-bottom:0;margin-bottom:0;">
             <div class="ref-section-header">
-                <span class="ref-section-num">5</span>
+                <span class="ref-section-num">{{ \App\Support\LocalDigits::text(5) }}</span>
                 <div>
                     <h3 class="ref-section-title">{{ __('site.partner_section_notes') }}</h3>
                 </div>

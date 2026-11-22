@@ -257,6 +257,9 @@
    sideways on phones (grid items default to their content width), and the order number heading
    squeezed beside the invoice buttons. */
 .app-shell .two-column>*{min-width:0}
+/* Order page: sent payments, delivery steps and "how the goods are received" side by side on wide screens. */
+.app-shell .two-column.is-three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1180px){.app-shell .two-column.is-three{grid-template-columns:1fr}}
 @media (max-width:640px){
   .app-shell .order-title{flex-direction:column;align-items:stretch;gap:12px;margin:16px 0}
   .app-shell .order-title h2{font-size:22px;line-height:1.25;overflow-wrap:anywhere}

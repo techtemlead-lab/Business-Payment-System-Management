@@ -83,7 +83,7 @@ return [
     'net_referrer_held' => 'Held for the referrer (not received yet)',
     'net_you_held' => 'Held for you (not received yet)',
     'salary_heading' => 'How your monthly salary was worked out',
-    'salary_paid' => ':month: your share is ৳:amount. The Dealer Acquisition Target Bonus fund was ৳:pool, shared equally by :sharers dealers.',
+    'salary_paid' => ':month: your share is ৳:amount. The Salary fund was ৳:pool, shared equally by :sharers dealers.',
     'salary_rule' => 'Rule: the salary is shared equally among all dealers in Bangladesh who met their own monthly target (yours: ৳:min).',
     'salary_none_low' => ':month: no purchase of ৳:min or more this month, so no salary.',
     'salary_none_other' => ':month: you got no salary this month. Please ask the office why.',

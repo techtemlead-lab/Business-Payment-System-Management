@@ -565,7 +565,19 @@ export default function AccountCreate({
         section?.querySelector<HTMLElement>('input:not([readonly]), select, textarea')?.focus({ preventScroll: true });
     };
 
-    const commissionLines = placePreview?.commission_places ?? [];
+    // The check works from the place code alone, so below the seat it lists the base places. The four
+    // places picked in the lists are where the area commission really goes, so they replace those rows.
+    const pickedAreaIds: Record<string, string> = {
+        division: form.data.area_division_id,
+        district: form.data.area_district_id,
+        upazila: form.data.area_upazila_id,
+        union: form.data.area_union_id,
+    };
+    const commissionLines = (placePreview?.commission_places ?? []).map((row: { level: string; code?: string | null; name?: string | null; rate?: string | null }) => {
+        const picked = pickedAreaIds[row.level] ? business.find(row.level as PlaceLevel, pickedAreaIds[row.level]) : undefined;
+
+        return picked ? { ...row, code: picked.code ?? row.code, name: picked.name || row.name } : row;
+    });
     const placeLevelTitle = (level: string) => translate('portal', ({ management: 'acct_level_management', division: 'acct_level_div', district: 'acct_level_dist', upazila: 'acct_level_upazila' } as Record<string, string>)[level] ?? 'acct_level_union');
     const typedReference = form.data.reference_code.trim() !== '';
     const referenceHint = !typedReference && management_referral?.enabled && management_referral.auto_blank_reference && management_referral.place_code
@@ -1014,6 +1026,13 @@ export default function AccountCreate({
                         <small className="acf-note">{translate('portal', 'acct_enter_moves')}</small>
                     </div>
                 </aside>
+                {/* Phone only (mobile-office.css): the submit button stays above the bottom bar with the progress beside it. */}
+                <div className="msec-savebar acf-savebar">
+                    <span>{localizeDigits(String(progressPercent))}% · {progressText}</span>
+                    <button type="submit" className="button dark" disabled={form.processing}>
+                        {form.processing ? translate('portal', 'acct_creating') : isPartner ? translate('portal', 'acct_submit_partner') : translate('portal', 'acct_submit_staff')}
+                    </button>
+                </div>
             </form>
             </div>
         </Shell>

@@ -74,7 +74,7 @@ return [
     'source_area_upazila' => 'এলাকা ডিলারের আয় · উপজেলা',
     'source_area_union' => 'এলাকা ডিলারের আয় · ইউনিয়ন / পৌরসভা',
     'source_area_management' => 'এলাকা ডিলারের আয় · ম্যানেজমেন্ট',
-    'source_dealer_monthly_salary_pool' => 'ডিলার একুইজিশন টার্গেট বোনাস',
+    'source_dealer_monthly_salary_pool' => 'স্যালারি',
     'source_rank_royalty_pool' => 'র‍্যাঙ্ক রয়্যালটি',
     'source_rank_incentive_pool' => 'র‍্যাঙ্কের একবারের পুরস্কার',
     'source_company_marketing_fund' => 'মার্কেটিং ফান্ড',

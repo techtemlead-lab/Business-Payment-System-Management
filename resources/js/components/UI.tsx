@@ -1,10 +1,11 @@
-import React,{useEffect,useMemo,useRef,useState} from 'react';
+import React,{useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
 import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Printer} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
 import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
 import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
+import {useKeyboardSafeSheet} from '../shared/useKeyboardSafeSheet';
 import DateInput from './DateInput';
 import {AutoSelect} from './SearchSelect';
 import FilterPicker, {wantsSearch} from './FilterChips';
@@ -239,6 +240,35 @@ export interface TableProps<T extends Row = any> {
  stickyHeader?: boolean;
  /** Column keys to keep on phones; the other columns move into a row that opens on tap. */
  phoneColumns?: string[];
+ /**
+  * On phones (767 px and below) every row becomes a stacked card: first column as the title, the money,
+  * status and a few more columns visible, the rest behind "Show more", row actions as full-width buttons.
+  * Set false for a table that must stay a table on phones. Tables that pass `phoneColumns` keep their own phone layout.
+  */
+ phoneCards?: boolean;
+}
+
+const PHONE_QUERY = '(max-width: 767px)';
+const PHONE_CARD_SLOTS = 3;
+/** Phone cards hide the per-table search box for short lists: three rows need no search. */
+const PHONE_SEARCH_MIN_ROWS = 8;
+
+function subscribePhone(onChange: () => void): () => void {
+ if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+  return () => undefined;
+ }
+ const media = window.matchMedia(PHONE_QUERY);
+ media.addEventListener('change', onChange);
+ return () => media.removeEventListener('change', onChange);
+}
+
+/** True on phone widths; always false on the server and where matchMedia is missing. */
+function useIsPhoneWidth(): boolean {
+ return useSyncExternalStore(
+  subscribePhone,
+  () => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches,
+  () => false,
+ );
 }
 
 const STICKY_HEADER_MIN_ROWS = 12;
@@ -283,6 +313,49 @@ function columnAlign(col: TableColumn<any>): 'left' | 'center' | 'right' {
 
 function isActionColumn(col: TableColumn<any>): boolean {
  return col.key === 'action' || col.key === 'actions' || columnHeading(col).trim() === '';
+}
+
+type PhoneCardPlan<T extends Row> = {
+ title: TableColumn<T>;
+ amount: TableColumn<T> | null;
+ lines: TableColumn<T>[];
+ extras: TableColumn<T>[];
+ actions: TableColumn<T>[];
+};
+
+/**
+ * Splits the columns for the phone card: first column is the title, the money column sits at the right,
+ * the status and the first other columns are the visible lines, the rest go behind "Show more".
+ * A single leftover column is shown instead of hiding it behind a toggle.
+ */
+function planPhoneCard<T extends Row>(columns: TableColumn<T>[]): PhoneCardPlan<T> | null {
+ const actions = columns.filter(isActionColumn);
+ const [title, ...rest] = columns.filter(c => !isActionColumn(c));
+ if (!title) {
+  return null;
+ }
+ const amount = rest.find(c => c.money || c.total) ?? null;
+ const status = rest.find(c => c !== amount && STATUS_COLUMN_KEYS.has(c.key)) ?? null;
+ const others = rest.filter(c => c !== amount && c !== status);
+ const slots = Math.max(0, PHONE_CARD_SLOTS - (amount ? 1 : 0) - (status ? 1 : 0));
+ const visible = new Set<TableColumn<T>>([...(status ? [status] : []), ...others.slice(0, slots)]);
+ let extras = others.slice(slots);
+ if (extras.length === 1) {
+  visible.add(extras[0]);
+  extras = [];
+ }
+ return { title, amount, lines: rest.filter(c => visible.has(c)), extras, actions };
+}
+
+function hasCellValue(node: React.ReactNode): boolean {
+ return !(node == null || node === false || node === '');
+}
+
+/** True when a tap landed on a control inside a card, so the card's own row click must stay quiet. */
+function tappedInnerControl(event: React.MouseEvent<HTMLElement>): boolean {
+ const target = event.target as HTMLElement | null;
+ const control = target?.closest('a,button,input,select,textarea,label,summary,[role="button"]');
+ return Boolean(control && event.currentTarget.contains(control) && control !== event.currentTarget);
 }
 
 function sumColumn<T extends Row>(rows: T[], col: TableColumn<T>): number {
@@ -483,8 +556,10 @@ export function Table<T extends Row = any>({
  printTitle,
  stickyHeader = true,
  phoneColumns,
+ phoneCards = true,
 }: TableProps<T>){
  const translate = useT();
+ const isPhone = useIsPhoneWidth();
  const list = rows ?? data ?? [];
  const emptyTitle = empty ?? emptyMessage;
  const [query, setQuery] = useState('');
@@ -499,6 +574,8 @@ export function Table<T extends Row = any>({
  const hasPhoneColumns = Boolean(phoneColumns?.length);
  const isPhoneExtra = (c: TableColumn<T>) => hasPhoneColumns && !phoneColumns!.includes(c.key);
  const extraPhoneColumns = columns.filter(isPhoneExtra);
+ const cardPlan = planPhoneCard(columns);
+ const showCards = isPhone && phoneCards && !hasPhoneColumns && cardPlan !== null;
  const toggleExpandedRow = (key: string) => setExpandedRows(current => {
   const next = new Set(current);
   if (!next.delete(key)) {
@@ -689,6 +766,75 @@ export function Table<T extends Row = any>({
   </tr>
  );
 
+ const cellNode = (c: TableColumn<T>, row: T, index: number): React.ReactNode => (c.render ? c.render(row, index) : String((row as any)[c.key] ?? '—'));
+ const sortableCardColumns = columns.filter(c => c.sortable ?? (c.key !== 'action' && c.key !== 'actions' && columnHeading(c).trim() !== ''));
+ const sortChoice = sortKey && sortDir ? `${sortKey}|${sortDir}` : '';
+ const changePhoneSort = (value: string) => {
+  const cut = value.lastIndexOf('|');
+  setCurrentPage(1);
+  if (cut < 0) {
+   setSortKey(defaultSortKey ?? null);
+   setSortDir(defaultSortDir ?? null);
+   return;
+  }
+  setSortKey(value.slice(0, cut));
+  setSortDir(value.slice(cut + 1) === 'desc' ? 'desc' : 'asc');
+ };
+
+ const cardBody = showCards && cardPlan ? pagedRows.map((r, i) => {
+  const rowKey = String((r as any).id ?? (r as any).row_key ?? i);
+  const expanded = expandedRows.has(rowKey);
+  const lines = cardPlan.lines.filter(c => hasCellValue(cellNode(c, r, i)));
+  return (
+   <li
+    key={rowKey}
+    className={['mt-card', 'table-card', onRowClick ? 'is-link' : '', rowClassName?.(r, i)].filter(Boolean).join(' ')}
+    style={rowStyle?.(r, i)}
+    onClick={onRowClick ? event => { if (!tappedInnerControl(event)) onRowClick(r, i); } : undefined}
+   >
+    <div className="mt-card-main">
+     <div className="mt-card-title" data-col={cardPlan.title.key}>{cellNode(cardPlan.title, r, i)}</div>
+     {lines.length > 0 && (
+      <div className="mt-card-lines">
+       {lines.map(c => (
+        <span key={c.key} data-col={c.key}>
+         {!STATUS_COLUMN_KEYS.has(c.key) && <span className="table-card-label">{columnHeading(c)}: </span>}
+         {cellNode(c, r, i)}
+        </span>
+       ))}
+      </div>
+     )}
+    </div>
+    {cardPlan.amount && <div className="mt-card-amount" data-col={cardPlan.amount.key}>{cellNode(cardPlan.amount, r, i)}</div>}
+    {cardPlan.extras.length > 0 && (
+     <div className="table-card-more">
+      <button type="button" className="table-card-toggle" aria-expanded={expanded} onClick={() => toggleExpandedRow(rowKey)}>
+       <span>{translate('website_admin', expanded ? 'table_show_less' : 'table_show_more')}</span>
+       {expanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+      </button>
+      {expanded && (
+       <dl>
+        {cardPlan.extras.map(c => (
+         <div key={c.key} data-col={c.key}>
+          <dt>{columnHeading(c)}</dt>
+          <dd>{cellNode(c, r, i)}</dd>
+         </div>
+        ))}
+       </dl>
+      )}
+     </div>
+    )}
+    {cardPlan.actions.length > 0 && (
+     <div className="table-card-actions">
+      {cardPlan.actions.map(c => <div key={c.key} data-col={c.key}>{cellNode(c, r, i)}</div>)}
+     </div>
+    )}
+   </li>
+  );
+ }) : null;
+ const cardTotals = showCards && hasFooter ? columns.filter(c => c.total || c.footer) : [];
+ const phoneEmpty = isPhone && pagedRows.length === 0;
+
  const showToolbar = tools || canExport || canPrint;
  const isPartnerPortal = ['dealer', 'subdealer'].includes(String(usePage<any>().props.portal));
  const sticky = stickyHeader && pagedRows.length > STICKY_HEADER_MIN_ROWS;
@@ -697,7 +843,7 @@ export function Table<T extends Row = any>({
   <div className="table-block">
    {showToolbar && (
     <div className="table-tools">
-     {tools && searchable && (
+     {tools && searchable && !(showCards && list.length < PHONE_SEARCH_MIN_ROWS) && (
       <input
        type="search"
        value={query}
@@ -741,6 +887,22 @@ export function Table<T extends Row = any>({
        <span>{translate('portal', 'clear')}</span>
       </button>
      )}
+     {tools && showCards && sortableCardColumns.length > 0 && !phoneEmpty && (
+      <select
+       className="table-phone-sort"
+       value={sortChoice}
+       onChange={event => changePhoneSort(event.target.value)}
+       aria-label={translate('portal', 'mt_sort')}
+      >
+       <option value="">{translate('portal', 'mt_sort')}</option>
+       {sortableCardColumns.map(c => (
+        <React.Fragment key={c.key}>
+         <option value={`${c.key}|asc`}>{columnHeading(c)}: {translate('portal', 'table_sort_asc')}</option>
+         <option value={`${c.key}|desc`}>{columnHeading(c)}: {translate('portal', 'table_sort_desc')}</option>
+        </React.Fragment>
+       ))}
+      </select>
+     )}
      {tools && extraTools}
      <span className="table-count-badge">{countLine}</span>
      {(canExport || canPrint) && (
@@ -761,12 +923,37 @@ export function Table<T extends Row = any>({
      )}
     </div>
    )}
-   {isOverflowing && (
+   {isOverflowing && !showCards && !phoneEmpty && (
     <p className="table-scroll-hint">
      <ArrowLeftRight size={14} aria-hidden="true" />
      <span>{translate('portal', 'table_scroll_hint')}</span>
     </p>
    )}
+   {phoneEmpty && (
+    <div className="table-empty-phone">
+     <Empty
+      title={list.length ? translate('portal', 'table_no_matches') : emptyTitle}
+      body={list.length ? translate('portal', 'table_no_matches_hint') : emptyBody}
+     />
+    </div>
+   )}
+   {showCards && !phoneEmpty && (
+    <ul className="mt-cards table-cards">
+     {cardBody}
+     {cardTotals.length > 0 && (
+      <li className="mt-card mt-card-total">
+       <div className="mt-card-title">{footerLabel}</div>
+       {cardTotals.map((c, index) => (
+        <div key={c.key} className="mt-card-total-line">
+         <span>{columnHeading(c)}</span>
+         <b>{footerCell(c, index + 1, -1)}</b>
+        </div>
+       ))}
+      </li>
+     )}
+    </ul>
+   )}
+   {!showCards && !phoneEmpty && (
    <div ref={scrollBox} className={`table-wrap${sticky ? ' is-sticky' : ''}${isOverflowing ? ' is-overflowing' : ''}`}>
     <table>
      <thead>
@@ -836,6 +1023,7 @@ export function Table<T extends Row = any>({
      )}
     </table>
    </div>
+   )}
    {activePageSize && totalPages > 1 && (
     <div className="table-client-pagination">
      <span>
@@ -990,6 +1178,8 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
  const [closing,setClosing]=useState(false);
  const onCloseRef=useRef(onClose);
  onCloseRef.current=onClose;
+ // Phones: the dialog is a bottom sheet (screens-confirm-sheet.css); keep it above the keyboard.
+ useKeyboardSafeSheet(ref);
  useEffect(()=>{
   const dialog=ref.current;
   // Remember who had focus before the dialog opens (showModal moves it), so closing returns there instead of to the page top.

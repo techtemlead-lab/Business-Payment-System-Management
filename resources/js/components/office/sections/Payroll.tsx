@@ -4,6 +4,7 @@ import { actionAllowed } from '../../action-permissions';
 import { Badge, Modal, Pagination, dateTime, label, money, type Row } from '../../UI';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import OfficePage from '../OfficePage';
+import { ProofLink } from '../../ProofViewer';
 import { businessMonth } from '../../../business-date';
 import { useT } from '../../../shared/i18n/t';
 import type { ReasonPlace } from '../../../shared/reasonFields';
@@ -169,7 +170,7 @@ export default function Payroll({ tables, staff, paymentAccounts, hub }: Payroll
                     onClose={() => setOpenedId(null)}
                     footer={openedActions.length > 0 || opened.has_receipt ? (
                         <>
-                            {opened.has_receipt && <a className="button" href={`${commandRoot}/receipts/payroll/${opened.id}`}>{translate('portal', 'ops_fld_private_evidence')}</a>}
+                            {opened.has_receipt && <ProofLink className="button" href={`${commandRoot}/receipts/payroll/${opened.id}`}>{translate('portal', 'ops_fld_private_evidence')}</ProofLink>}
                             {openedActions.map((action) => <button key={action.title} type="button" className="button dark" onClick={() => { setOpenedId(null); setDialog(action); }}>{action.title}</button>)}
                         </>
                     ) : undefined}

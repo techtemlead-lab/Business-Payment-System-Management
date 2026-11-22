@@ -45,16 +45,16 @@ export default function PartnerProfileCard({card}:{card:Row}){
   <h2>{c('profile_title')}</h2>
   <p className="muted">{c('profile_hint')}</p>
   <h3>{c('sec_person')}</h3>
-  <dl className="profile-grid" data-testid="profile-biodata">{personal.map(([key,value])=><div key={key}><dt>{key}</dt><dd>{value||c('not_given')}</dd></div>)}</dl>
+  <dl className="profile-grid" data-testid="profile-biodata">{personal.map(([key,value])=><div key={key} className={value?undefined:'is-empty'}><dt>{key}</dt><dd>{value||c('not_given')}</dd></div>)}</dl>
   <h3>{c('sec_appointment')}</h3>
-  <dl className="profile-grid">{identity.map(([key,value])=><div key={key}><dt>{key}</dt><dd>{key===p('card_status')?<Badge status={card.status}/>:value}</dd></div>)}</dl>
+  <dl className="profile-grid">{identity.map(([key,value])=><div key={key} className={value&&value!==none?undefined:'is-empty'}><dt>{key}</dt><dd>{key===p('card_status')?<Badge status={card.status}/>:value}</dd></div>)}</dl>
 
   {/* Where the person lives, then where he does business: two separate places. */}
   <h3>{c('label_permanent_address')}</h3>
-  <dl className="profile-grid">{(['division','district','upazila','union','village','post_office'] as const).map(field=><div key={field}><dt>{p(`card_${field}`)}</dt><dd>{home[field]||none}</dd></div>)}</dl>
+  <dl className="profile-grid">{(['division','district','upazila','union','village','post_office'] as const).map(field=><div key={field} className={home[field]?undefined:'is-empty'}><dt>{p(`card_${field}`)}</dt><dd>{home[field]||none}</dd></div>)}</dl>
 
   <h3>{c('label_business_area')}</h3>
-  <dl className="profile-grid">{(['division','district','upazila','union'] as const).map(field=><div key={field}><dt>{p(`card_${field}`)}</dt><dd>{address[field]||none}</dd></div>)}</dl>
+  <dl className="profile-grid">{(['division','district','upazila','union'] as const).map(field=><div key={field} className={address[field]?undefined:'is-empty'}><dt>{p(`card_${field}`)}</dt><dd>{address[field]||none}</dd></div>)}</dl>
   {missing.length>0&&<div className="notice"><div><p>{p('card_address_missing',{fields:missing.join('، ')})}</p></div></div>}
 
   <h3>{p('card_referred_by')}</h3>

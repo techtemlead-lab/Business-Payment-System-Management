@@ -7,6 +7,8 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\ProofFile;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -253,10 +255,10 @@ final class PartnerKycDocuments
     }
 
     /**
-     * Streams one ID paper to staff. Every opening is written to the audit log so the
+     * Sends one ID paper to staff, to open in the browser or to save. Every opening is written to the audit log so the
      * owner can see who looked at a partner's identity documents and when.
      */
-    public function download(User $actor, User $partner, string $documentId): StreamedResponse
+    public function download(User $actor, User $partner, string $documentId, Request $request): StreamedResponse
     {
         $row = DB::table('kyc_documents')
             ->where('id', $documentId)
@@ -269,14 +271,7 @@ final class PartnerKycDocuments
             'kind' => $row->kind,
         ]);
 
-        return Storage::disk('local')->download(
-            $row->disk_path,
-            $row->original_name,
-            [
-                'Content-Type' => $row->mime,
-                'Cache-Control' => 'private, no-store',
-                'X-Content-Type-Options' => 'nosniff',
-            ],
-        );
+        // A picture or PDF opens in the browser (a pop-up or a new tab on the page); ?download=1 saves it.
+        return ProofFile::response($request, $row->disk_path, $row->original_name, ['Content-Type' => (string) $row->mime]);
     }
 }

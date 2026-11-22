@@ -4,8 +4,10 @@ namespace App\Domain\Notifications;
 
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Integrations\SmtpMailConfig;
+use App\Mail\EventNoticeMail;
 use App\Models\User;
 use App\Support\PortalHost;
+use App\Support\RedactedError;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -23,6 +25,47 @@ final class AccountCreatedSms
     public function send(User $user, string $plainPassword): bool
     {
         return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account.created', true);
+    }
+
+    /**
+     * The "your account is ready" email, carrying the username and the first password (client, 2026-11-22).
+     * It leaves at once and is not queued, so the password never sits in the job table. Not sent when the
+     * person has no real address or no real mail service is set up; the caller then falls back to the
+     * plain notice. Never throws: a mail problem must not undo a created account.
+     */
+    public function sendWelcomeEmail(User $user, string $plainPassword): bool
+    {
+        if (! PartnerEventEmail::isRealAddress($user->email)) {
+            return false;
+        }
+        $address = trim((string) $user->email);
+        try {
+            $this->smtp->apply();
+            Mail::purge();
+            if (! PartnerEventEmail::realMailConfigured()) {
+                return false;
+            }
+            $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
+            $locale = $this->localeFor($user);
+            $portalUrl = PortalHost::url(PortalHost::forUser($user), '/');
+            Mail::to($address)->send(new EventNoticeMail(
+                noticeTitle: (string) __('event_emails.account_created_title', [], $locale),
+                noticeBody: (string) __('event_emails.account_created_credentials_body', [
+                    'username' => $phone !== '' ? $phone : $address,
+                    'password' => $plainPassword,
+                ], $locale),
+                recipientName: (string) $user->name,
+                portalUrl: $portalUrl,
+                language: $locale,
+            ));
+            Log::info('account.created.mail.welcome', ['user_id' => $user->id, 'email' => $address, 'password_delivered' => true]);
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::warning('account.created.mail.welcome_failed', ['user_id' => $user->id, 'error' => RedactedError::message($exception)]);
+
+            return false;
+        }
     }
 
     public function sendPasswordReset(User $user, string $plainPassword): bool

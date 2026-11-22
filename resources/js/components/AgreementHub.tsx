@@ -5,6 +5,7 @@ import { Badge, Empty, FormErrors, Modal, Pagination, Table, dateTime, label, ty
 import OfficePage from './office/OfficePage';
 import { bilingualBox } from '../shared/banglaFill/pair';
 import { useT } from '../shared/i18n/t';
+import { useIsPhone } from '../shared/useIsPhone';
 
 type Language = 'bn' | 'en';
 
@@ -49,11 +50,34 @@ export default function AgreementHub({ agreement }: { agreement?: PartnerAgreeme
     return agreement.mode === 'partner' ? <PartnerAgreementView agreement={agreement} /> : <OfficeAgreementView agreement={agreement} />;
 }
 
+type Clause = { title: string; text: string };
+
+/** Splits "১। Title" style numbered clauses; returns null when the text has no clear numbering (it then stays one block). */
+function splitClauses(body: string): { intro: string; clauses: Clause[] } | null {
+    const start = /^\s*[0-9০-৯]{1,2}\s*[.।)]\s*\S/;
+    const intro: string[] = [];
+    const clauses: Clause[] = [];
+    for (const line of body.split(/\r?\n/)) {
+        if (start.test(line)) {
+            clauses.push({ title: line.trim(), text: '' });
+        } else if (clauses.length === 0) {
+            intro.push(line);
+        } else {
+            clauses[clauses.length - 1].text += `${line}\n`;
+        }
+    }
+
+    return clauses.length >= 3 ? { intro: intro.join('\n').trim(), clauses: clauses.map(clause => ({ ...clause, text: clause.text.trim() })) } : null;
+}
+
 /** The agreement text in one language, with a button to read it in the other. */
 function AgreementText({ version, initialLanguage }: { version: AgreementVersion; initialLanguage: Language }) {
     const translate = useT();
     const [language, setLanguage] = useState<Language>(initialLanguage);
     const other: Language = language === 'bn' ? 'en' : 'bn';
+    const body = language === 'en' ? version.body_en : version.body_bn;
+    const isPhone = useIsPhone();
+    const parts = isPhone ? splitClauses(body) : null;
 
     return (
         <>
@@ -65,9 +89,23 @@ function AgreementText({ version, initialLanguage }: { version: AgreementVersion
                     {translate('portal', other === 'en' ? 'agr_read_in_english' : 'agr_read_in_bangla')}
                 </button>
             </div>
-            <article className="agr-text" lang={language} tabIndex={0}>
-                {language === 'en' ? version.body_en : version.body_bn}
-            </article>
+            {!parts && (
+                <article className="agr-text" lang={language} tabIndex={0}>
+                    {body}
+                </article>
+            )}
+            {parts && (
+                // Phone only (the stylesheet hides it elsewhere): each clause opens on tap, so a reader can jump around.
+                <div className="agr-clauses" lang={language}>
+                    {parts.intro && <p className="agr-intro">{parts.intro}</p>}
+                    {parts.clauses.map(clause => (
+                        <details key={clause.title} className="agr-clause">
+                            <summary>{clause.title}</summary>
+                            {clause.text && <div className="agr-clause-text">{clause.text}</div>}
+                        </details>
+                    ))}
+                </div>
+            )}
         </>
     );
 }

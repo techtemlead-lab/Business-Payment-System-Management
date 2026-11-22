@@ -74,7 +74,7 @@ return [
     'source_area_upazila' => 'Area Dealer Income · Upazila',
     'source_area_union' => 'Area Dealer Income · Union / Pourashava',
     'source_area_management' => 'Area Dealer Income · Management',
-    'source_dealer_monthly_salary_pool' => 'Dealer Acquisition Target Bonus',
+    'source_dealer_monthly_salary_pool' => 'Salary',
     'source_rank_royalty_pool' => 'Rank Royalty',
     'source_rank_incentive_pool' => 'One-time Rank Prize',
     'source_company_marketing_fund' => 'Marketing Fund',

@@ -75,6 +75,8 @@ export default function ConditionsSection({ conditions, canEdit, mode, onMode, o
                 </div>
                 <BuyerSwitch value={mode} onChange={onMode} label={t('switch_label')} />
             </div>
+            {/* Phone only (mobile-office.css): the same switch stays pinned while the list scrolls, so you always know which side you read. */}
+            <div className="cp-mode-sticky"><BuyerSwitch value={mode} onChange={onMode} label={t('switch_label')} /></div>
             {list.length === 0 ? <p className="cp-empty">{t('cond_empty')}</p> : (
                 <ul className="cp-conds">
                     {list.map((condition) => (

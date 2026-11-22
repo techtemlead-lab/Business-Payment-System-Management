@@ -74,7 +74,7 @@ final class CommissionPolicy
                 'held_share_months' => 3]],
             // One monthly target per dealer by the kind of dealer (owner, 2026-11-21); it unlocks the salary, the rank
             // royalty and the area income of that month. min_monthly_volume is the target of a dealer with no area yet.
-            'dealer_monthly_salary' => ['salary', 'Dealer Acquisition Target Bonus', '2.00', ['min_monthly_volume' => '30000.00',
+            'dealer_monthly_salary' => ['salary', 'Salary', '2.00', ['min_monthly_volume' => '30000.00',
                 'division_target' => '100000.00', 'district_target' => '100000.00', 'upazila_target' => '50000.00', 'union_target' => '30000.00']],
             'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '500000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00',
                 'sub_dealer_royalty_target' => '30000.00']],

@@ -872,11 +872,17 @@ final class CommissionSettlement
         }
     }
 
-    private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
+    /** The record of what one fund row paid a partner (refunds and reversals work from these rows); no money moves here. */
+    private function recordPayout(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind): void
     {
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
             'refunded_basis' => DB::table('commission_batches')->where('order_id', $fund->order_id)->value('refunded_amount') ?? '0.00',
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    /** The wallet side of a payout: one journal entry and one wallet credit, so one line in the partner's statement. */
+    private function creditPayout(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
+    {
         $partner = $payee ?? User::find($userId);
         $locale = $partner?->preferredLocale() ?? app()->getLocale();
         $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
@@ -1022,12 +1028,15 @@ final class CommissionSettlement
             }
             $remaining = $amount;
             $sources = [];
+            $firstFund = null;
             foreach ($funds as $fund) {
                 $used = Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'));
                 $left = self::incentiveLeft($fund);
                 $take = min($remaining, $left);
                 if ($take > 0) {
-                    $this->pay($fund, $userId, $take, $period, 'rank_'.$awardRank);
+                    // Each fund row keeps its own payout record, but the partner gets the whole prize as ONE wallet credit below.
+                    $this->recordPayout($fund, $userId, $take, $period, 'rank_'.$awardRank);
+                    $firstFund ??= $fund;
                     $sources[$fund->id] = Money::decimal($take);
                     $fund->update(['status' => $take === $left ? 'settled' : 'partially_settled',
                         'metadata' => [...$fund->metadata, 'incentive_consumed' => Money::decimal($used + $take)]]);
@@ -1036,6 +1045,9 @@ final class CommissionSettlement
                 if ($remaining === 0) {
                     break;
                 }
+            }
+            if ($firstFund instanceof CommissionAllocation) {
+                $this->creditPayout($firstFund, $userId, $amount, $period, 'rank_'.$awardRank, $user);
             }
             $locale = $user->preferredLocale();
             Audit::notice(

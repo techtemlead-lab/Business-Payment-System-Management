@@ -4,7 +4,6 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
-use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\DealerKinds;
 use App\Domain\Commissions\MonthlyTargets;
 use App\Domain\Finance\Percentage;
@@ -23,9 +22,10 @@ use Illuminate\Support\Facades\DB;
  * and its one-time award, the bike and car rewards and (for sub-dealers) the tour fund.
  *
  * Every figure comes from the code that later pays the money: monthly volume and rank-keeping from
- * CommissionQualification, the salary estimate from CommissionSettlement::salaryPlan(), bike and car
- * from CommissionQualification::milestone(), the tour balance from ReserveService. Every target is
- * read from the live commission rules, so changing a rule changes the pop-up at once.
+ * CommissionQualification, bike and car from CommissionQualification::milestone(), the tour balance from
+ * ReserveService. Every target is read from the live commission rules, so changing a rule changes the pop-up at once.
+ * A dealer's Salary has no amount here: it is shared equally among all qualifying dealers of
+ * the country at month end, so no figure is honest before then (owner's rule of 2026-11-22).
  */
 final class PartnerProgress
 {
@@ -38,7 +38,6 @@ final class PartnerProgress
     public function __construct(
         private CommissionQualification $qualification,
         private CommissionPolicy $policy,
-        private CommissionSettlement $settlement,
         private ReserveService $reserves,
     ) {}
 
@@ -71,7 +70,7 @@ final class PartnerProgress
                 'days_left' => max(1, (int) $today->diffInDays($end)),
             ],
             'salary' => match (true) {
-                $isDealer => $this->dealerSalary($user, $rules, $month, $monthlyVolume),
+                $isDealer => $this->dealerSalary($user, $rules, $monthlyVolume),
                 $showSubDealerFunds => $this->subDealerSalary($user, $rules, $month, $monthlyVolume),
                 default => null,
             },
@@ -92,7 +91,7 @@ final class PartnerProgress
      * @param  array<string, array<string, mixed>>  $rules
      * @return array<string, mixed>
      */
-    private function dealerSalary(User $user, array $rules, string $month, int $monthlyVolume): array
+    private function dealerSalary(User $user, array $rules, int $monthlyVolume): array
     {
         $isOn = CommissionPolicy::rate($rules, 'dealer_monthly_salary')->basisPoints > 0;
         // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
@@ -100,26 +99,6 @@ final class PartnerProgress
         $target = MonthlyTargets::dealerTarget($rules, $kind);
         $isWaived = PartnerBenefitControls::waivesSalaryVolume($user);
         $isMet = $isWaived || $monthlyVolume >= $target;
-        $estimate = null;
-        if ($isOn && $isMet) {
-            $plan = $this->settlement->salaryPlan($month);
-            $mine = collect($plan['dealers'])->firstWhere('user_id', (int) $user->id);
-            // The dealer's division row is found by its place code id, never by its name.
-            $division = match (true) {
-                $mine === null => null,
-                // One salary fund for all of Bangladesh (owner's rule of 2026-11-21).
-                $mine['nationwide'] => collect($plan['divisions'])->firstWhere('nationwide', true),
-                $mine['division_id'] !== null => collect($plan['divisions'])->firstWhere('division_id', $mine['division_id']),
-                default => null,
-            };
-            $estimate = [
-                'nationwide' => (bool) ($mine['nationwide'] ?? false),
-                'share' => $mine['share'] ?? '0.00',
-                'division' => $mine['division'] ?? null,
-                'division_pool' => $division['pool'] ?? '0.00',
-                'qualifiers' => (int) ($division['qualifiers'] ?? 0),
-            ];
-        }
 
         return [
             'kind' => 'dealer_pool',
@@ -133,7 +112,6 @@ final class PartnerProgress
             'dealer_kind' => $kind,
             'nationwide' => MonthlyTargets::usesMonthlyTargets($rules),
             ...$this->moneyBar($monthlyVolume, $target),
-            'estimate' => $estimate,
         ];
     }
 

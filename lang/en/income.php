@@ -35,4 +35,6 @@ return [
     'pdf_all_time' => 'From the start until now',
     'pdf_total' => 'Total (:count times)',
     'pdf_generated' => 'Generated :when',
+    'zero_show' => 'Also show heads with zero (:count)',
+    'zero_hide' => 'Hide heads with zero',
 ];

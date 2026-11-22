@@ -4,6 +4,7 @@ import OfficePage from '../OfficePage';
 import { actionAllowed } from '../../action-permissions';
 import { Badge, Modal, Pagination, Table, date, dateTime, label, type Row } from '../../UI';
 import Figures from '../Figures';
+import { ProofLink } from '../../ProofViewer';
 import { useT } from '../../../shared/i18n/t';
 import SettingsForm, { settingsBack, type SettingsAction, type SettingsField } from './SettingsForm';
 import StaleHoldingsPanel, { type StaleHoldingsReport } from './StaleHoldingsPanel';
@@ -124,7 +125,7 @@ export default function FinancialReadiness({ readiness, deploymentStatus, startu
                                 return (
                                     <div className="ops-row is-wrap">
                                         {action && actionAllowed(action.action, staffActions) && <button type="button" className="button small" onClick={() => setSelected(action)}>{action.title}</button>}
-                                        {!row.fresh_start && <a className="button small" href={`${root}/receipts/opening/${row.id}`}>{translate('portal', 'ops_fld_private_evidence')}</a>}
+                                        {!row.fresh_start && <ProofLink className="button small" href={`${root}/receipts/opening/${row.id}`}>{translate('portal', 'ops_fld_private_evidence')}</ProofLink>}
                                     </div>
                                 );
                             } },

@@ -26,4 +26,8 @@ return [
     'over_confirm_hint' => 'Back-order goods are sent only when they arrive. You may have to wait even if you have paid.',
     'reorder_more' => ':count more products',
     'reorder_total' => 'Total :amount',
+    'mobile_more_show' => 'Show earlier orders and running schemes',
+    'mobile_more_hide' => 'Hide earlier orders and schemes',
+    'mobile_total' => 'Total to pay',
+    'mobile_send' => 'Send order',
 ];

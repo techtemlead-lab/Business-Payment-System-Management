@@ -99,7 +99,7 @@ class PartnerCodeIsReferCodeTest extends TestCase
         $this->submit($this->partnerForm(['place_code' => 'MNHC102', 'reference_code' => 'D-SPONSOR']))->assertSessionHasNoErrors();
         $this->assertSame($dealer->id, $this->created()->sponsor_id);
 
-        $this->submit($this->partnerForm(['place_code' => 'MNHC101', 'reference_code' => 'S-SPONSOR', 'phone' => '01712345679', 'email' => 'second@example.test']))->assertSessionHasNoErrors();
+        $this->submit($this->partnerForm(['place_code' => 'MNHC101', 'reference_code' => 'S-SPONSOR', 'phone' => '01712345679', 'birth_certificate_number' => '19901234567890124', 'email' => 'second@example.test']))->assertSessionHasNoErrors();
         $this->assertSame($subDealer->id, User::query()->where('email', 'second@example.test')->firstOrFail()->sponsor_id);
     }
 

@@ -248,6 +248,8 @@ export default function Shell({ section, children, action }: { section: string; 
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         sidebar.current?.querySelector<HTMLElement>('a')?.focus();
+        // On a phone the menu list is long: show the page the person is on, not the top of the list.
+        sidebar.current?.querySelector<HTMLElement>('a.selected')?.scrollIntoView({ block: 'center' });
         const keydown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') setOpen(false);
             if (event.key === 'Tab') {
@@ -533,6 +535,14 @@ export default function Shell({ section, children, action }: { section: string; 
             ? translate('portal', 'catalog_staff_hint')
             : sectionHint(headingItem));
 
+    /** The phone bottom bar has room for one short word: a row may bring its own short name, else its menu name. */
+    const bottomLabel = (item: string): string => {
+        const key = `bottom_${item.split('@')[0].replaceAll('-', '_')}`;
+        const short = translate('portal', key);
+
+        return short !== key ? short : sectionLabel(item);
+    };
+
     const signOut = () => {
         setProfileOpen(false);
         router.post('/logout');
@@ -568,6 +578,16 @@ export default function Shell({ section, children, action }: { section: string; 
                     <img src={siteBrand?.logo || '/madina-header-logo.png?v=10'} alt="" />
                     <span className="sidebar-logo-mark" aria-hidden="true">MNHC</span>
                 </a>
+                {/* Phones only (screens-mobile-chrome.css): who is signed in, and the branch picker that left the top bar. */}
+                <div className="sidebar-user">
+                    <b>{user.name}</b>
+                    <span>{auth.customRoleName || label(user.role, translate)}</span>
+                </div>
+                {staff && workspaceBranches?.branches?.length > 0 && (
+                    <div className="sidebar-branch">
+                        <BranchWorkspaceSelect branches={workspaceBranches} />
+                    </div>
+                )}
                 {!staff && <PartnerSignOut variant="drawer" />}
                 <div className="workspace-label">
                     <span className="live-dot" />
@@ -675,6 +695,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         </button>
                         <span>{hubLabel}</span>
                         {currentSectionTitle !== hubLabel && <><span>/</span><b>{currentSectionTitle}</b></>}
+                        <strong className="workspace-phone-title">{currentSectionTitle}</strong>
                     </div>
                     {!staff && <PartnerProductSearch />}
                     {staff && workspaceBranches?.branches?.length > 0 && (
@@ -737,6 +758,11 @@ export default function Shell({ section, children, action }: { section: string; 
                             </button>
                             {profileOpen && (
                                 <div className="profile-menu-panel" role="menu">
+                                    {/* Phones only: the language and (office) text-size buttons left the top bar. */}
+                                    <div className="profile-menu-phone-tools">
+                                        <LanguageSwitcher />
+                                        {staff && <TextSizeToggle />}
+                                    </div>
                                     <div className="profile-menu-theme">
                                         <ThemeToggle />
                                     </div>
@@ -851,7 +877,7 @@ export default function Shell({ section, children, action }: { section: string; 
                             return (
                                 <Link key={item} href={sectionHref(base, item)} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined}>
                                     <Icon size={20} />
-                                    {sectionLabel(item)}
+                                    {bottomLabel(item)}
                                 </Link>
                             );
                         })}

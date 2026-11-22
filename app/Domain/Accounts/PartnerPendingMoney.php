@@ -4,7 +4,6 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
-use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\MonthlyTargets;
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\Percentage;
@@ -13,7 +12,6 @@ use App\Models\DealerRank;
 use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,35 +20,41 @@ use Illuminate\Support\Facades\DB;
  *
  *  - an area share held because the area target is not met (allocation held, reason "quota"),
  *  - a sub-dealer's salary set aside for the month (allocation pending, paid when the month closes),
- *  - a dealer's salary share, worked out with the same rules as the month close (an estimate).
+ *  - a dealer's Salary (the nationwide `dealer_monthly_salary_pool`): a line with NO amount.
+ *    The fund is shared equally among every dealer of the country who meets the target, and that number changes until
+ *    the last day, so no figure is shown before the month closes (owner's rule of 2026-11-22).
  *
- * None of it is in the wallet, so it can be neither withdrawn nor used to pay an order. Rank,
- * reward, car, bike, royalty and tour money is never counted in the total; prizes already earned but not yet
- * paid (rank prize, bike, car) are listed apart under `rewards`. What the month-end close does
- * with it (pay it, or send an unearned share to the company profit fund) is unchanged.
+ * Rank royalty, the dealer's bonus and the area shares of new orders are decided together on the month-end day, so they
+ * are listed together under `month_end`; area shares of older orders (released as soon as the target is met) stay under
+ * `lines`. None of it is in the wallet, so it can be neither withdrawn nor used to pay an order. Rank, reward, car, bike,
+ * royalty and tour money is never counted in the total, nor is the dealer's bonus; prizes already earned but not yet
+ * paid (rank prize, bike, car) are listed apart under `rewards`. What the month-end close does with it (pay it, or send
+ * an unearned share to the company profit fund) is unchanged.
  */
 final class PartnerPendingMoney
 {
-    /** Seconds the dealers' salary shares of one month are kept, so a busy page does not recompute the plan. */
-    private const SalaryShareSeconds = 60;
-
-    public function __construct(private CommissionQualification $qualification, private CommissionSettlement $settlement, private PartnerRewardsWaiting $rewards) {}
+    public function __construct(private CommissionQualification $qualification, private PartnerRewardsWaiting $rewards) {}
 
     /**
      * @param  array{rules?: array<string, array<string, mixed>>, rank?: ?DealerRank, milestones?: Collection<string, RewardMilestoneProgress>}  $rewardContext  what the caller already holds, so the prize lines read nothing twice
      * @return array{
+     *   role: string,
      *   total: string,
      *   count: int,
+     *   more: int,
      *   has_estimate: bool,
      *   awaiting_close: list<array{month: string, amount: string}>,
      *   lines: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>,
+     *   month_end: list<array{id: string, head: string, what: string, month: string, amount: ?string, order_number: ?string, reason: string, estimate: bool}>,
      *   paid: list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string}>,
      *   rewards: list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>
      * }
      */
     public function for(User $partner, int $limit = 20, bool $withPaid = true, array $rewardContext = []): array
     {
-        $area = $this->areaLines($partner, $limit);
+        // Area income belongs to dealers only: a sub-dealer is never seated, so he reads and sees no area line.
+        $isDealer = $partner->role === 'dealer';
+        $area = $isDealer ? $this->areaLines($partner, $limit) : ['total' => 0, 'count' => 0, 'closed' => 0, 'lines' => []];
         $awaiting = [];
         // A share of a month that has ended without the target is already lost; it only waits for the month close to
         // move it. It is shown as not received, never as pending again.
@@ -62,18 +66,30 @@ final class PartnerPendingMoney
             }
         }
         $salary = $this->salaryLines($partner);
-        $lines = [...$area['lines'], ...$salary];
-        $total = $area['total'] + array_sum(array_map(fn (array $line): int => FundCatalog::centsOf($line['amount']), $salary));
+        $withAmount = array_values(array_filter($salary, fn (array $line): bool => $line['amount'] !== null));
+        $total = $area['total'] + array_sum(array_map(fn (array $line): int => FundCatalog::centsOf((string) $line['amount']), $withAmount));
+        $monthlyArea = array_values(array_filter($area['lines'], fn (array $line): bool => str_starts_with($line['reason'], 'month_end')));
+        $olderArea = array_values(array_filter($area['lines'], fn (array $line): bool => ! str_starts_with($line['reason'], 'month_end')));
+        $rewards = $this->rewards->for($partner, $rewardContext);
+        // Rank royalty is a month-end item like the bonus and the area shares, not an earned prize.
+        $royalty = array_map(fn (array $line): array => [
+            'id' => $line['id'], 'head' => $line['head'], 'what' => $line['what'], 'month' => CommissionQualification::currentMonth(),
+            'amount' => null, 'order_number' => null, 'reason' => $line['reason'], 'estimate' => false,
+        ], array_values(array_filter($rewards, fn (array $line): bool => $line['head'] === 'royalty')));
 
         return [
+            'role' => (string) $partner->role,
             'total' => FundCatalog::decimalOf($total),
-            'count' => $area['count'] + count($salary),
-            'has_estimate' => in_array(true, array_column($salary, 'estimate'), true),
+            'count' => $area['count'] + count($withAmount),
+            'more' => max(0, $area['count'] - count($area['lines'])),
+            'has_estimate' => in_array(true, array_column($withAmount, 'estimate'), true),
             'awaiting_close' => $awaiting,
-            'lines' => $lines,
-            'paid' => $withPaid ? $this->paidAreaLines($partner) : [],
+            'lines' => $olderArea,
+            // Decided together on the month-end day: rank royalty, the salary or bonus, and the area shares of new orders.
+            'month_end' => [...$royalty, ...$salary, ...$monthlyArea],
+            'paid' => $withPaid && $isDealer ? $this->paidAreaLines($partner) : [],
             // Earned prizes not in the wallet yet (rank prize, bike, car). Kept apart: they are not part of the pending total.
-            'rewards' => $this->rewards->for($partner, $rewardContext),
+            'rewards' => array_values(array_filter($rewards, fn (array $line): bool => $line['head'] !== 'royalty')),
         ];
     }
 
@@ -95,12 +111,13 @@ final class PartnerPendingMoney
             ->when($exclude !== [], fn ($query) => $query->whereNotIn('a.id', $exclude))
             ->orderByDesc('a.id')
             ->limit($limit)
-            ->selectRaw("a.id, a.amount, a.category, o.number AS order_number, a.metadata->>'period_month' AS month, a.metadata->>'monthly_quota' AS quota, SUM(a.amount) OVER () AS total, COUNT(*) OVER () AS count, COUNT(*) FILTER (WHERE a.metadata->>'period_month' < ?) OVER () AS closed", [CommissionQualification::currentMonth()])
+            ->selectRaw("a.id, a.amount, a.category, o.number AS order_number, a.metadata->>'period_month' AS month, a.metadata->>'monthly_quota' AS quota, a.metadata->>'monthly_close' AS monthly_close, SUM(a.amount) OVER () AS total, COUNT(*) OVER () AS count, COUNT(*) FILTER (WHERE a.metadata->>'period_month' < ?) OVER () AS closed", [CommissionQualification::currentMonth()])
             ->get();
         if ($rows->isEmpty()) {
             return ['total' => 0, 'count' => 0, 'closed' => 0, 'lines' => []];
         }
-        // A share whose month already reached the target is only waiting for the office to release it.
+        // A share of a new order (owner's rule of 2026-11-21, `monthly_close`) is decided on the month-end day, met target
+        // or not. An older order's share whose month already reached the target only waits for the office to release it.
         $volumes = [];
         foreach ($rows->pluck('month')->unique() as $month) {
             $volumes[(string) $month] = $this->qualification->monthlyVolume((int) $partner->id, (string) $month);
@@ -110,16 +127,23 @@ final class PartnerPendingMoney
             'total' => FundCatalog::centsOf($rows->first()->total),
             'count' => (int) $rows->first()->count,
             'closed' => (int) $rows->first()->closed,
-            'lines' => $rows->map(fn (object $row): array => [
-                'id' => 'area-'.$row->id,
-                'head' => (string) $row->category,
-                'what' => PartnerIncomeHeads::label(PartnerIncomeHeads::headOf(null, (string) $row->category, null, null)),
-                'month' => (string) $row->month,
-                'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
-                'order_number' => $row->order_number !== null ? (string) $row->order_number : null,
-                'reason' => $row->quota !== null && $volumes[(string) $row->month] >= FundCatalog::centsOf($row->quota) ? 'target_met_waiting' : 'target_not_met',
-                'estimate' => false,
-            ])->all(),
+            'lines' => $rows->map(function (object $row) use ($volumes): array {
+                $met = $row->quota !== null && $volumes[(string) $row->month] >= FundCatalog::centsOf($row->quota);
+                $reason = $row->monthly_close === 'true'
+                    ? ($met ? 'month_end_area_met' : 'month_end_area')
+                    : ($met ? 'target_met_waiting' : 'target_not_met');
+
+                return [
+                    'id' => 'area-'.$row->id,
+                    'head' => (string) $row->category,
+                    'what' => PartnerIncomeHeads::label(PartnerIncomeHeads::headOf(null, (string) $row->category, null, null)),
+                    'month' => (string) $row->month,
+                    'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
+                    'order_number' => $row->order_number !== null ? (string) $row->order_number : null,
+                    'reason' => $reason,
+                    'estimate' => false,
+                ];
+            })->all(),
         ];
     }
 
@@ -177,10 +201,11 @@ final class PartnerPendingMoney
     }
 
     /**
-     * The month-end salary: a sub-dealer's amount set aside so far (one line per month), or a dealer's
-     * share by the month close rules. Both wait for the month to close.
+     * The month-end salary: a sub-dealer's amount set aside so far (one line per month, his own purchases decide it), or
+     * for a dealer one line per open month of the nationwide Salary with no amount: how many
+     * dealers qualify is known only when the month ends, so any figure before that could be wrong.
      *
-     * @return list<array{id: string, head: string, what: string, month: string, amount: string, order_number: ?string, reason: string, estimate: bool}>
+     * @return list<array{id: string, head: string, what: string, month: string, amount: ?string, order_number: ?string, reason: string, estimate: bool}>
      */
     private function salaryLines(User $partner): array
     {
@@ -211,36 +236,14 @@ final class PartnerPendingMoney
         if ($partner->role !== 'dealer' || $partner->status !== 'active') {
             return [];
         }
-        $lines = [];
-        $months = DB::table('commission_allocations')->where('category', 'dealer_monthly_salary_pool')->where('status', 'pending')
+
+        return DB::table('commission_allocations')->where('category', 'dealer_monthly_salary_pool')->where('status', 'pending')->where('amount', '>', 0)
             ->whereRaw("metadata->>'period_month' <= ?", [CommissionQualification::currentMonth()])
-            ->selectRaw("DISTINCT metadata->>'period_month' AS month")->orderBy('month', 'desc')->pluck('month');
-        foreach ($months as $month) {
-            $share = $this->salaryShares((string) $month)[(int) $partner->id] ?? 0;
-            if ($share > 0) {
-                $lines[] = $line((string) $month, $share, true);
-            }
-        }
-
-        return $lines;
-    }
-
-    /**
-     * What each qualified dealer would be paid if the month closed now, in cents, by dealer id.
-     * Only dealers who already meet the salary target are in it.
-     *
-     * @return array<int, int>
-     */
-    private function salaryShares(string $month): array
-    {
-        return Cache::remember('wallet-pending:salary-shares:'.$month, self::SalaryShareSeconds, function () use ($month): array {
-            $shares = [];
-            foreach ($this->settlement->salaryPlan($month)['dealers'] as $row) {
-                $shares[(int) $row['user_id']] = FundCatalog::centsOf($row['share']);
-            }
-
-            return $shares;
-        });
+            ->selectRaw("DISTINCT metadata->>'period_month' AS month")->orderBy('month', 'desc')->pluck('month')
+            ->map(fn (mixed $month): array => [
+                'id' => 'salary-'.$month, 'head' => 'salary', 'what' => $what, 'month' => (string) $month,
+                'amount' => null, 'order_number' => null, 'reason' => 'salary_shared_month_end', 'estimate' => false,
+            ])->all();
     }
 
     /**

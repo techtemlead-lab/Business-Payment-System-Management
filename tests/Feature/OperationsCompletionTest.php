@@ -134,8 +134,12 @@ class OperationsCompletionTest extends TestCase
         $this->assertSame(1, $snapshot['payment_account_version']);
         $this->assertSame('BANK-123456', decrypt($snapshot['account_snapshot'])['account_number']);
         $this->postJson('/api/v1/operations/payroll/'.$id.'/pay', $payment)->assertUnprocessable();
-        $this->actingAs($staff)->get('/commands/operations/receipts/payroll/'.$id)->assertOk();
+        $slip = $this->actingAs($staff)->get('/commands/operations/receipts/payroll/'.$id)->assertOk();
+        $this->assertStringStartsWith('inline', (string) $slip->headers->get('Content-Disposition'));
+        $this->assertSame('application/pdf', $slip->headers->get('Content-Type'));
+        $this->assertStringStartsWith('attachment', (string) $this->actingAs($staff)->get('/commands/operations/receipts/payroll/'.$id.'?download=1')->headers->get('Content-Disposition'));
         $this->actingAs(User::factory()->create(['role' => 'sr']))->get('/commands/operations/receipts/payroll/'.$id)->assertNotFound();
+        $this->actingAs(User::factory()->create(['role' => 'sr']))->get('/commands/operations/receipts/payroll/'.$id.'?download=1')->assertNotFound();
         $this->assertEquals(DB::table('journal_lines')->sum('debit'), DB::table('journal_lines')->sum('credit'));
     }
 

@@ -7,6 +7,7 @@ return [
 
     'account_created_title' => 'Your Madina account is ready',
     'account_created_body' => 'Your account has been created. Your sign-in details reach you separately by SMS or email.',
+    'account_created_credentials_body' => "Your account has been created. Your sign-in details are below.\n\nUsername: :username\nPassword: :password\n\nPlease change your password after you sign in. Do not share these details with anyone.",
     'password_reset_title' => 'Your password was reset',
     'password_reset_body' => 'The office has reset your password. The new password reaches you separately by SMS (or by email if the SMS could not be sent). If you did not expect this, please contact the office.',
     'support_reply_title' => 'Support replied to your request',

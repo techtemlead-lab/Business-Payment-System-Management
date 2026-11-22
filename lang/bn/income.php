@@ -35,4 +35,6 @@ return [
     'pdf_all_time' => 'শুরু থেকে এখন পর্যন্ত',
     'pdf_total' => 'মোট (:count বার)',
     'pdf_generated' => 'তৈরি হয়েছে :when',
+    'zero_show' => '০ টাকার খাতগুলোও দেখুন (:count টি)',
+    'zero_hide' => '০ টাকার খাত লুকান',
 ];

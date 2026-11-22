@@ -91,8 +91,17 @@ class PaymentCheckAndPayoutLimitsTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'payout.limits_changed', 'actor_id' => $owner->id]);
     }
 
+    public function test_the_office_cash_limit_starts_at_one_crore(): void
+    {
+        $this->assertSame('10000000.00', app(PayoutLimits::class)->settings()['office_cash']);
+        $this->assertSame(1_000_000_000, app(PayoutLimits::class)->officeCashLimit());
+    }
+
     public function test_cash_promised_at_the_office_is_capped(): void
     {
+        // The owner can lower the limit in Finance settings; the order is then refused above it.
+        $owner = User::factory()->staff('super_admin')->create();
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/operations/settings/payout-limits', ['per_channel' => ['Bank' => '', 'bKash' => '30000', 'Nagad' => '30000', 'Rocket' => '30000'], 'office_cash' => '200000', 'due_days' => 3, 'version' => 0, 'reason' => 'Lower the cash limit'])->assertSessionHasNoErrors();
         $dealer = User::factory()->dealer()->create();
         $product = Product::factory()->create(['mrp' => '200000.00', 'dealer_price' => '150000.00', 'stock' => 50]);
 

@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerPendingMoney;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionPosting;
+use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Orders\OrderService;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Models\AreaDealerAssignment;
@@ -94,6 +95,23 @@ class PartnerPendingMoneyTest extends TestCase
         $this->actingAs($partner)->onPortal($partner->role === 'sub_dealer' ? 'subdealer' : 'dealer')->get('/my-money')->assertOk()->assertInertia($assert);
     }
 
+    /**
+     * The month-end group's lines of one head kind ("area_" for the area shares), as the wallet page receives them.
+     *
+     * @param  array<string, mixed>  $pending
+     * @return list<array<string, mixed>>
+     */
+    private function monthEnd(array $pending, string $headPrefix): array
+    {
+        return array_values(array_filter($pending['month_end'], fn (array $line): bool => str_starts_with($line['head'], $headPrefix)));
+    }
+
+    /** @return array<string, mixed> */
+    private function pendingPage(User $partner): array
+    {
+        return $this->actingAs($partner)->onPortal($partner->role === 'sub_dealer' ? 'subdealer' : 'dealer')->get('/my-money')->assertOk()->viewData('page')['props']['pending'];
+    }
+
     public function test_an_area_share_waiting_for_the_target_is_pending_with_its_reason_and_not_in_the_balance(): void
     {
         $dealer = $this->seatedDealer();
@@ -103,14 +121,28 @@ class PartnerPendingMoneyTest extends TestCase
         $this->myMoney($dealer, fn (Assert $page) => $page
             ->where('pending.total', (string) $share->amount)
             ->where('pending.count', 1)
-            ->where('pending.lines.0.reason', 'target_not_met')
-            ->where('pending.lines.0.head', 'area_division')
-            ->where('pending.lines.0.amount', (string) $share->amount)
-            ->where('pending.lines.0.estimate', false)
+            // A new order's area share is a month-end item, listed with the salary and royalty, not as an older hold.
+            ->where('pending.lines', [])
             ->where('summary.available', '0.00')
             ->where('summary.lifetime.earned', '0.00')
             ->where('held_commission.lines', []));
+        $area = $this->monthEnd($this->pendingPage($dealer), 'area_');
+        $this->assertSame([['area_division', 'month_end_area', (string) $share->amount, false]], array_map(fn (array $line): array => [$line['head'], $line['reason'], $line['amount'], $line['estimate']], $area));
         $this->assertSame('0.00', $this->available($dealer));
+    }
+
+    public function test_an_older_orders_area_share_keeps_the_release_when_met_wording(): void
+    {
+        $dealer = $this->seatedDealer('100.00');
+        $share = $this->areaShare($this->purchase($this->buyer()));
+        // An order posted before the owner's rule of 2026-11-21 has no monthly_close flag: it is released once the target is met.
+        $metadata = $share->metadata;
+        unset($metadata['monthly_close']);
+        $share->update(['metadata' => $metadata]);
+
+        $this->myMoney($dealer, fn (Assert $page) => $page->where('pending.lines.0.id', 'area-'.$share->id)->where('pending.lines.0.reason', 'target_not_met'));
+        $this->purchase($dealer);
+        $this->myMoney($dealer, fn (Assert $page) => $page->where('pending.lines.0.id', 'area-'.$share->id)->where('pending.lines.0.reason', 'target_met_waiting'));
     }
 
     public function test_the_pending_balance_shows_beside_the_balance_on_the_home_screen_data_too(): void
@@ -153,10 +185,15 @@ class PartnerPendingMoneyTest extends TestCase
         // The dealer's own first order was posted before the target was reached, so its area share is held too.
         $held = number_format((float) DB::table('commission_allocations')->where('user_id', $dealer->id)->where('status', 'held')->where('category', 'like', 'area\_%')->sum('amount'), 2, '.', '');
 
-        // The month-end salary estimate is pending too (the dealer met his target), so only the area lines are summed.
-        $this->myMoney($dealer, fn (Assert $page) => $page
-            ->where('pending.lines.0.reason', 'target_met_waiting')
-            ->where('pending.lines', fn ($lines) => number_format(collect($lines)->filter(fn ($line) => str_starts_with($line['head'], 'area_'))->sum(fn ($line) => (float) $line['amount']), 2, '.', '') === $held));
+        // A new order's share waits for the month-end day even with the target met, and says so. The dealer's bonus has
+        // no amount, so the pending total is exactly the area shares.
+        $pending = $this->pendingPage($dealer);
+        $area = $this->monthEnd($pending, 'area_');
+        $this->assertNotEmpty($area);
+        $this->assertSame(['month_end_area_met'], array_values(array_unique(array_column($area, 'reason'))));
+        $this->assertSame($held, number_format(array_sum(array_map(fn (array $line): float => (float) $line['amount'], $area)), 2, '.', ''));
+        $this->assertSame($held, $pending['total']);
+        $this->assertSame([], $pending['lines']);
     }
 
     public function test_a_missed_target_at_month_end_shows_not_received_and_adds_nothing_to_the_wallet(): void
@@ -196,6 +233,7 @@ class PartnerPendingMoneyTest extends TestCase
         $this->myMoney($dealer, fn (Assert $page) => $page
             ->where('pending.total', '0.00')
             ->where('pending.lines', [])
+            ->where('pending.month_end', [])
             ->where('pending.paid.0.amount', (string) $share->amount)
             ->where('not_earned_area', []));
     }
@@ -247,8 +285,8 @@ class PartnerPendingMoneyTest extends TestCase
         foreach ([...$december, $own] as $share) {
             $this->assertSame('held', $share->fresh()->status);
         }
-        $this->myMoney($dealer, fn (Assert $page) => $page
-            ->where('pending.lines.0.reason', 'target_met_waiting')->where('pending.paid', []));
+        $this->myMoney($dealer, fn (Assert $page) => $page->where('pending.lines', [])->where('pending.paid', []));
+        $this->assertSame(['month_end_area_met'], array_values(array_unique(array_column($this->monthEnd($this->pendingPage($dealer), 'area_'), 'reason'))));
 
         // A later order of December is held too: nothing is paid straight in any more.
         $this->travelTo(now()->setDate(2026, 12, 16)->startOfDay());
@@ -293,7 +331,11 @@ class PartnerPendingMoneyTest extends TestCase
         $pending = app(PartnerPendingMoney::class)->for($dealer);
 
         $this->assertSame((string) $share->amount, $pending['total']);
-        $this->assertSame(['area_division'], array_column($pending['lines'], 'head'));
+        $this->assertSame([], $pending['lines']);
+        // Only the area share carries an amount; the dealer's bonus line has none and no royalty line is shown without a rank.
+        $withAmount = array_values(array_filter($pending['month_end'], fn (array $line): bool => $line['amount'] !== null));
+        $this->assertSame(['area_division'], array_column($withAmount, 'head'));
+        $this->assertSame(['salary'], array_column(array_values(array_filter($pending['month_end'], fn (array $line): bool => $line['amount'] === null)), 'head'));
     }
 
     public function test_a_sub_dealers_salary_is_pending_until_the_month_close_pays_it(): void
@@ -306,11 +348,16 @@ class PartnerPendingMoneyTest extends TestCase
         // The sub-dealer's own cashback is already in the wallet; the salary is not.
         $before = $this->available($subDealer);
 
+        // His salary depends only on his own purchases, so he keeps seeing his amount (an estimate) and the footnote.
         $this->myMoney($subDealer, fn (Assert $page) => $page
             ->where('pending.total', $set)
-            ->where('pending.lines.0.head', 'salary')
-            ->where('pending.lines.0.reason', 'month_end')
-            ->where('pending.lines.0.estimate', true)
+            ->where('pending.role', 'sub_dealer')
+            ->where('pending.lines', [])
+            ->where('pending.month_end.0.head', 'salary')
+            ->where('pending.month_end.0.amount', $set)
+            ->where('pending.month_end.0.reason', 'month_end')
+            ->where('pending.month_end.0.estimate', true)
+            ->where('pending.has_estimate', true)
             ->where('summary.available', $before));
 
         $this->closeNovember();
@@ -320,7 +367,26 @@ class PartnerPendingMoneyTest extends TestCase
         $this->myMoney($subDealer, fn (Assert $page) => $page
             ->where('pending.total', '0.00')
             ->where('pending.lines', [])
+            ->where('pending.month_end', [])
             ->where('summary.available', $after));
+    }
+
+    public function test_a_sub_dealer_sees_no_area_line(): void
+    {
+        $subDealer = User::factory()->subDealer()->inPlace($this->division)->create();
+        $order = $this->purchase($subDealer, '15000.00', '25000.00');
+        // Area income is a dealer's only: even a stray held area row in his name is not listed for him.
+        DB::table('commission_allocations')->insert([
+            'order_id' => $order->id, 'user_id' => $subDealer->id, 'category' => 'area_union', 'rate_percentage' => '2.00', 'cash_basis' => '100.00',
+            'amount' => '55.00', 'status' => 'held', 'created_at' => now(), 'updated_at' => now(),
+            'metadata' => json_encode(['hold_reason' => 'quota', 'period_month' => '2026-11', 'monthly_quota' => '30000.00', 'monthly_close' => true], JSON_THROW_ON_ERROR),
+        ]);
+
+        $pending = $this->pendingPage($subDealer);
+
+        $this->assertSame([], $pending['lines']);
+        $this->assertSame([], $this->monthEnd($pending, 'area_'));
+        $this->assertSame('150.00', $pending['total']);
     }
 
     public function test_a_sub_dealer_is_shown_and_paid_only_the_salary_step_his_month_reached(): void
@@ -333,7 +399,7 @@ class PartnerPendingMoneyTest extends TestCase
         $before = $this->available($subDealer);
 
         $this->myMoney($subDealer, fn (Assert $page) => $page
-            ->where('pending.total', '150.00')->where('pending.lines.0.estimate', true));
+            ->where('pending.total', '150.00')->where('pending.month_end.0.amount', '150.00')->where('pending.month_end.0.estimate', true));
 
         $this->closeNovember();
 
@@ -343,27 +409,35 @@ class PartnerPendingMoneyTest extends TestCase
         $this->myMoney($subDealer, fn (Assert $page) => $page->where('pending.total', '0.00')->where('pending.lines', []));
     }
 
-    public function test_a_dealers_salary_share_is_a_pending_estimate_until_the_month_close_pays_it(): void
+    /**
+     * Owner's rule of 2026-11-22: the Salary is one nationwide fund shared equally by every dealer who
+     * qualifies in the month, so a dealer is shown no amount and no estimate before the month closes, not in a line and
+     * not in the pending total. The month close still pays his share as before.
+     */
+    public function test_a_dealers_bonus_shows_no_amount_or_estimate_until_the_month_close_pays_it(): void
     {
         // A dealer with no seat and no appointed place has the general target (৳30,000).
         $dealer = User::factory()->create();
         $this->purchase($dealer, '30000.00');
+        $share = collect(app(CommissionSettlement::class)->salaryPlan('2026-11')['dealers'])->firstWhere('user_id', $dealer->id)['share'];
+        $this->assertGreaterThan(0, (float) $share, 'He qualifies, so the close will pay him a share.');
 
         $pending = app(PartnerPendingMoney::class)->for($dealer);
-        $this->assertCount(1, $pending['lines']);
-        $this->assertSame('salary', $pending['lines'][0]['head']);
-        $this->assertSame('month_end', $pending['lines'][0]['reason']);
-        $this->assertTrue($pending['lines'][0]['estimate']);
-        $this->assertTrue($pending['has_estimate']);
-        $estimate = $pending['total'];
-        $this->assertGreaterThan(0, (float) $estimate);
-        // The dealer's own cashback is already in the wallet; the salary share is not.
+        $this->assertSame([], $pending['lines']);
+        $this->assertSame([['salary', null, 'salary_shared_month_end', false]], array_map(fn (array $line): array => [$line['head'], $line['amount'], $line['reason'], $line['estimate']], $pending['month_end']));
+        $this->assertFalse($pending['has_estimate']);
+        $this->assertSame('0.00', $pending['total']);
+        $this->assertSame(0, $pending['count']);
+        // The same on the wallet page and the home screen data.
+        $this->myMoney($dealer, fn (Assert $page) => $page->where('pending.total', '0.00')->where('pending.has_estimate', false)->where('pending.month_end.0.amount', null));
+        $this->assertSame('0.00', app(PartnerDashboardHome::class)->for($dealer)['wallet']['pending']['total']);
+        // The dealer's own cashback is already in the wallet; the bonus is not.
         $before = $this->available($dealer);
 
         $this->closeNovember();
 
-        $this->assertSame([], app(PartnerPendingMoney::class)->for($dealer)['lines']);
-        $this->assertSame(number_format((float) $before + (float) $estimate, 2, '.', ''), $this->available($dealer));
+        $this->assertSame([], app(PartnerPendingMoney::class)->for($dealer)['month_end']);
+        $this->assertSame(number_format((float) $before + (float) $share, 2, '.', ''), $this->available($dealer));
     }
 
     public function test_a_partner_with_nothing_pending_sees_nothing_new(): void
@@ -373,8 +447,29 @@ class PartnerPendingMoneyTest extends TestCase
 
         foreach ([$dealer, $subDealer] as $partner) {
             $this->myMoney($partner, fn (Assert $page) => $page
-                ->where('pending.total', '0.00')->where('pending.count', 0)->where('pending.lines', [])->where('pending.paid', [])
+                ->where('pending.total', '0.00')->where('pending.count', 0)->where('pending.lines', [])->where('pending.month_end', [])->where('pending.paid', [])
                 ->where('not_earned_area', [])->where('held_commission.lines', []));
+        }
+    }
+
+    public function test_the_month_end_group_has_the_owners_title_and_plain_reasons_in_both_languages(): void
+    {
+        $bn = require lang_path('bn/my_money.php');
+        $this->assertSame('মাস শেষে হিসাব হবে (একসাথে, একই দিনে)', $bn['month_end_heading']);
+        $this->assertStringContainsString('এই তিনটি প্রতি মাসের শেষে একই দিনে হিসাব হয়; যাঁরা শর্ত পূরণ করেন শুধু তাঁরাই পান', $bn['month_end_intro']);
+        $this->assertSame('মাস শেষে হিসাব হবে। মাসিক টার্গেট পূরণ করলে ব্যালেন্সে জমা হবে; না করলে কোম্পানির ফান্ডে যাবে।', $bn['pending_reason_month_end_area']);
+        $this->assertStringNotContainsString('শীঘ্রই', $bn['pending_reason_month_end_area_met'], 'A new order\'s share is paid on the month-end day, not "soon".');
+        foreach (['bn', 'en'] as $locale) {
+            $words = require lang_path($locale.'/my_money.php');
+            foreach (['month_end_heading', 'month_end_intro', 'month_end_intro_sub', 'month_end_no_amount', 'pending_reason_month_end_area', 'pending_reason_month_end_area_met', 'pending_reason_salary_shared_month_end', 'pending_reason_royalty_month_end', 'pending_reason_month_end'] as $key) {
+                $this->assertNotSame('', trim((string) ($words[$key] ?? '')), "{$locale}/my_money.{$key}");
+            }
+        }
+        // Both money screens draw the month-end group from these words.
+        foreach (['components/mymoney/PendingMoney.tsx', 'components/PartnerDashboard.tsx'] as $file) {
+            $source = (string) file_get_contents(resource_path('js/'.$file));
+            $this->assertStringContainsString("'month_end_heading'", $source, $file);
+            $this->assertStringContainsString("'month_end_no_amount'", $source, $file);
         }
     }
 
@@ -387,6 +482,6 @@ class PartnerPendingMoneyTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/treasury/partners/'.$dealer->id)->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('TreasuryPartner')
             ->where('pending.total', (string) $share->amount)
-            ->where('pending.lines.0.reason', 'target_not_met'));
+            ->where('pending.month_end', fn ($lines) => collect($lines)->firstWhere('head', 'area_division')['reason'] === 'month_end_area'));
     }
 }

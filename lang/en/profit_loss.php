@@ -74,4 +74,6 @@ return [
 
     'empty_title' => 'No goods were delivered in this period',
     'empty_body' => 'Pick another month or other dates.',
+    // Phone (2026-11-22)
+    'warn_short' => ':count warning(s) below. Check them before you trust the profit figure.',
 ];

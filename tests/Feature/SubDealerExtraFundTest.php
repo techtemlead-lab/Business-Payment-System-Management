@@ -258,7 +258,7 @@ class SubDealerExtraFundTest extends TestCase
         $en = require lang_path('en/commission_page.php');
         $this->assertSame('ডক্টর অনারারিয়াম', $bn['head_own_dealer_cashback']);
         $this->assertSame('Doctor Honorarium', $en['head_own_dealer_cashback']);
-        $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', $bn['head_dealer_monthly_salary']);
+        $this->assertSame('স্যালারি', $bn['head_dealer_monthly_salary']);
         $this->assertSame('স্টাফ কমিশন', $bn['head_direct_referral']);
         $this->assertArrayNotHasKey('sub_name_direct_referral', $bn);
         $this->assertSame('সাব-ডিলার আলাদা', $bn['subblock_title']);
@@ -284,12 +284,12 @@ class SubDealerExtraFundTest extends TestCase
     {
         $bn = require lang_path('bn/cr21_income.php');
         $this->assertSame('ডক্টর অনারারিয়াম', $bn['head_own']);
-        $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', $bn['head_salary']);
+        $this->assertSame('স্যালারি', $bn['head_salary']);
         $this->assertSame('সাব-ডিলার স্যালারি', $bn['head_salary_sub']);
         $this->assertSame('স্টাফ কমিশন', $bn['head_referral']);
 
         app()->setLocale('bn');
-        $this->assertSame('ডিলার একুইজিশন টার্গেট বোনাস', PartnerIncomeHeads::label('salary', null, 'dealer'));
+        $this->assertSame('স্যালারি', PartnerIncomeHeads::label('salary', null, 'dealer'));
         $this->assertSame('সাব-ডিলার স্যালারি', PartnerIncomeHeads::label('salary', null, 'sub_dealer'));
         $this->assertSame('স্টাফ কমিশন', PartnerIncomeHeads::label('referral', null, 'sub_dealer'));
         $this->assertSame('স্টাফ কমিশন', PartnerIncomeHeads::label('referral', null, 'dealer'));

@@ -18,6 +18,7 @@ use App\Domain\Payouts\WithdrawalWeek;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\LocalDigits;
+use App\Support\ProofFile;
 use App\Support\ReasonFields;
 use App\Support\TransactionReference;
 use Carbon\Carbon;
@@ -360,15 +361,11 @@ class WithdrawalController extends Controller
         $ext = match ($w->receipt_mime) {
             'application/pdf' => 'pdf','image/png' => 'png','image/webp' => 'webp',default => 'jpg'
         };
-        $headers = ['Content-Type' => $w->receipt_mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'];
-        // ?view=1 shows a screenshot inside the withdrawal page (pictures only); everything else downloads.
-        if ($r->boolean('view') && str_starts_with((string) $w->receipt_mime, 'image/')) {
-            Audit::record($r->user()->id, 'receipt.viewed', $id);
+        // A picture or PDF opens in the browser (the page shows it in a pop-up or a new tab); ?download=1 saves it.
+        $response = ProofFile::response($r, $w->receipt_path, 'payment-receipt-'.$id.'.'.$ext, ['Content-Type' => (string) $w->receipt_mime]);
+        $opened = str_starts_with((string) $response->headers->get('Content-Disposition'), 'inline');
+        Audit::record($r->user()->id, $opened ? 'receipt.viewed' : 'receipt.downloaded', $id);
 
-            return Storage::disk('local')->response($w->receipt_path, 'payment-receipt-'.$id.'.'.$ext, [...$headers, 'Content-Security-Policy' => "default-src 'none'"], 'inline');
-        }
-        Audit::record($r->user()->id, 'receipt.downloaded', $id);
-
-        return Storage::disk('local')->download($w->receipt_path, 'payment-receipt-'.$id.'.'.$ext, $headers);
+        return $response;
     }
 }

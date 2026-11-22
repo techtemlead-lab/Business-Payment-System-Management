@@ -100,6 +100,7 @@ class ProductListPrintTest extends TestCase
             'dealer_discount' => '20',
             'sub_dealer_discount' => '12.5',
             'image' => public_path('branding/stock/pdf/honey.jpg'),
+            'image_fallbacks' => [],
             'usage' => null,
             'efficacy' => null,
         ]], $list['rows']);

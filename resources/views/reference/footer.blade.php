@@ -41,9 +41,9 @@
             </div>
         </div>
     </section>
-    <section>
-        <h2>{{ $chrome('footer_about', $siteCustomization['footer_about_heading'] ?? null) }}</h2>
-        <div class="ref-footer-links">
+    <section data-mobile-fold>
+        <h2 data-fold-toggle>{{ $chrome('footer_about', $siteCustomization['footer_about_heading'] ?? null) }}</h2>
+        <div class="ref-footer-links" data-fold-body>
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_about_url'] ?? '/about'))
             <a href="{{ $href }}">{{ $chrome('about', $siteCustomization['footer_link_about'] ?? null) }}</a>
             @endif
@@ -177,7 +177,7 @@
     @if($publicPageEnabled['about'] ?? true)
     <a href="{{ $site('/about') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-        <span>{{ $chrome('about', $siteCustomization['mobile_nav_about'] ?? null) }}</span>
+        <span>{{ filled($siteCustomization['mobile_nav_about'] ?? null) ? $chrome('about', $siteCustomization['mobile_nav_about']) : __('site.mobile_nav_about_short') }}</span>
     </a>
     @elseif($publicPageEnabled['faq'] ?? true)
     <a href="{{ $site('/faq') }}" class="ref-mobile-nav-item">

@@ -9,8 +9,8 @@ use PHPUnit\Framework\TestCase;
  * this scans every Bangla and English lang value for them. Internal rule keys are not names and are
  * not scanned (only values are).
  *
- * New names: Doctor Honorarium (was own purchase cashback), Dealer Acquisition Target Bonus (was
- * dealer monthly salary pool), Staff commission (a sub-dealer's direct referral), Sub-dealer salary,
+ * New names: Doctor Honorarium (was own purchase cashback), Salary (the dealer's monthly pool; once
+ * Dealer monthly salary pool, then for a day Dealer Acquisition Target Bonus), Staff commission (a sub-dealer's direct referral), Sub-dealer salary,
  * Tour, Sub-dealer extra.
  */
 class CommissionNamesInLangTest extends TestCase
@@ -22,7 +22,6 @@ class CommissionNamesInLangTest extends TestCase
         'নিজের কেনায় ক্যাশব্যাক',
         'নিজের ডিলার ক্যাশব্যাক',
         'ডিলার ক্যাশব্যাক',
-        'ডিলার স্যালারি',
         'ডিলার মাসিক বেতন',
         'ডিলার বেতন ফান্ড',
         'মাসিক বেতন ফান্ড',
@@ -35,6 +34,9 @@ class CommissionNamesInLangTest extends TestCase
         'রেফারেল কমিশন',
         'সরাসরি রেফার',
         'রেফার বোনাস',
+        // The dealer bonus was named Dealer Acquisition Target Bonus for a day (client, 2026-11-22); its name is Salary again.
+        'একুইজিশন',
+        'acquisition target',
         // English
         'direct referral',
         'referral income',
@@ -48,9 +50,6 @@ class CommissionNamesInLangTest extends TestCase
         'own purchase cashback',
         'own purchase income',
         'dealer monthly salary',
-        'dealer salary pool',
-        'dealer salary fund',
-        'dealer salary payment fund',
         'monthly salary fund',
         'monthly salary pool',
         'sub-dealer monthly salary',
@@ -60,10 +59,6 @@ class CommissionNamesInLangTest extends TestCase
         'ক্যাশব্যাক',
         'back on own purchase',
         'নিজের কেনায় ফেরত',
-        'dealer salary',
-        'salary pool',
-        'salary fund',
-        'salary reserve',
         'সরাসরি রেফারেল',
         'বেতন ফান্ড',
         'বেতনের জমা ফান্ড',
@@ -155,7 +150,7 @@ class CommissionNamesInLangTest extends TestCase
         $page = ['bn' => require $root.'/lang/bn/commission_page.php', 'en' => require $root.'/lang/en/commission_page.php'];
         $expected = [
             'head_own_dealer_cashback' => ['ডক্টর অনারারিয়াম', 'Doctor Honorarium'],
-            'head_dealer_monthly_salary' => ['ডিলার একুইজিশন টার্গেট বোনাস', 'Dealer Acquisition Target Bonus'],
+            'head_dealer_monthly_salary' => ['স্যালারি', 'Salary'],
             'head_direct_referral' => ['স্টাফ কমিশন', 'Staff commission'],
             'head_sub_dealer_salary' => ['সাব-ডিলার স্যালারি', 'Sub-dealer salary'],
             'head_sub_dealer_tour' => ['ট্যুর', 'Tour'],

@@ -47,18 +47,25 @@ class OneAccountPerIdentitySwitchTest extends TestCase
         ];
     }
 
-    public function test_the_rule_is_off_by_default(): void
+    /** Client, 2026-11-22: one number, one account is the starting rule; an owner may still switch it off. */
+    public function test_the_rule_is_on_by_default(): void
     {
-        $this->assertFalse(app(SecuritySettings::class)->oneAccountPerIdentityEnforced());
-        $this->assertFalse(app(AccountPhoneRules::class)->enforced());
+        $this->assertTrue(app(SecuritySettings::class)->oneAccountPerIdentityEnforced());
+        $this->assertTrue(app(AccountPhoneRules::class)->enforced());
 
         User::factory()->dealer()->create(['phone' => '01711112222']);
-        $this->assertFalse(app(AccountPhoneRules::class)->isTaken('+8801711112222'));
+        $this->assertTrue(app(AccountPhoneRules::class)->isTaken('+8801711112222'));
+    }
+
+    private function switchRuleOff(User $owner): void
+    {
+        app(SecuritySettings::class)->saveOneAccountPerIdentity($owner, false, 0);
     }
 
     public function test_with_the_switch_off_a_number_can_hold_a_second_account_without_any_approval(): void
     {
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01900000001']);
+        $this->switchRuleOff($owner);
         User::factory()->dealer()->create(['phone' => '01711112222']);
 
         $this->actingAs($owner)->onPortal('sadmin')->post('/commands/accounts', $this->dealerForm())
@@ -73,6 +80,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
 
     public function test_with_the_switch_off_staff_who_are_not_owners_may_use_a_shared_number_too(): void
     {
+        $this->switchRuleOff(User::factory()->staff('super_admin')->create(['phone' => '01900000003']));
         $manager = User::factory()->staff('account_manager')->create(['phone' => '01900000002']);
         User::factory()->dealer()->create(['phone' => '01711112222']);
 
@@ -87,6 +95,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
 
     public function test_with_the_switch_off_a_partnership_applicant_may_send_a_number_another_account_has(): void
     {
+        $this->switchRuleOff(User::factory()->staff('super_admin')->create(['phone' => '01900000004']));
         User::factory()->dealer()->create(['phone' => '01811112223']);
 
         $this->onPortal('public')->from('/partnership')->post('/partnership/apply', [
@@ -149,7 +158,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
             'current_password' => 'ManagerPassword123',
         ])->assertForbidden();
 
-        $this->assertFalse(app(SecuritySettings::class)->oneAccountPerIdentityEnforced());
+        $this->assertTrue(app(SecuritySettings::class)->oneAccountPerIdentityEnforced());
         $this->assertDatabaseMissing('business_settings', ['key' => SecuritySettings::OneAccountPerIdentityKey]);
     }
 
@@ -163,7 +172,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
             'current_password' => 'OwnerPassword12345',
         ])->assertSessionHasErrors('version');
 
-        $this->assertFalse(app(SecuritySettings::class)->oneAccountPerIdentityEnforced());
+        $this->assertTrue(app(SecuritySettings::class)->oneAccountPerIdentityEnforced());
     }
 
     public function test_the_owner_page_carries_the_switch_for_the_screen(): void
@@ -173,7 +182,7 @@ class OneAccountPerIdentitySwitchTest extends TestCase
         $this->actingAs($owner)->onPortal('sadmin')->get('/login-rules')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('securityControls.one_account_per_identity.enabled', false)
+                ->where('securityControls.one_account_per_identity.enabled', true)
                 ->where('securityControls.one_account_per_identity.version', 0));
     }
 }

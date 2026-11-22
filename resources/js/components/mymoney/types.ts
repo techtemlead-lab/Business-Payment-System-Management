@@ -72,10 +72,16 @@ export type SalaryNote = { month: string; state: 'paid' | 'none_low_volume' | 'n
 
 export type PendingLine = { id: string; head: string; what: string; month: string; amount: string; order_number: string | null; reason: 'target_not_met' | 'target_met_waiting' | 'month_end'; estimate: boolean };
 
+/**
+ * A month-end item (rank royalty, the salary or bonus, an area share of a new order): all decided on the same day.
+ * `amount` is null when no honest figure exists before the month closes (rank royalty, a dealer's bonus).
+ */
+export type MonthEndLine = { id: string; head: string; what: string; month: string; amount: string | null; order_number: string | null; reason: 'month_end' | 'month_end_area' | 'month_end_area_met' | 'salary_shared_month_end' | 'royalty_month_end'; estimate: boolean };
+
 export type PaidLine = { id: string; head: string; what: string; month: string; amount: string; order_number: string | null };
 
 /** Money that waits for the month's target or the month-end close. It is not in the usable balance. */
-export type PendingMoney = { total: string; count: number; has_estimate: boolean; lines: PendingLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
+export type PendingMoney = { role?: string; total: string; count: number; more?: number; has_estimate: boolean; lines: PendingLine[]; month_end?: MonthEndLine[]; paid: PaidLine[]; rewards?: RewardWaitingLine[] };
 
 /** What the company spent on this partner (not a wallet credit). */
 /** `amount` is null when the company paid directly for many members and this partner has no amount of their own. */
