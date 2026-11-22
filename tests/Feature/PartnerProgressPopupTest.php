@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
-use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Orders\OrderService;
 use App\Models\DealerRank;
 use App\Models\Order;
@@ -60,14 +59,18 @@ class PartnerProgressPopupTest extends TestCase
         $this->assertSame($target, $salary['target']);
         $this->assertSame('26000.00', $salary['left']);
         $this->assertEquals(13.3, $salary['percent']);
-        $this->assertNull($salary['estimate']);
+        $this->assertArrayNotHasKey('estimate', $salary);
         // No area seat and no appointed place: the rule's minimum is the target.
         $this->assertNull($salary['dealer_kind']);
         $this->assertTrue($salary['nationwide']);
         $this->assertSame('2.00', $salary['rate']);
     }
 
-    public function test_dealer_who_met_the_target_sees_the_share_settlement_then_pays(): void
+    /**
+     * Owner's rule of 2026-11-22: one fund for all of Bangladesh is shared equally by the dealers who met their target, and
+     * that number changes until the month ends, so the pop-up shows the target progress but never an amount or estimate.
+     */
+    public function test_dealer_who_met_the_target_sees_no_amount_and_the_settlement_then_pays(): void
     {
         // One salary pool for all of Bangladesh, shared by the dealers who met their own target (a union dealer: ৳30,000).
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
@@ -79,22 +82,21 @@ class PartnerProgressPopupTest extends TestCase
         $this->purchase($neighbour, '30000.00', '60000.00');
         $this->purchase($belowTarget, '3000.00', '6000.00');
 
-        $salary = $this->progress($dealer)->assertOk()->json('data.salary');
-        $estimate = collect(app(CommissionSettlement::class)->salaryPlan('2026-09')['dealers'])->firstWhere('user_id', $dealer->id);
+        $response = $this->progress($dealer)->assertOk();
+        $salary = $response->json('data.salary');
 
         $this->assertSame('met', $salary['status']);
         $this->assertEquals(100.0, $salary['percent']);
         $this->assertSame('0.00', $salary['left']);
-        $this->assertSame($estimate['share'], $salary['estimate']['share']);
-        $this->assertSame(2, $salary['estimate']['qualifiers']);
-        // 2% of the country's ৳73,000 of purchases, shared by the two dealers who met the target.
-        $this->assertTrue($salary['estimate']['nationwide']);
-        $this->assertSame('1460.00', $salary['estimate']['division_pool']);
-        $this->assertSame('730.00', $salary['estimate']['share']);
+        $this->assertTrue($salary['nationwide']);
+        $this->assertArrayNotHasKey('estimate', $salary);
+        $this->assertStringNotContainsString('730.00', (string) $response->getContent(), 'No share figure reaches the pop-up.');
+        $this->assertStringNotContainsString('1460.00', (string) $response->getContent(), 'No fund figure reaches the pop-up.');
 
+        // The rule is unchanged: 2% of the country's ৳73,000 of purchases, shared by the two dealers who met the target.
         $this->travelTo(now()->setDate(2026, 10, 1));
         $paid = collect(app(CommissionService::class)->settleMonthlySalaryPool('2026-09')['distributed'])->firstWhere('user_id', $dealer->id);
-        $this->assertSame($salary['estimate']['share'], $paid['amount']);
+        $this->assertSame('730.00', $paid['amount']);
     }
 
     public function test_salary_target_and_switch_follow_the_live_rules(): void

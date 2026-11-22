@@ -63,7 +63,8 @@ final class PartnerRewardsWaiting
 
     /**
      * The rank royalty is a share of the month's pool among everyone who qualifies, so its amount exists only when the month closes.
-     * A dealer who is paid as a rank holder is told so, with no figure.
+     * A dealer who is paid as a rank holder is told so, with no figure. It is not a prize: PartnerPendingMoney lists it with
+     * the other month-end items (the salary or bonus and the area shares), which are decided on the same day.
      *
      * @param  Closure(): array<string, array<string, mixed>>  $rules
      * @return list<array{id: string, head: string, what: string, amount: ?string, reason: string, state: string, since: ?string}>

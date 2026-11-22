@@ -54,6 +54,8 @@ class AutoApprovePayouts extends Command
 
         // Owner rule: a share still held because its target was missed goes to company profit once
         // its month has ended. Every ended month is checked, so a late run cannot leave it held.
+        // Owner's rule of 2026-11-22: salary/bonus, rank royalty and area shares are decided together on the same day,
+        // so the area close runs here, right after the two above, and never in the 15-minute release run.
         $reserves = app(ReserveService::class);
         foreach ($reserves->closedMonthsWithHeldAreaShares() as $month) {
             $summary['area_quota_close:'.$month] = $this->closeMonth('area_quota', $month, fn () => $reserves->forfeitUnmetQuotaHolds($month)['status']);

@@ -13,7 +13,6 @@ type DealerSalary = Bar & {
     rate: string;
     /** One salary fund for all of Bangladesh (owner's rule of 2026-11-21) instead of one per division. */
     nationwide?: boolean;
-    estimate: { share: string; division: string | null; division_pool: string; qualifiers: number; nationwide?: boolean } | null;
 };
 type SubDealerSalary = { kind: 'sub_dealer_flat'; status: 'off' | 'earning'; rate: string; current: string; earned: string };
 /** The owner's salary steps (2026-11-21): the bar runs toward the next step; tier_pct is what the month earns now. */
@@ -162,19 +161,8 @@ function SalarySection({ salary, period }: { salary: DealerSalary | SubDealerSal
             {salary.status === 'not_met' && (
                 <StatusLine ok={false}>{translate('portal', 'pp_salary_not_met', { left: money(salary.left), end: date(period.ends_on) })}</StatusLine>
             )}
-            {salary.estimate && (
-                <div className="pp-estimate">
-                    <p>
-                        {translate('portal', salary.estimate.nationwide ? 'pp_salary_estimate_nationwide' : 'pp_salary_estimate', {
-                            share: money(salary.estimate.share),
-                            division: salary.estimate.division || 'â€”',
-                            pool: money(salary.estimate.division_pool),
-                            people: number(salary.estimate.qualifiers),
-                        })}
-                    </p>
-                    <small>{translate('portal', 'pp_salary_estimate_note')}</small>
-                </div>
-            )}
+            {/* Owner's rule (2026-11-22): the bonus is shared equally among all qualifying dealers at month end, so no amount is shown before then. */}
+            <p className="pp-how" data-testid="pp-salary-no-amount">{translate('portal', 'pp_salary_dealer_no_amount')}</p>
         </Section>
     );
 }

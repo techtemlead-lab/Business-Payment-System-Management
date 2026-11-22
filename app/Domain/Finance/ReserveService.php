@@ -529,8 +529,14 @@ final class ReserveService
      */
     public static function waitsForMonthEnd(CommissionAllocation $fund): bool
     {
-        return ($fund->metadata['monthly_close'] ?? false) === true
+        return self::decidedAtMonthClose($fund)
             && (string) ($fund->metadata['period_month'] ?? '') >= CommissionQualification::currentMonth();
+    }
+
+    /** An area share posted under the owner's rule of 2026-11-21: only the month close pays it or sends it to the company fund. */
+    public static function decidedAtMonthClose(CommissionAllocation $fund): bool
+    {
+        return ($fund->metadata['monthly_close'] ?? false) === true;
     }
 
     /**
@@ -607,6 +613,12 @@ final class ReserveService
     /**
      * Pays every held area share whose month met its target ($month: only that month's shares).
      *
+     * Without $month (the 15-minute `finance:release-quota-holds` run) only shares of older orders are paid. A share of a
+     * new order (`monthly_close`) is paid only by the month close, `forfeitUnmetQuotaHolds()`, which `finance:auto-approve`
+     * runs in the same hourly run as the month's salary or bonus and rank royalty (owner's rule of 2026-11-22: the three
+     * monthly items are decided together, on the same day). A month before AreaTargetRuleFirstMonth has no month close
+     * for area shares, so such a share is still paid here and never left held.
+     *
      * @return array{status: string, released_count: int, total_amount: string}
      */
     public function releaseQualifiedQuotaHolds(?int $actorId = null, ?string $month = null): array
@@ -642,7 +654,7 @@ final class ReserveService
                 $quota = $fund->metadata['monthly_quota'] ?? null;
                 $period = $fund->metadata['period_month'] ?? null;
                 if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)
-                    || self::waitsForMonthEnd($fund)) {
+                    || self::waitsForMonthEnd($fund) || ($month === null && self::decidedAtMonthClose($fund) && (string) $period >= self::AreaTargetRuleFirstMonth)) {
                     continue;
                 }
                 $amount = $this->creditHeldAllocation($fund, $actorId, 'release_reason_quota_auto');

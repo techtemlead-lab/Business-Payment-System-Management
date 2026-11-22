@@ -145,6 +145,36 @@ class AreaTargetMonthEndTest extends TestCase
         $this->assertSame('forfeited', $share->fresh()->status);
     }
 
+    /**
+     * Owner's rule of 2026-11-22: the salary or bonus, rank royalty and the area shares of new orders are decided together
+     * on the same day. The 15-minute release run never pays a new order's share, even after its month has ended; the
+     * hourly month close pays it in the same run that settles the month's bonus fund.
+     */
+    public function test_a_new_orders_area_share_is_paid_only_by_the_month_close_together_with_the_bonus(): void
+    {
+        config(['madina.auto_release_quota_holds' => true]);
+        $dealer = $this->seatedDealer('100.00');
+        $share = $this->areaShare($this->purchase($this->buyer()));
+        $older = $this->areaShare($this->purchase($this->buyer()));
+        $metadata = $older->metadata;
+        unset($metadata['monthly_close']);
+        $older->update(['metadata' => $metadata]);
+        $this->purchase($dealer);
+
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(0, 5));
+        $this->artisan('finance:release-quota-holds')->assertSuccessful();
+
+        $this->assertSame('held', $share->fresh()->status);
+        $this->assertContains($older->fresh()->status, ['available', 'maturing'], 'An older order\'s share is still released by the 15-minute run.');
+        $this->assertSame(0, CommissionAllocation::where('category', 'dealer_monthly_salary_pool')->where('status', 'settled')->count());
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+
+        $this->assertContains($share->fresh()->status, ['available', 'maturing']);
+        $this->assertSame(0, CommissionAllocation::where('category', 'dealer_monthly_salary_pool')->where('status', 'pending')->where('metadata->period_month', '2026-11')->count());
+        $this->assertGreaterThan(0, CommissionAllocation::where('category', 'dealer_monthly_salary_pool')->where('status', 'settled')->count());
+    }
+
     public function test_a_met_target_pays_every_share_of_the_month_at_the_month_end(): void
     {
         $dealer = $this->seatedDealer('100.00');
