@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { useT } from '../../shared/i18n/t';
 import { number } from '../UI';
@@ -10,6 +10,7 @@ import ConditionsSection, { ConditionsModal } from './ConditionsSection';
 import CommissionBottomNav from './CommissionBottomNav';
 import FundCheckPanel, { type FundCheckRow } from './FundCheckPanel';
 import type { BuyerType, CommissionPageData } from './shared';
+import { useMobileSections } from '../../shared/useMobileSections';
 
 type OpenModal = 'rates' | 'new' | 'conditions' | null;
 
@@ -23,6 +24,9 @@ export default function CommissionPage({ page, hub, fundCheck }: { page?: Commis
     const { staffActions } = usePage<any>().props;
     const [modal, setModal] = useState<OpenModal>(null);
     const [mode, setMode] = useState<BuyerType>('dealer');
+    const pageRef = useRef<HTMLDivElement>(null);
+    // Phone: the long page is a list of sections; the rates open first.
+    useMobileSections(pageRef, { selector: ':scope > .cp-card', head: ':scope > .cp-card-head, :scope > h2', open: 1, watch: Boolean(page) });
 
     if (!page) {
         return <div className="cp-page"><p className="cp-empty" role="status">{t('loading')}</p></div>;
@@ -32,7 +36,7 @@ export default function CommissionPage({ page, hub, fundCheck }: { page?: Commis
     const waiting = page.workflow.drafts_waiting;
 
     return (
-        <div className="cp-page">
+        <div className="cp-page" ref={pageRef}>
             <header className="cp-head">
                 <h1>{t('page_title')}</h1>
                 <p>{t('page_lead')}</p>
