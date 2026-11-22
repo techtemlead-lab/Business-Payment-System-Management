@@ -1257,7 +1257,7 @@ return [
     'report_cat_dealer_monthly_salary_pool' => 'ডিলার একুইজিশন টার্গেট বোনাস',
     'report_cat_sub_dealer_salary' => 'সাব-ডিলার স্যালারি',
     'report_cat_sub_dealer_tour' => 'ট্যুর',
-    'report_cat_rank_royalty_pool' => 'র‍্যাঙ্ক রয়্যালটি ফান্ড',
+    'report_cat_rank_royalty_pool' => 'র‍্যাঙ্ক রয়্যালটি ফান্ড (পুরনো অর্ডার)',
     'report_cat_rank_incentive_pool' => 'র‍্যাঙ্ক ইনসেন্টিভ',
     'report_cat_car_bike_incentive_fund' => 'গাড়ি / বাইক পুরস্কার',
     'report_cat_company_marketing_fund' => 'কোম্পানি মার্কেটিং',
@@ -6991,4 +6991,8 @@ return [
     'event_receipt_viewed' => 'রসিদ দেখা হয়েছে',
     'event_prize_advance_given' => 'বাইক বা গাড়ির পুরস্কার আগাম দেওয়া হয়েছে',
     'event_prize_advance_settled' => 'আগাম পুরস্কার পাওয়া পুরস্কার থেকে মেটানো হয়েছে',
+    'report_cat_rank_royalty_mo_pool' => 'MO র‍্যাঙ্ক রয়্যালটি ফান্ড',
+    'report_cat_rank_royalty_am_pool' => 'AM র‍্যাঙ্ক রয়্যালটি ফান্ড',
+    'report_cat_rank_royalty_sm_pool' => 'SM র‍্যাঙ্ক রয়্যালটি ফান্ড',
+    'report_cat_rank_royalty_me_pool' => 'ED র‍্যাঙ্ক রয়্যালটি ফান্ড',
 ];

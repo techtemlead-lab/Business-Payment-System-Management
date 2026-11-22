@@ -1257,7 +1257,7 @@ return [
     'report_cat_dealer_monthly_salary_pool' => 'Dealer Acquisition Target Bonus',
     'report_cat_sub_dealer_salary' => 'Sub-dealer salary',
     'report_cat_sub_dealer_tour' => 'Tour',
-    'report_cat_rank_royalty_pool' => 'Rank royalty fund',
+    'report_cat_rank_royalty_pool' => 'Rank royalty fund (older orders)',
     'report_cat_rank_incentive_pool' => 'Rank incentive',
     'report_cat_car_bike_incentive_fund' => 'Car / bike reward',
     'report_cat_company_marketing_fund' => 'Company marketing',
@@ -6991,4 +6991,8 @@ return [
     'event_receipt_viewed' => 'Receipt viewed',
     'event_prize_advance_given' => 'Bike or car prize paid in advance',
     'event_prize_advance_settled' => 'Prize advance set against the earned prize',
+    'report_cat_rank_royalty_mo_pool' => 'MO rank royalty fund',
+    'report_cat_rank_royalty_am_pool' => 'AM rank royalty fund',
+    'report_cat_rank_royalty_sm_pool' => 'SM rank royalty fund',
+    'report_cat_rank_royalty_me_pool' => 'ED rank royalty fund',
 ];

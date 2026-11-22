@@ -430,7 +430,7 @@ final class PartnerMoneyBook
     /** SQL naming the statement type of a commission category. */
     private static function typeOfCategory(string $column): string
     {
-        return "CASE WHEN {$column} = 'own_dealer_cashback' THEN 'own' WHEN {$column} = 'direct_referral' THEN 'referral' WHEN {$column} IN ('d2d_gen2', 'd2d_gen3') THEN 'team' WHEN starts_with({$column}, 'area_') THEN 'area' WHEN {$column} IN ('dealer_monthly_salary_pool', 'sub_dealer_salary') THEN 'salary' WHEN {$column} = 'rank_royalty_pool' THEN 'royalty' WHEN {$column} = 'rank_incentive_pool' THEN 'rank_bonus' ELSE 'reward' END";
+        return "CASE WHEN {$column} = 'own_dealer_cashback' THEN 'own' WHEN {$column} = 'direct_referral' THEN 'referral' WHEN {$column} IN ('d2d_gen2', 'd2d_gen3') THEN 'team' WHEN starts_with({$column}, 'area_') THEN 'area' WHEN {$column} IN ('dealer_monthly_salary_pool', 'sub_dealer_salary') THEN 'salary' WHEN {$column} IN ('rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool') THEN 'royalty' WHEN {$column} = 'rank_incentive_pool' THEN 'rank_bonus' ELSE 'reward' END";
     }
 
     private static function typeWord(string $type): string

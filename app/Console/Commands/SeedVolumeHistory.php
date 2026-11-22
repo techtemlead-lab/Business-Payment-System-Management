@@ -842,7 +842,7 @@ class SeedVolumeHistory extends Command
             ->where('milestone_type', 'car')
             ->value('achieved');
         $pools = DB::table('commission_allocations')
-            ->whereIn('category', ['dealer_monthly_salary_pool', 'rank_royalty_pool', 'sub_dealer_salary', 'own_dealer_cashback', 'car_bike_incentive_fund'])
+            ->whereIn('category', ['dealer_monthly_salary_pool', 'rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool', 'sub_dealer_salary', 'own_dealer_cashback', 'car_bike_incentive_fund'])
             ->whereIn('order_id', DB::table('orders')->select('id')->where('number', 'like', 'VOL-%'))
             ->selectRaw('category, COUNT(*) AS aggregate_count, SUM(amount) AS amount')
             ->groupBy('category')
