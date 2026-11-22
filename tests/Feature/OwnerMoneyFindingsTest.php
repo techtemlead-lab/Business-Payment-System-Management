@@ -175,7 +175,7 @@ class OwnerMoneyFindingsTest extends TestCase
 
         $order = app(OrderService::class)->create($this->dealer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
 
-        $this->assertStringStartsWith('MN-261110-', $order->number);
+        $this->assertSame('MNHC-20261110-100001', $order->number);
         Carbon::setTestNow();
     }
 
