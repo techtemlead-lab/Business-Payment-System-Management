@@ -84,6 +84,25 @@ class DefaultPlaceCatalogTest extends TestCase
         $this->assertTrue(PlaceCode::query()->where('code', 'MNHC100001')->where('parent_id', $dhamrai->id)->exists());
     }
 
+    public function test_a_parentless_place_stays_put_when_its_name_belongs_to_several_places(): void
+    {
+        $orphan = PlaceCode::query()->create([
+            'level' => 'upazila',
+            'code' => null,
+            'name' => 'Kaliganj',
+            'parent_id' => null,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        app(DefaultPlaceCatalog::class)->load();
+
+        $orphan->refresh();
+        $this->assertNull($orphan->parent_id);
+        $this->assertNull($orphan->code);
+        $this->assertSame(4, PlaceCode::query()->where('level', 'upazila')->where('name', 'Kaliganj')->whereNotNull('parent_id')->count());
+    }
+
     public function test_the_place_codes_seeder_loads_the_list_and_the_panel_can_still_change_a_code(): void
     {
         $this->seed(PlaceCodeSeeder::class);

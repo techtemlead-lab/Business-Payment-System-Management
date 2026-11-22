@@ -126,6 +126,12 @@ final class DefaultPlaceCatalog
         $claimed = [];
         /** @var array<string, int> $idBySource */
         $idBySource = [];
+        /** @var array<string, int> $nameCounts How many list rows share a level and name. A repeated name cannot identify a parentless place. */
+        $nameCounts = [];
+        foreach ($payload['places'] as $place) {
+            $nameCountKey = $place['level'].'|'.$this->nameKey($place['name']);
+            $nameCounts[$nameCountKey] = ($nameCounts[$nameCountKey] ?? 0) + 1;
+        }
         $now = now();
 
         $byLevel = [];
@@ -145,7 +151,7 @@ final class DefaultPlaceCatalog
                     $parentId = $idBySource[$place['parent_code']] ?? throw new RuntimeException('Parent '.$place['parent_code'].' of '.$place['code'].' is missing.');
                 }
 
-                $existing = $this->match($place, $code, $parentId, $rows, $codeOwner, $byStructure, $claimed);
+                $existing = $this->match($place, $code, $parentId, $rows, $codeOwner, $byStructure, $claimed, $nameCounts);
                 if ($existing !== null) {
                     $claimed[$existing->id] = true;
                     $idBySource[$place['code']] = $existing->id;
@@ -203,9 +209,10 @@ final class DefaultPlaceCatalog
      * @param  array<string, int>  $codeOwner
      * @param  array<string, list<int>>  $byStructure
      * @param  array<int, true>  $claimed
+     * @param  array<string, int>  $nameCounts
      * @return \stdClass|null
      */
-    private function match(array $place, string $code, ?int $parentId, array $rows, array $codeOwner, array $byStructure, array $claimed): ?object
+    private function match(array $place, string $code, ?int $parentId, array $rows, array $codeOwner, array $byStructure, array $claimed, array $nameCounts): ?object
     {
         $byCode = isset($codeOwner[$code]) && $codeOwner[$code] > 0 ? $rows[$codeOwner[$code]] : null;
         if ($place['level'] === PlaceCode::LevelManagement) {
@@ -222,8 +229,13 @@ final class DefaultPlaceCatalog
         }
 
         $name = $this->nameKey($place['name']);
-        // Under its parent first; a place the office saved without a parent counts too.
+        // Under its parent first. A place saved with no parent counts only when one list row has its name:
+        // Kaliganj and Alipur each sit under several parents, and the first row would otherwise take the place and its code.
+        $sharedName = ($nameCounts[$place['level'].'|'.$name] ?? 0) > 1;
         foreach ([$parentId, null] as $parent) {
+            if ($parent === null && $parentId !== null && $sharedName) {
+                continue;
+            }
             $best = $this->bestStructureMatch($byStructure[$place['level'].'|'.($parent ?? '').'|'.$name] ?? [], $rows, $claimed);
             if ($best !== null) {
                 return $best;
