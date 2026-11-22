@@ -7,6 +7,7 @@ import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
 import SearchSelect from './SearchSelect';
+import { useConfirm } from './ConfirmSheet';
 
 interface BranchStaff {
     user_id: number;
@@ -74,6 +75,7 @@ export default function BranchesHub({
 }: BranchesHubProps) {
     const translate = useT();
     const branchNote = useReasonField('stock.branch_note');
+    const { confirm, sheet } = useConfirm();
     const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<BranchRow | null>(null);
     const [assignRow, setAssignRow] = useState<BranchRow | null>(null);
@@ -126,6 +128,7 @@ export default function BranchesHub({
 
     return (
         <div data-tour="branches-hub">
+            {sheet}
             <div className="toolbar-end ops-row is-end">
                 <Link href="/branch-performance" className="button">
                     {translate('portal', 'branch_performance')}
@@ -255,8 +258,8 @@ export default function BranchesHub({
                                             <button
                                                 type="button"
                                                 className="button small branch-delete"
-                                                onClick={() => {
-                                                    if (!window.confirm(translate('portal', 'branch_delete_confirm', { name: r.name }))) {
+                                                onClick={async () => {
+                                                    if (!(await confirm({ title: translate('payouts', 'cs_check_title'), sentence: translate('portal', 'branch_delete_confirm', { name: r.name }), tone: 'danger', confirmLabel: translate('portal', 'branch_delete') }))) {
                                                         return;
                                                     }
                                                     router.delete(`/commands/branches/${r.id}`, { preserveScroll: true });

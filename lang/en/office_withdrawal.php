@@ -71,4 +71,5 @@ return [
     'proof_title' => 'Proof of the transfer',
     'proof_alt' => 'Screenshot of the transfer',
     'proof_sent_on' => 'Money sent on :date',
+    'hand_over_sentence' => 'This cash is written as handed over at the office to :name.',
 ];

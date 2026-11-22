@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Banknote, IdCard } from 'lucide-react';
-import { FormErrors, money, date } from '../UI';
+import { money, date } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { useReasonFields } from '../../shared/reasonFields';
-import { useEscape } from '../../shared/useEscape';
 import { AmountWords } from './WithdrawalFacts';
+import ConfirmSheet from '../ConfirmSheet';
 
 export interface OfficePayoutRow {
     id: string;
@@ -68,7 +68,10 @@ export default function OfficePayoutList({ rows, total, canProcess }: { rows: Of
     );
 }
 
-/** Records cash handed over at the office: when, who took it (the partner unless changed) and an optional note. */
+/**
+ * Records cash handed over at the office: when, who took it (the partner unless changed) and an optional note.
+ * A confirm sheet (a bottom sheet on a phone) repeats the amount and the name before the same request is sent.
+ */
 export function HandOverDialog({ record, onClose }: { record: Pick<OfficePayoutRow, 'id' | 'user_name' | 'dealer_code' | 'net_amount'>; onClose: () => void }) {
     const translate = useT();
     const note = useReasonFields()('money.withdrawal_settle');
@@ -77,10 +80,9 @@ export function HandOverDialog({ record, onClose }: { record: Pick<OfficePayoutR
     const [text, setText] = useState('');
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    useEscape(true, onClose);
+    const payee = record.dealer_code ? `${record.user_name} (${record.dealer_code})` : record.user_name;
 
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
+    const submit = () => {
         setProcessing(true);
         router.post(`/commands/withdrawals/${record.id}/hand-over`, { paid_at: paidAt, received_by: receivedBy, note: text }, {
             preserveScroll: true,
@@ -91,32 +93,28 @@ export function HandOverDialog({ record, onClose }: { record: Pick<OfficePayoutR
     };
 
     return (
-        <div className="hub-overlay">
-            <div className="hub-dialog" role="dialog" aria-modal="true" aria-labelledby="hand-over-title">
-                <h3 id="hand-over-title" className="hub-title is-lg">{translate('office_withdrawal', 'hand_over_title')}</h3>
-                <p className="hub-sub is-lead">{translate('office_withdrawal', 'hand_over_meta', { name: record.user_name, code: record.dealer_code ?? '', amount: money(record.net_amount) })}</p>
-                <AmountWords amount={record.net_amount} />
-                <form onSubmit={submit}>
-                    <div className="hub-field">
-                        <label htmlFor="hand-over-when">{translate('office_withdrawal', 'hand_over_when')}</label>
-                        <input id="hand-over-when" type="datetime-local" required value={paidAt} onChange={(event) => setPaidAt(event.target.value)} />
-                    </div>
-                    <div className="hub-field">
-                        <label htmlFor="hand-over-who">{translate('office_withdrawal', 'hand_over_received_by')}</label>
-                        <input id="hand-over-who" type="text" maxLength={100} value={receivedBy} onChange={(event) => setReceivedBy(event.target.value)} />
-                        <small className="hub-hint">{translate('office_withdrawal', 'hand_over_received_by_hint')}</small>
-                    </div>
-                    {note.shown && <div className="hub-field is-last">
-                        <label htmlFor="hand-over-note">{note.required ? translate('portal', 'pay_fld_notes') : translate('office_withdrawal', 'hand_over_note')}</label>
-                        <textarea id="hand-over-note" rows={2} maxLength={1000} required={note.required} value={text} onChange={(event) => setText(event.target.value)} />
-                    </div>}
-                    <FormErrors errors={errors} />
-                    <div className="hub-row is-end">
-                        <button type="button" className="button" onClick={onClose}>{translate('portal', 'pay_cancel')}</button>
-                        <button type="submit" className="button dark" disabled={processing}>{processing ? translate('portal', 'pay_recording') : translate('office_withdrawal', 'hand_over_confirm')}</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <ConfirmSheet
+            title={translate('office_withdrawal', 'hand_over_title')}
+            sentence={translate('office_withdrawal', 'hand_over_sentence', { name: payee })}
+            amount={record.net_amount}
+            facts={[{ label: translate('payouts', 'cs_fact_payee'), value: payee }]}
+            confirmLabel={translate('office_withdrawal', 'hand_over_confirm')}
+            cancelLabel={translate('portal', 'pay_cancel')}
+            pending={processing}
+            errors={errors}
+            onCancel={onClose}
+            onConfirm={submit}
+        >
+            <label htmlFor="hand-over-when">{translate('office_withdrawal', 'hand_over_when')}
+                <input id="hand-over-when" type="datetime-local" required value={paidAt} onChange={(event) => setPaidAt(event.target.value)} />
+            </label>
+            <label htmlFor="hand-over-who">{translate('office_withdrawal', 'hand_over_received_by')}
+                <input id="hand-over-who" type="text" maxLength={100} value={receivedBy} onChange={(event) => setReceivedBy(event.target.value)} />
+                <small className="field-hint">{translate('office_withdrawal', 'hand_over_received_by_hint')}</small>
+            </label>
+            {note.shown && <label htmlFor="hand-over-note">{note.required ? translate('portal', 'pay_fld_notes') : translate('office_withdrawal', 'hand_over_note')}
+                <textarea id="hand-over-note" rows={2} maxLength={1000} required={note.required} value={text} onChange={(event) => setText(event.target.value)} />
+            </label>}
+        </ConfirmSheet>
     );
 }

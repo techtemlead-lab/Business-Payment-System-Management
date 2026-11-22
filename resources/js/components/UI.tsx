@@ -5,6 +5,7 @@ import {actionAllowed} from './action-permissions';
 import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
 import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
+import {useKeyboardSafeSheet} from '../shared/useKeyboardSafeSheet';
 import DateInput from './DateInput';
 import {AutoSelect} from './SearchSelect';
 import FilterPicker, {wantsSearch} from './FilterChips';
@@ -1177,6 +1178,8 @@ export function Modal({title,onClose,children,variant='dialog',badge,footer}:{ti
  const [closing,setClosing]=useState(false);
  const onCloseRef=useRef(onClose);
  onCloseRef.current=onClose;
+ // Phones: the dialog is a bottom sheet (screens-confirm-sheet.css); keep it above the keyboard.
+ useKeyboardSafeSheet(ref);
  useEffect(()=>{
   const dialog=ref.current;
   // Remember who had focus before the dialog opens (showModal moves it), so closing returns there instead of to the page top.

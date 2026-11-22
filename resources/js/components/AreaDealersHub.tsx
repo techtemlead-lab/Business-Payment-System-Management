@@ -5,6 +5,7 @@ import { FormErrors, Modal, money, number, Table, Pagination, type Row } from '.
 import { actionAllowed } from './action-permissions';
 import { t, useT } from '../shared/i18n/t';
 import SearchSelect from './SearchSelect';
+import { useConfirm } from './ConfirmSheet';
 import { FilterChips } from './FilterChips';
 
 interface AreaAssignment {
@@ -184,8 +185,9 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
     const [editing, setEditing] = useState<AreaAssignment | null>(null);
     const canAssign = actionAllowed('/commands/area-dealers', staffActions);
     const seatText = (key: string, replace: Record<string, string> = {}) => t({ seat: areaText }, 'seat', key, replace);
-    const closeSeat = (seat: AreaAssignment) => {
-        if (!window.confirm(seatText('area_seat_close_confirm', { zone: seat.zone_name }))) {
+    const { confirm, sheet } = useConfirm();
+    const closeSeat = async (seat: AreaAssignment) => {
+        if (!(await confirm({ title: translate('payouts', 'cs_check_title'), sentence: seatText('area_seat_close_confirm', { zone: seat.zone_name }), tone: 'danger', confirmLabel: seatText('area_seat_close') }))) {
             return;
         }
         router.delete(`/commands/area-dealers/${seat.assignment_id}`, { preserveScroll: true });
@@ -218,6 +220,7 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
 
     return (
         <div className="hub">
+            {sheet}
             <div className="hub-grid">
                 <div className="hub-tile">
                     <div className="hub-label ops-row">

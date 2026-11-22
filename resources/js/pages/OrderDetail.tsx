@@ -17,6 +17,7 @@ import { shipmentArrivalText } from '../components/orderShipmentArrival';
 import { returnedByLine } from '../components/office/portalShared';
 import { orderLineDiscountPercent } from '../components/orderLineDiscount';
 import OwedItemsPanel, { type OwedItem } from '../components/OwedItemsPanel';
+import ClaimDecision from '../components/ClaimDecision';
 
 /** Units of a line still to send: not sent and not closed by a cancel. */
 const unsentOf = (line: Row) => Math.max(0, Number(line.quantity) - Number(line.dispatched) - Number(line.closed ?? 0));
@@ -287,15 +288,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ]} />
                 {claims.every(claim => !['Office', 'Account'].includes(String(claim.channel))) && <p className="muted">{translate('portal', 'claim_not_verified_hint')}</p>}
                 {capabilities.includes('finance') && !canVerify && claims.some(claim => claim.status === 'pending') && <p className="notice">{translate('portal', 'payment_view_only_note')}</p>}
-                {capabilities.includes('finance') && canVerify && claims.filter(claim => claim.status === 'pending').map(claim => <div className="panel" key={claim.id}>
-                    <h3>{translate('portal', 'review_claim', { reference: claim.reference })}</h3>
-                    <ActionForm action={`/commands/claims/${claim.id}/verify`} fields={[
-                        { name: 'approve', label: translate('portal', 'decision'), required: true, options: [{ value: '1', label: translate('portal', 'verify_received_payment') }, { value: '0', label: translate('portal', 'reject_claim') }] },
-                        { name: 'reason', label: translate(claim.channel === 'Office' ? 'order_payment' : 'portal', claim.channel === 'Office' ? 'office_who_took' : 'verification_evidence'), type: 'textarea', required: true, place: 'payment.verify' },
-                        // Office cash is confirmed only against the counted amount (OrderService::verify); same box as the Payments page.
-                        ...(claim.channel === 'Office' ? [{ name: 'cash_counted', label: translate('payouts', 'cash_counted'), type: 'number', hint: translate('payouts', 'cash_counted_hint', { amount: money(claim.amount) }) }] : []),
-                    ]} submit={translate('portal', 'record_payment_review')} />
-                </div>)}
+                {/* Two clear buttons, then a sheet with the amount and who paid (ClaimDecision posts the same approve/reason/cash_counted). */}
+                {capabilities.includes('finance') && canVerify && claims.filter(claim => claim.status === 'pending').map(claim => <ClaimDecision key={claim.id} claim={claim} order={order} />)}
             </section>
             <section className="panel"><h2>{translate('portal', 'delivery_timeline')}</h2>
                 {shipments.length ? shipments.map(shipment => {
