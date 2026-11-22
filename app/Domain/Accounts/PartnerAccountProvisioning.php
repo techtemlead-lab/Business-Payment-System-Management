@@ -273,10 +273,15 @@ final class PartnerAccountProvisioning
             throw $this->sameMomentRefusal($clash, $role);
         }
 
-        // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
-        $credentialsSent = $this->sms->send($user, $plainPassword);
+        // The username and first password go by SMS and, when the person has an email address, in the
+        // "account ready" email as well (client, 2026-11-22): never through JSON/Inertia props or the queue.
+        $smsSent = $this->sms->send($user, $plainPassword);
+        $welcomeMailed = $this->sms->sendWelcomeEmail($user, $plainPassword);
+        $credentialsSent = $smsSent || $welcomeMailed;
         $passwordLinkSent = ! $credentialsSent && $this->sendPasswordLink($user);
-        app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
+        if (! $welcomeMailed) {
+            app(PartnerEventEmail::class)->sendTranslated($user, 'account.created', 'event_emails.account_created_title', 'event_emails.account_created_body');
+        }
 
         return [
             'user' => $user,

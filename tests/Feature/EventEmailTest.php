@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Clinic\PrescriberVerification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Integrations\SmtpMailConfig;
+use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\EmailEventSwitches;
 use App\Domain\Notifications\PartnerEventEmail;
 use App\Domain\Orders\OrderService;
@@ -389,7 +390,7 @@ class EventEmailTest extends TestCase
         Mail::assertSent(EventNoticeMail::class, 1);
     }
 
-    public function test_account_creation_and_password_reset_emails_never_carry_a_password(): void
+    public function test_the_account_ready_email_carries_the_username_and_first_password_but_a_reset_never_does(): void
     {
         $this->useRealMail();
         Mail::fake();
@@ -411,10 +412,27 @@ class EventEmailTest extends TestCase
 
         $emails = Mail::sent(EventNoticeMail::class, fn (EventNoticeMail $mail): bool => $mail->hasTo('rafiq.dealer@gmail.com'));
         $this->assertCount(2, $emails);
-        foreach ($emails as $mail) {
-            $this->assertStringNotContainsString('Chosen-Password-77', $mail->noticeBody);
-            $this->assertStringNotContainsString('Md', str_replace(['Madina', 'Md. Rafiqul'], '', $mail->noticeBody));
-        }
+        $created = $emails->first();
+        // The account-ready email now carries the sign-in details (client, 2026-11-22), and it is the only
+        // account-ready email: the plain notice is not sent on top of it.
+        $this->assertStringContainsString('01712345678', $created->noticeBody);
+        $this->assertMatchesRegularExpression('/পাসওয়ার্ড: \S{8,}/u', $created->noticeBody);
+        $this->assertStringNotContainsString('Chosen-Password-77', $created->noticeBody);
+        $this->assertStringNotContainsString('Chosen-Password-77', $emails->last()->noticeBody);
+        $this->assertStringNotContainsString('পাসওয়ার্ড:', $emails->last()->noticeBody);
+    }
+
+    public function test_the_account_ready_email_without_a_real_mail_service_does_not_break_creation(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create(['role' => 'dealer', 'phone' => '01712345600', 'email' => 'someone@gmail.com', 'locale' => 'bn']);
+
+        $this->assertFalse(app(AccountCreatedSms::class)->sendWelcomeEmail($user, 'Abc-12345-xyz'));
+        Mail::assertNothingSent();
+
+        $this->useRealMail();
+        $this->assertTrue(app(AccountCreatedSms::class)->sendWelcomeEmail($user, 'Abc-12345-xyz'));
+        Mail::assertSent(EventNoticeMail::class, fn (EventNoticeMail $mail): bool => $mail->hasTo('someone@gmail.com') && str_contains($mail->noticeBody, '01712345600') && str_contains($mail->noticeBody, 'Abc-12345-xyz'));
     }
 
     public function test_a_new_staff_device_sends_an_email(): void
