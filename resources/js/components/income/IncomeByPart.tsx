@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from '../MoneyTable';
 import { date, money, number } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import { useIsPhone } from '../../shared/useIsPhone';
 
 export type IncomePart = { key: string; label: string; hint: string; amount: string; total: string; entries: number };
 
@@ -59,6 +61,10 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
     const translate = useT();
     const { url } = usePage();
     const periodLabel = translate('cr21_income', income.table.state.period === 'month' ? 'col_this_month' : 'col_this_period');
+    const [showZero, setShowZero] = useState(false);
+    const isPhone = useIsPhone();
+    const isZero = (part: IncomePart) => Number(part.amount) === 0 && Number(part.total) === 0;
+    const zeroCount = income.parts.filter((part) => isZero(part)).length;
     const chosen = income.parts.find((part) => part.key === income.part) ?? income.parts[0];
 
     const choose = (part: string) => {
@@ -104,7 +110,7 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
                 <h2 id="mm-parts-title">{translate('income', 'parts_label')}</h2>
                 <p className="mm-part-hint">{translate('income', 'all_parts_note')}</p>
                 <div className="mm-heads-wrap">
-                    <table className="mm-heads" data-testid="income-heads">
+                    <table className={`mm-heads${showZero ? ' show-zero' : ''}`} data-testid="income-heads">
                         <thead>
                             <tr>
                                 <th scope="col">{translate('cr21_income', 'col_head')}</th>
@@ -114,7 +120,7 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
                         </thead>
                         <tbody>
                             {income.parts.map((part) => (
-                                <tr key={part.key} className={part.key === chosen.key ? 'is-selected' : undefined} data-head={part.key}>
+                                <tr key={part.key} className={[part.key === chosen.key ? 'is-selected' : '', isZero(part) && part.key !== chosen.key ? 'is-zero' : ''].filter(Boolean).join(' ') || undefined} data-head={part.key}>
                                     <th scope="row">
                                         <button type="button" aria-pressed={part.key === chosen.key} onClick={() => choose(part.key)} title={part.hint}>
                                             {part.label}
@@ -134,6 +140,11 @@ export default function IncomeByPart({ income, statementBase, orderHref, prop = 
                         </tfoot>
                     </table>
                 </div>
+                {isPhone && zeroCount > 0 && (
+                    <button type="button" className="button mm-zero-toggle" aria-pressed={showZero} onClick={() => setShowZero((on) => !on)}>
+                        {showZero ? translate('income', 'zero_hide') : translate('income', 'zero_show', { count: number(zeroCount) })}
+                    </button>
+                )}
             </section>
             <section id="mm-book" className="mm-book" aria-labelledby="mm-part-title">
                 <h2 id="mm-part-title">{chosen.label}</h2>
