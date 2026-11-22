@@ -133,4 +133,5 @@
   :root .app-shell .ppm-cart tr:has(.ppm-empty) { padding: 0; border: 0; background: transparent; }
   :root .app-shell .ppm-cart td:has(> .ppm-empty) { display: block; text-align: center; }
   :root .app-shell .ppm-cart .hub-empty.ppm-empty { box-sizing: border-box; width: 100%; margin: 0; padding: 28px 12px; }
+  :root .app-shell .ppm-cart .ppm-empty :is(p, small) { display: block; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 }
