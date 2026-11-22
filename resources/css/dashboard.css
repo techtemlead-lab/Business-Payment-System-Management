@@ -1,4 +1,4 @@
-﻿@import './theme-dark.css';
+@import './theme-dark.css';
 @import './screens-editor.css';
 @import './screens-ops.css';
 @import './screens-chat.css';
@@ -42,7 +42,7 @@
 @import './mobile-office.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
-/* Bangla digits ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â§Ãƒâ€šÃ‚Â¦-ÃƒÆ’Ã‚Â Ãƒâ€šÃ‚Â§Ãƒâ€šÃ‚Â¯ come from Noto Sans Bengali, where every digit has the same width, so
+/* Bangla digits ÃƒÂ Ã‚Â§Ã‚Â¦-ÃƒÂ Ã‚Â§Ã‚Â¯ come from Noto Sans Bengali, where every digit has the same width, so
    amounts line up in tables. All other letters use Hind Siliguri. */
 @font-face{font-family:'Madina Digits';font-style:normal;font-weight:100 500;font-display:swap;unicode-range:U+09E6-09EF;src:local('Noto Sans Bengali'),url('https://fonts.bunny.net/noto-sans-bengali/files/noto-sans-bengali-bengali-400-normal.woff2') format('woff2')}
 @font-face{font-family:'Madina Digits';font-style:normal;font-weight:600 900;font-display:swap;unicode-range:U+09E6-09EF;src:local('Noto Sans Bengali Bold'),url('https://fonts.bunny.net/noto-sans-bengali/files/noto-sans-bengali-bengali-700-normal.woff2') format('woff2')}
@@ -85,7 +85,7 @@
   --ds-text:#0b1f33;
   --ds-text-2:#334155;
   --ds-text-muted:#5b6b7a;
-  /* Was #7b8794 (3.6:1 on white, 3.2:1 on tinted cells) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â too light for the 10ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ11px hints and counts it colours.
+  /* Was #7b8794 (3.6:1 on white, 3.2:1 on tinted cells) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â too light for the 10ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“11px hints and counts it colours.
      #626e7b passes 4.5:1 on both and stays a step lighter than muted. */
   --ds-text-faint:#626e7b;
 
@@ -717,7 +717,7 @@ label.partner-home-avatar-upload input{position:absolute;inset:0;width:100%;heig
   .profile-menu-trigger .user-caption{display:none}
   .profile-menu-panel{right:-4px;min-width:200px}
 }
-/* Tablet and small laptop (768ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ1279px): the top bar ran out of room, so the page name was
+/* Tablet and small laptop (768ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“1279px): the top bar ran out of room, so the page name was
    squeezed to a few stray letters beside the branch picker. Keep only the page name, show the
    short language labels and the avatar without the name/role text, and cap the branch picker. */
 @media(min-width:768px) and (max-width:1279px){
@@ -845,7 +845,7 @@ dialog.portal-modal::backdrop{
 
 
 /* Partner ops suite: tours, help, invoice actions */
-/* Fixed viewport overlay ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â absolute+scrollY coords were offset from the portal DOM nest. */
+/* Fixed viewport overlay ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â absolute+scrollY coords were offset from the portal DOM nest. */
 .onboarding-tour { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
 .onboarding-tour-backdrop { position: fixed; inset: 0; background: rgba(1,22,39,.52); z-index: 80; pointer-events: auto; }
 .onboarding-tour-spotlight {
@@ -1673,7 +1673,7 @@ dialog.portal-modal::backdrop{
 }
 
 .luxury-product-card:hover {
-  /* Shadow/border only ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â translateY on the hovered card causes bottom-edge hover flicker. */
+  /* Shadow/border only ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â translateY on the hovered card causes bottom-edge hover flicker. */
   transform: none;
   border-color: rgba(155, 182, 146, 0.95);
   box-shadow: 0 22px 42px -12px rgba(18, 38, 24, 0.16), 0 8px 18px -4px rgba(18, 38, 24, 0.08);
@@ -2628,7 +2628,7 @@ html[data-theme="dark"] .app-shell .language-switcher button.active{background:v
 .app-shell .partner-home-metric-cards>div{border:0;border-radius:0;background:var(--ds-surface);padding:10px 12px}
 .app-shell .partner-home-metric-cards span{font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
 .app-shell .partner-home-metric-cards strong{font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text);overflow-wrap:anywhere}
-/* Three cards in a narrow panel leave ~100px each ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â too tight for lakh-size amounts. Drop to two columns there. */
+/* Three cards in a narrow panel leave ~100px each ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â too tight for lakh-size amounts. Drop to two columns there. */
 .app-shell .partner-home-metrics{container-type:inline-size}
 @container (max-width:420px){.app-shell .partner-home-metric-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.app-shell .partner-home-metric-cards>div:last-child:nth-child(odd){grid-column:1/-1}}
 .app-shell .partner-home-metric-cards small{font-size:var(--ds-fs-2xs);color:var(--ds-text-muted)}
