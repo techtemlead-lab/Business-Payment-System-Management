@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\RankRoyaltyFunds;
 use App\Support\CommissionCodeLabel;
 use App\Support\Money;
 
@@ -12,17 +13,20 @@ use App\Support\Money;
  */
 final class FundCatalog
 {
-    /** Money held for the month close. They can never be spent by hand. */
-    public const MonthPools = ['salary_pool', 'royalty_pool', 'rank_bonus'];
+    /** Money held for the month close. They can never be spent by hand. The rank royalty has one fund per rank. */
+    public const MonthPools = ['salary_pool', 'royalty_mo', 'royalty_am', 'royalty_sm', 'royalty_me', 'royalty_pool', 'rank_bonus'];
 
     /** Funds where a closed month is finished: everything in that row has gone out. */
-    public const ClosedRowFunds = ['salary_pool', 'royalty_pool', 'rank_bonus', 'rank_reward'];
+    public const ClosedRowFunds = ['salary_pool', 'royalty_mo', 'royalty_am', 'royalty_sm', 'royalty_me', 'royalty_pool', 'rank_bonus', 'rank_reward'];
 
-    /** Old money only. The card appears only while something came in. */
-    public const HiddenWhileEmpty = ['car_bike', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
+    /**
+     * Old money only. The card appears only while something came in. royalty_pool is the single rank royalty fund of
+     * orders posted before the four rank funds (RankRoyaltyFunds).
+     */
+    public const HiddenWhileEmpty = ['royalty_pool', 'car_bike', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
 
     /** The order the cards appear in. */
-    private const Order = ['company_share', 'company_profit', 'management', 'marketing', 'tour', 'sub_dealer_extra', 'bike', 'car', 'car_bike', 'salary_pool', 'royalty_pool', 'rank_bonus', 'rank_reward', 'clinic', 'benefits', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
+    private const Order = ['company_share', 'company_profit', 'management', 'marketing', 'tour', 'sub_dealer_extra', 'bike', 'car', 'car_bike', 'salary_pool', 'royalty_mo', 'royalty_am', 'royalty_sm', 'royalty_me', 'royalty_pool', 'rank_bonus', 'rank_reward', 'clinic', 'benefits', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
 
     /** @return list<string> */
     public static function keys(): array
@@ -51,7 +55,7 @@ final class FundCatalog
     {
         $pools = "WHEN funds.category = 'additional_rank_pool' THEN 'rank_reward' "
             ."WHEN funds.category IN ('dealer_monthly_salary_pool', 'sub_dealer_salary') THEN 'salary_pool' "
-            ."WHEN funds.category = 'rank_royalty_pool' THEN 'royalty_pool' "
+            .RankRoyaltyFunds::fundCaseSql('funds.category')
             ."WHEN funds.category = 'rank_incentive_pool' THEN 'rank_bonus' ";
 
         return 'CASE '.$pools.substr(CompanyFunds::fundSql(), strlen('CASE '));

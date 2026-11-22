@@ -113,6 +113,18 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             .catch(() => { if (!cancelled) setHomeError(placeListFailed); });
         return () => { cancelled = true; };
     }, [isPartner, canEditDetails]);
+    /** The four area places of the partner's own purchases; empty keeps the saved ones. */
+    const area = usePlaceChain(homeDivisions, (level, parentId) => loadPlaceList(level, parentId, placeListFailed));
+    const [areaError, setAreaError] = useState('');
+    const savedArea = (account.profile?.area_chain ?? {}) as Record<string, { name?: string; code?: string } | undefined>;
+    const areaNow = (['union', 'upazila', 'district', 'division'] as const).map(level => savedArea[level]).filter(Boolean).map(each => `${each?.name ?? ''}${each?.code ? ` (${each.code})` : ''}`).join(', ');
+    const areaFields = { division: 'area_division_id', district: 'area_district_id', upazila: 'area_upazila_id', union: 'area_union_id' } as const;
+    const areaFieldErrors = (form.errors as Record<string, string | undefined>);
+    const pickArea = (level: PlaceLevel, value: string) => {
+        area.choose(level, value);
+        setAreaError('');
+        form.clearErrors(areaFields[level] as never);
+    };
     const pickHome = (level: PlaceLevel, value: string) => {
         const ids = home.choose(level, value);
         setHomeError('');
@@ -164,6 +176,12 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 setHomeError(translate('portal', 'acct_val_home_place_level'));
                 return;
             }
+            // A new area chain is all four places or nothing.
+            const areaPicked = placeLevels.some(level => area.ids[level]);
+            if (areaPicked && !placeLevels.every(level => area.ids[level])) {
+                setAreaError(translate('portal', 'acct_area_chain_incomplete'));
+                return;
+            }
             form.transform((data) => {
                 const profile = { ...data.profile };
                 // One shop name for dealers and sub-dealers; the older pharmacy field just follows it.
@@ -171,7 +189,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     profile.pharmacy = profile.shop_name;
                 }
                 const { permanent_place_id: homePlaceId, ...rest } = data;
-                return isPartner && homePlaceId ? { ...rest, profile, permanent_place_id: homePlaceId } : { ...rest, profile };
+                const areaIds = isPartner && areaPicked ? { area_division_id: area.ids.division, area_district_id: area.ids.district, area_upazila_id: area.ids.upazila, area_union_id: area.ids.union } : {};
+                return isPartner && homePlaceId ? { ...rest, profile, ...areaIds, permanent_place_id: homePlaceId } : { ...rest, profile, ...areaIds };
             });
             form.patch(`/commands/accounts/${account.id}`, { onSuccess: onDone });
         }}>
@@ -218,6 +237,18 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         errors={{ upazila: homeError || form.errors.permanent_place_id }}
                         hints={{ union: translate('portal', 'acct_home_union_hint') }}
                     />
+                    <div className="full">
+                        <b>{translate('portal', 'acct_area_chain_title')}</b>
+                        <p className="muted">{areaNow ? translate('portal', 'acct_area_chain_now', { place: areaNow }) : translate('portal', 'acct_area_chain_not_picked')} {translate('portal', 'acct_area_chain_change_hint')}</p>
+                        {areaError && <span className="field-error" role="alert">{areaError}</span>}
+                    </div>
+                    <PlacePickers
+                        chain={area}
+                        levels={placeLevels}
+                        onPick={pickArea}
+                        Field={EditorField}
+                        errors={{ division: areaFieldErrors.area_division_id, district: areaFieldErrors.area_district_id, upazila: areaFieldErrors.area_upazila_id, union: areaFieldErrors.area_union_id }}
+                    />
                 </> : <>
                     <label>{translate('portal', 'acct_division')}
                         <input value={form.data.division} onChange={event => form.setData('division', event.target.value)} />
@@ -241,7 +272,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {(account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
-            <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude', 'permanent_place_id']}/>
+            <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude', 'permanent_place_id', 'area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
             {isPartner && <a className="button" href={`/exports/partner-registration-form/${account.id}`} title={translate('partner_form', 'download_hint')}>{translate('partner_form', 'download_form')}</a>}
         </form>}

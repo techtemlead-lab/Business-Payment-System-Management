@@ -88,9 +88,11 @@ class DealerOnboardingTest extends TestCase
         $this->assertSame('মোঃ রফিকুল ইসলাম', $user->profile['name_bn']);
         $this->assertSame('Late Abdur Rahman', $user->profile['father_name']);
         $this->assertSame('Rahima Begum', $user->profile['mother_name']);
-        // The place code (a division here) decides the area; the typed upazila and union are not taken.
-        $this->assertSame('', $user->profile['upazila']);
-        $this->assertSame('', $user->profile['union']);
+        // The four picked area places decide the area; the typed upazila and union are not taken.
+        $this->assertSame($user->profile['area_chain']['upazila']['name'], $user->profile['upazila']);
+        $this->assertSame($user->profile['area_chain']['union']['name'], $user->profile['union']);
+        $this->assertNotSame('Kaliakair', $user->profile['upazila']);
+        $this->assertNotSame('Chapair', $user->profile['union']);
         $this->assertSame('Madina Care Point Gazipur', $user->profile['pharmacy']);
 
         // Check wallet initialized
@@ -217,7 +219,9 @@ class DealerOnboardingTest extends TestCase
 
         $profile = User::where('email', 'kaunia@example.com')->firstOrFail()->profile;
         $this->assertSame('Kaunia', $profile['upazila']);
-        $this->assertSame('', $profile['union']);
+        // The union is the one picked in the four area lists, never a name left over in the form.
+        $this->assertSame($profile['area_chain']['union']['name'], $profile['union']);
+        $this->assertNotSame('Rangpur City Corporation', $profile['union']);
     }
 
     public function test_a_password_typed_by_the_office_is_used_and_not_forced_to_change(): void

@@ -168,7 +168,7 @@ class TreasuryFoundationTest extends TestCase
         app(CommissionSettlement::class)->settle('2026-09', 'salary');
         app(CommissionSettlement::class)->settle('2026-09', 'royalty');
 
-        foreach (['salary_pool', 'royalty_pool'] as $fund) {
+        foreach (['salary_pool', 'royalty_mo', 'royalty_am', 'royalty_sm', 'royalty_me'] as $fund) {
             $card = $this->card($fund);
             $this->assertSame('0.00', $card['balance'], $fund);
             $this->assertSame($card['money_in'], $card['money_out'], $fund);

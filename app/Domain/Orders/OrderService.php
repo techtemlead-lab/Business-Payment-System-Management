@@ -96,7 +96,7 @@ class OrderService
             }
             // Collected at the office: no courier is chosen or booked for it.
             $pickup = ($data['delivery_method'] ?? null) === OfficePickup::MethodOffice;
-            $order = Order::create(['number' => 'MN-'.now((string) config('madina.business_timezone'))->format('ymd').'-'.Str::upper(Str::random(8)),
+            $order = Order::create(['number' => OrderNumbers::next(),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null,
                 'delivery_method' => $pickup ? OfficePickup::MethodOffice : OfficePickup::MethodCourier,

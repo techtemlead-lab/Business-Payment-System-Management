@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionSettlement;
+use App\Domain\Commissions\RankRoyaltyFunds;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\BranchScope;
 use App\Domain\Orders\DeliveredMoney;
@@ -295,7 +296,7 @@ final class OrderMoneyReport
         $monthlyPool = match (true) {
             $category === 'additional_rank_pool' => 'rank_reward',
             in_array($category, ['dealer_monthly_salary_pool', 'sub_dealer_salary'], true) => 'salary_pool',
-            $category === 'rank_royalty_pool' => 'royalty_pool',
+            RankRoyaltyFunds::fundKeyOf($category) !== null => RankRoyaltyFunds::fundKeyOf($category),
             $category === 'rank_incentive_pool' => 'rank_bonus',
             default => null,
         };

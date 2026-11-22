@@ -577,10 +577,16 @@ final class CommissionPosting
         $managementRate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters']['management_share_pct'] : '0.00';
         $add('area_management', 'area_dealer_pool', null, 'pending', $managementRate, $areaRemaining,
             ['account_type' => $type, 'retained_by' => ManagementReferral::FundRetainedBy, 'management_fund' => true]);
-        foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
-            'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund'] as $key => $category) {
-            $add($category, $key);
+        $add('dealer_monthly_salary_pool', 'dealer_monthly_salary');
+        // The rank royalty goes into four funds, one per rank (RankRoyaltyFunds), each at its own share percent (1% each by
+        // default). The shares always add up to the rule's percent (CommissionPolicy::validateSchedule()); the split below
+        // rounds each fund down, and the four funds plus the paisa left for the Commission extra fund make the rule's amount.
+        $royaltyOn = CommissionPolicy::rate($rules, 'rank_royalty')->basisPoints > 0;
+        foreach (RankRoyaltyFunds::Categories as $rank => $category) {
+            $add($category, 'rank_royalty', null, 'pending', $royaltyOn ? (string) $rules['rank_royalty']['parameters'][$rank.'_share_pct'] : '0.00', null, ['rank' => $rank]);
         }
+        $add('rank_incentive_pool', 'rank_incentive');
+        $add('company_marketing_fund', 'company_marketing');
         // Bike and car prizes each have their own pool, tagged on the row so one never spends the other's money.
         foreach (CommissionPolicy::vehiclePoolRates($rules) as $pool => $poolRate) {
             $add('car_bike_incentive_fund', 'car_bike_incentive', null, 'pending', $poolRate->decimal(), null, ['vehicle_pool' => $pool]);
@@ -627,7 +633,9 @@ final class CommissionPosting
                 $fractions[$index] = $numerator % 10000;
             }
             arsort($fractions, SORT_NUMERIC);
-            $remaining = $groupAmounts[$key] - $base;
+            // The four rank royalty funds are kept equal: each is rounded down and the paisa that do not divide stay
+            // unallocated, so they go to the Commission extra fund with the order's surplus (owner, 2026-11-21).
+            $remaining = $key === 'rank_royalty' ? 0 : $groupAmounts[$key] - $base;
             foreach (array_keys($fractions) as $index) {
                 if ($remaining-- <= 0) {
                     break;

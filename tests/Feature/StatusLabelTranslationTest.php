@@ -53,7 +53,7 @@ class StatusLabelTranslationTest extends TestCase
             'direct_referral', 'direct_referral_breakage', 'd2d_gen2', 'd2d_gen3', 'd2d_gen2_breakage', 'd2d_gen3_breakage',
             'own_dealer_cashback', 'area_division', 'area_district', 'area_upazila', 'area_union', 'area_management',
             'dealer_monthly_salary_pool', 'sub_dealer_salary', 'sub_dealer_tour', 'additional_rank_pool',
-            'rank_royalty_pool', 'rank_incentive_pool', 'car_bike_incentive_fund', 'company_marketing_fund', 'opening_hold',
+            'rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool', 'rank_incentive_pool', 'car_bike_incentive_fund', 'company_marketing_fund', 'opening_hold',
         ];
 
         foreach ($categories as $category) {

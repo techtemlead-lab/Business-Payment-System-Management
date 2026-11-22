@@ -274,8 +274,8 @@ class PartnerBusinessAreaAndHomeAddressTest extends TestCase
         $home = collect($sections['স্থায়ী ঠিকানা']['rows'])->pluck('value')->all();
         $business = collect($sections['ব্যবসার এলাকা']['rows'])->pluck('value')->all();
         $this->assertSame(['Dhaka', 'Gazipur', 'Kaliakair', 'Chapair', 'Ratanpur, House 12', 'Kaliakair-1750'], $home);
-        // An upazila dealer's union stays empty: the upazila here has no base union.
-        $this->assertSame(['Rangpur', 'Rangpur District', 'Pirganj', '', 'MNHC402'], $business);
+        // The business area is the four places picked on the form, down to the union (client, 2026-11-22).
+        $this->assertSame(['Rangpur', 'Rangpur District', 'Pirganj', 'Kabilpur', 'MNHC402'], $business);
     }
 
     public function test_an_older_partner_without_a_permanent_place_still_shows_the_village(): void

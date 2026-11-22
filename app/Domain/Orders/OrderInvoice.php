@@ -15,6 +15,7 @@ use App\Support\PdfFonts;
 use App\Support\PdfPaper;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use App\Support\SiteFacts;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -136,6 +137,9 @@ final class OrderInvoice
             'logo_path' => is_file($logoPath) ? $logoPath : null,
             ...LetterheadContacts::lines(),
             'icons' => LetterheadContacts::icons(),
+            // Printed top right as two short lines; a line is left out when the number is empty.
+            'licence' => SiteFacts::tradeLicence(),
+            'trademark' => SiteFacts::trademarkNumber(),
         ];
 
         $products = Product::query()

@@ -38,6 +38,14 @@ final class PartnerAccountProvisioning
     /** The places closing took from a dealer, kept on the profile for when it reopens. */
     public const FreedSeatsKey = 'seats_freed_on_close';
 
+    /** The request fields of the four area places, from the top of the country down. */
+    public const AreaChainFields = [
+        PlaceCode::LevelDivision => 'area_division_id',
+        PlaceCode::LevelDistrict => 'area_district_id',
+        PlaceCode::LevelUpazila => 'area_upazila_id',
+        PlaceCode::LevelUnion => 'area_union_id',
+    ];
+
     public function __construct(
         private PlaceGeographyResolver $geography,
         private AccountCreatedSms $sms,
@@ -118,6 +126,7 @@ final class PartnerAccountProvisioning
             ])]);
         }
         $permanentAddress = $this->permanentAddress($input['permanent_place_id'] ?? null);
+        $areaChain = $this->areaChain($input, $place);
 
         if ($role === 'dealer') {
             $taken = AreaDealerAssignment::query()
@@ -149,6 +158,8 @@ final class PartnerAccountProvisioning
         }
 
         $path = $this->geography->expandFromAnchor($place);
+        // The business area shown for the partner: the four places picked, when they were picked.
+        $areaNames = $areaChain === null ? $path : array_map(fn (array $chosen): string => $chosen['name'], $areaChain);
         // A password typed by the office is used as it is; left empty, one is made. Never logged or audited.
         $typedPassword = trim((string) ($input['password'] ?? ''));
         if ($typedPassword !== '' && (mb_strlen($typedPassword) < 8 || app(SignInGuard::class)->isTooEasy($typedPassword))) {
@@ -165,8 +176,8 @@ final class PartnerAccountProvisioning
             'post_office' => trim((string) ($input['post_office'] ?? '')),
             // The place code decides the area. A typed or left-over name is never taken: a dealer on an
             // upazila code has no union, and must not get one from another upazila.
-            'upazila' => (string) ($path['upazila'] ?? ''),
-            'union' => (string) ($path['union'] ?? ''),
+            'upazila' => (string) ($areaNames['upazila'] ?? ''),
+            'union' => (string) ($areaNames['union'] ?? ''),
             'pharmacy' => $shopName,
             'shop_name' => $shopName,
             'area_code' => $role === 'sub_dealer' ? $dealerCode : $place->code,
@@ -178,6 +189,7 @@ final class PartnerAccountProvisioning
             'extra_contact' => trim((string) ($input['extra_contact'] ?? '')),
             'union_place_code' => $role === 'sub_dealer' ? $place->code : null,
             ...$permanentAddress,
+            ...($areaChain === null ? [] : [PlaceGeographyResolver::AreaChainKey => $areaChain]),
         ];
         if ($managementReferral) {
             $profile['referred_by'] = ManagementReferral::ProfileFlag;
@@ -210,7 +222,7 @@ final class PartnerAccountProvisioning
         }
 
         try {
-            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $typedPassword, $managementReferral, $managementSettings): User {
+            $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $areaNames, $areaChain, $dealerCode, $profile, $plainPassword, $typedPassword, $managementReferral, $managementSettings): User {
                 CommissionWallet::lock();
                 $this->claimCodes($actor, [$dealerCode]);
                 $user = (new User)->forceFill([
@@ -220,8 +232,8 @@ final class PartnerAccountProvisioning
                     'name' => trim((string) $input['name']),
                     'email' => $email,
                     'phone' => $phone,
-                    'division' => $path['division'] ?? ($input['division'] ?? null),
-                    'district' => $path['district'] ?? ($input['district'] ?? null),
+                    'division' => $areaNames['division'] ?? ($input['division'] ?? null),
+                    'district' => $areaNames['district'] ?? ($input['district'] ?? null),
                     'sponsor_id' => $sponsor?->id,
                     'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
                     'latitude' => isset($input['latitude']) && $input['latitude'] !== '' ? (float) $input['latitude'] : null,
@@ -251,6 +263,7 @@ final class PartnerAccountProvisioning
                     'refer_code' => $referCode,
                     'reference_code' => $managementReferral ? $managementSettings['place_code'] : $sponsor?->refer_code,
                     'referred_by_management' => $managementReferral,
+                    'area_chain' => $areaChain === null ? null : array_map(fn (array $chosen): string => $chosen['code'], $areaChain),
                     'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
                 ]);
 
@@ -320,6 +333,77 @@ final class PartnerAccountProvisioning
             'permanent_union' => $names[PlaceCode::LevelUnion] ?? '',
             'permanent_place_id' => (string) $place->id,
         ];
+    }
+
+    /**
+     * The four area places picked one by one (division, district, upazila, union): where the
+     * area commission of the partner's own purchases goes (client, 2026-11-22). Each must be an
+     * active place with a code, of its own level, each the child of the one above, and the place
+     * of the seat's level must be the seat itself (a district dealer's district is his code's
+     * place). Nothing given: null, and older ways of adding a partner keep the base places.
+     *
+     * @param  array<string, mixed>  $input  The request fields area_division_id … area_union_id
+     * @return array<string, array{id: int, code: string, name: string}>|null level => place
+     *
+     * @throws ValidationException with a plain message on the first wrong box
+     */
+    public function areaChain(array $input, ?PlaceCode $seat): ?array
+    {
+        $given = [];
+        foreach (self::AreaChainFields as $level => $field) {
+            $value = $input[$field] ?? null;
+            $given[$level] = $value === null || $value === '' ? null : $value;
+        }
+        if (array_filter($given, fn (mixed $value): bool => $value !== null) === []) {
+            return null;
+        }
+        foreach ($given as $level => $value) {
+            if ($value === null) {
+                throw ValidationException::withMessages([self::AreaChainFields[$level] => __('portal.acct_val_area_'.$level.'_required')]);
+            }
+        }
+        $ids = array_map(fn (mixed $value): int => is_numeric($value) ? (int) $value : 0, $given);
+        $places = PlaceCode::query()->whereIn('id', array_values(array_filter($ids)))->get()->keyBy('id');
+
+        $chain = [];
+        $parentId = null;
+        foreach (self::AreaChainFields as $level => $field) {
+            $place = $places->get($ids[$level]);
+            if (! $place instanceof PlaceCode || $place->level !== $level || ! $place->isReadyForAssignment()) {
+                throw ValidationException::withMessages([$field => __('portal.acct_val_area_place_unknown')]);
+            }
+            if ($parentId !== null && (int) $place->parent_id !== $parentId) {
+                throw ValidationException::withMessages([$field => __('portal.acct_val_area_chain_broken')]);
+            }
+            $parentId = (int) $place->id;
+            $chain[$level] = ['id' => (int) $place->id, 'code' => (string) $place->code, 'name' => trim((string) $place->name)];
+        }
+        if ($seat instanceof PlaceCode && isset($chain[$seat->level]) && $chain[$seat->level]['id'] !== (int) $seat->id) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_area_seat_mismatch')]);
+        }
+
+        return $chain;
+    }
+
+    /**
+     * The place a partner is seated on today: his most specific active dealer seat, else the
+     * place saved on the profile (a sub-dealer's union). Null when he has no place yet.
+     */
+    public function seatPlaceOf(User $partner): ?PlaceCode
+    {
+        $seatPlaceId = AreaDealerAssignment::query()
+            ->where('user_id', $partner->id)
+            ->where('is_active', true)
+            ->whereNotNull('place_code_id')
+            ->orderByRaw("CASE level WHEN 'union' THEN 1 WHEN 'upazila' THEN 2 WHEN 'district' THEN 3 WHEN 'division' THEN 4 ELSE 5 END")
+            ->value('place_code_id');
+        $placeId = $seatPlaceId ?? PlaceGeographyResolver::profilePlaceId($partner);
+        if ($placeId !== null) {
+            return PlaceCode::query()->whereKey($placeId)->first();
+        }
+        $code = trim((string) data_get($partner->profile, 'place_code', ''));
+
+        return $code !== '' ? PlaceCode::findByCode($code) : null;
     }
 
     /** The account already exists by now, so a mail problem must not turn into an error page. */

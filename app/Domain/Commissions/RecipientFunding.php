@@ -55,13 +55,14 @@ final class RecipientFunding
                     }
                     $amounts = $this->split($difference, $basisPoints);
                     foreach ($amounts as $category => $amount) {
-                        $sourceIndex = array_search($category, array_column($rows, 'category'), true);
-                        if ($sourceIndex === false || isset($targets[$sourceIndex]) || $rows[$sourceIndex]['cents'] < $amount) {
-                            throw ValidationException::withMessages(['funding' => __('portal.err_fund_unavailable')]);
+                        foreach ($this->sourceDeductions($rows, $category, $amount) as $sourceIndex => $part) {
+                            if (isset($targets[$sourceIndex]) || $rows[$sourceIndex]['cents'] < $part) {
+                                throw ValidationException::withMessages(['funding' => __('portal.err_fund_unavailable')]);
+                            }
+                            $rows[$sourceIndex]['cents'] -= $part;
+                            $rows[$sourceIndex]['metadata']['funding_deductions'][] = ['recipient_schedule_id' => $override['schedule_id'], 'recipient_id' => $row['user_id'], 'amount_cents' => $part];
+                            $rows[$sourceIndex]['rate_percentage'] = $this->effectiveRate($rows[$sourceIndex]['cents'], $cash);
                         }
-                        $rows[$sourceIndex]['cents'] -= $amount;
-                        $rows[$sourceIndex]['metadata']['funding_deductions'][] = ['recipient_schedule_id' => $override['schedule_id'], 'recipient_id' => $row['user_id'], 'amount_cents' => $amount];
-                        $rows[$sourceIndex]['rate_percentage'] = $this->effectiveRate($rows[$sourceIndex]['cents'], $cash);
                         $decision['sources'][$category] = $amount;
                     }
                 } else {
@@ -84,7 +85,36 @@ final class RecipientFunding
         return ['rows' => $rows, 'company' => $company, 'decisions' => $decisions];
     }
 
-    /** @param array<string, int> $weights @return array<string, int> */
+    /**
+     * The rows a funding source takes its money from. A source is one row of that category, except the rank royalty
+     * (saved as `rank_royalty_pool`): an order now posts it as four rank funds, so the amount is taken from the four in
+     * proportion to what each holds.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<int, int> row index => paisa taken
+     */
+    private function sourceDeductions(array $rows, string $category, int $amount): array
+    {
+        $categories = array_column($rows, 'category');
+        $sourceIndex = array_search($category, $categories, true);
+        if ($sourceIndex !== false) {
+            return [$sourceIndex => $amount];
+        }
+        if ($category === RankRoyaltyFunds::LegacyCategory) {
+            $weights = [];
+            foreach ($categories as $index => $rowCategory) {
+                if (RankRoyaltyFunds::rankOf((string) $rowCategory) !== null && $rows[$index]['cents'] > 0) {
+                    $weights[$index] = (int) $rows[$index]['cents'];
+                }
+            }
+            if ($weights !== [] && array_sum($weights) >= $amount) {
+                return $this->split($amount, $weights);
+            }
+        }
+        throw ValidationException::withMessages(['funding' => __('portal.err_fund_unavailable')]);
+    }
+
+    /** @param array<int|string, int> $weights @return array<int|string, int> */
     private function split(int $amount, array $weights): array
     {
         $total = array_sum($weights);

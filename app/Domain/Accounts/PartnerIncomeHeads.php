@@ -36,7 +36,7 @@ final class PartnerIncomeHeads
         'rank_am' => ['kinds' => ['rank_am'], 'audience' => ['dealer']],
         'rank_sm' => ['kinds' => ['rank_sm'], 'audience' => ['dealer']],
         'rank_me' => ['kinds' => ['rank_me'], 'audience' => ['dealer']],
-        'royalty' => ['kinds' => ['royalty'], 'categories' => ['rank_royalty_pool'], 'audience' => ['dealer']],
+        'royalty' => ['kinds' => ['royalty'], 'categories' => ['rank_royalty_pool', 'rank_royalty_mo_pool', 'rank_royalty_am_pool', 'rank_royalty_sm_pool', 'rank_royalty_me_pool'], 'audience' => ['dealer']],
         // DECISION: the sub-dealer "additional rank" award is a rank incentive, so it sums here.
         'incentive' => ['programs' => ['additional_rank'], 'categories' => ['rank_incentive_pool', 'additional_rank_pool'], 'types' => ['rank_bonus'], 'audience' => ['dealer', 'sub_dealer']],
         'bike' => ['programs' => ['bike'], 'audience' => ['dealer']],
