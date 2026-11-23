@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -10,6 +11,8 @@ use Tests\TestCase;
  */
 class MobilePublicStylesTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_public_phone_stylesheet_is_imported_and_scoped_to_phones(): void
     {
         $css = file_get_contents(resource_path('css/mobile-public.css'));
@@ -48,5 +51,15 @@ class MobilePublicStylesTest extends TestCase
                 $this->assertNotSame('site.'.$key, __('site.'.$key, [], $locale), "site.$key missing in $locale");
             }
         }
+    }
+
+    public function test_the_bottom_bar_marks_the_page_you_are_on(): void
+    {
+        $home = $this->onPortal('public')->get('/')->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/class="ref-mobile-home"[^>]*aria-current="page"/', (string) $home);
+
+        $about = $this->onPortal('public')->get('/about')->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/class="ref-mobile-nav-item" aria-current="page"/', (string) $about);
+        $this->assertDoesNotMatchRegularExpression('/class="ref-mobile-home"[^>]*aria-current="page"/', (string) $about);
     }
 }

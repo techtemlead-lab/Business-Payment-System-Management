@@ -8,7 +8,7 @@ import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
 import {useKeyboardSafeSheet} from '../shared/useKeyboardSafeSheet';
 import DateInput from './DateInput';
 import {AutoSelect} from './SearchSelect';
-import FilterPicker, {wantsSearch} from './FilterChips';
+import FilterPicker, {wantsSearch} from './FilterDropdown';
 
 export { default as DateInput } from './DateInput';
 export type Row=Record<string,any>;

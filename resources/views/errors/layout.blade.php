@@ -12,9 +12,7 @@
     <link rel="apple-touch-icon" href="{{ \App\Support\SiteCustomization::faviconUrl() }}">
     <link rel="stylesheet" href="/reference/fontawesome-local.css">
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap">
-    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
+    @include('partials.fonts')
     @vite(['resources/css/reference-home.css'])
 </head>
 <body class="ref-home locale-{{ app()->getLocale() }} ref-error-page">

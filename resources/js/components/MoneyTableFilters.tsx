@@ -5,7 +5,7 @@ import { DateInput, Modal, date, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { localizeDigits } from '../business-date';
 import { AutoSelect } from './SearchSelect';
-import FilterPicker, { wantsSearch } from './FilterChips';
+import FilterPicker, { wantsSearch } from './FilterDropdown';
 
 export type MoneyFilterOption = { value: string; label: string; count?: number };
 
@@ -155,7 +155,6 @@ function FilterSheet({ bar, sortOptions, sortState, onSort, visit, onClose }: {
         <Modal title={translate('stock_lots', 'more_filters')} onClose={onClose}>
             <form className="mt-sheet sf-sheet" onSubmit={apply}>
                 <div className="sf-sheet-grid">
-                    {bar.fields.filter(isToolbarFilter).map((filter) => <div key={filter.key} className="sf-main-field"><FilterPicker label={filter.label} maxChips={Infinity} search={wantsSearch(filter.key, filter.options?.length ?? 0)} value={bar.active[filter.key] ?? ''} onChange={(value) => visit({ [filter.key]: value || null })} options={(filter.options ?? []).map((option) => ({ value: option.value, label: localizeDigits(optionText(option)) }))} /></div>)}
                     {bar.fields.filter((filter) => !isToolbarFilter(filter)).map((filter) => <div key={filter.key} className={filter.type === 'range' || filter.type === 'date_range' ? 'sf-wide' : undefined}><FieldInput filter={filter} draft={draft} setDraft={setField} /></div>)}
                 </div>
                 {sortOptions.length > 0 && (

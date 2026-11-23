@@ -32,7 +32,6 @@
 .app-shell .sf-clear-all{padding:0 4px;border:0;background:none;box-shadow:none;font-size:var(--ds-fs-xs);cursor:pointer}
 
 .sf-sheet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
-.sf-main-field{display:none}
 .sf-wide{grid-column:1/-1}
 .sf-field{display:grid;gap:4px;margin:0;padding:0;border:0;min-width:0}
 .app-shell .sf-field :is(input,select){width:100%;min-height:0;height:36px;margin:0;font-size:var(--ds-fs-sm)}
@@ -73,7 +72,5 @@
   .app-shell .sf-table .sf-phone-stages{display:block}
   .app-shell .sf-table .sf-phone-stages:empty{display:none}
   .sf-sheet-grid{grid-template-columns:minmax(0,1fr)}
-  .sf-main-field{display:block}
   .sf-sort{display:grid}
-  .sf-catalog .mt-filters{display:none}
 }

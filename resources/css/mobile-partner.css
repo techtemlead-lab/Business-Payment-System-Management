@@ -9,7 +9,7 @@
   .b2b-purchase-container { padding-bottom: 96px; }
   .b2b-purchase-container > .ppm-hero { order: 0; padding: 12px 14px; }
   .b2b-purchase-container .ppm-hero-sub { display: none; }
-  .b2b-purchase-container .ppm-hero .ppm-hero-title { margin: 0; font-size: 1.1rem; }
+  .b2b-purchase-container .ppm-hero .ppm-hero-title { margin: 0; font-size: var(--mt-card-title, 16px); }
   .b2b-purchase-container > [data-testid="order-with-money"] { order: 1; }
   .b2b-purchase-container > .ppm-added { order: 2; }
   .b2b-purchase-container > .ppm-builder { order: 3; }
@@ -25,7 +25,7 @@
   .app-shell .b2b-purchase-container :is(select, input).ppm-control { min-height: 48px; height: 48px; }
 
   /* Quick-add chips and the quantity stepper: finger size. */
-  .app-shell .b2b-purchase-container button.ppm-chip { min-height: 44px; min-width: 44px; padding: 4px 14px; font-size: 15px; }
+  .app-shell .b2b-purchase-container button.ppm-chip { min-height: 44px; min-width: 44px; padding: 4px 14px; font-size: var(--mt-body, 14px); }
   .app-shell .b2b-purchase-container .ppm-stepper > button { width: 44px; height: 44px; font-size: 18px; }
   .app-shell .b2b-purchase-container .ppm-stepper > input,
   .app-shell .b2b-purchase-container .ppm-stepper > input:focus { height: 44px; min-height: 44px; width: 52px; font-size: 16px; }
@@ -48,8 +48,8 @@
   }
   .ppm-sticky-total { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
   .ppm-sticky-total small { color: var(--ds-text-muted, #455364); font-weight: 600; }
-  .ppm-sticky-total strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .ppm-sticky-bar .button { flex: 1 1 auto; max-width: 220px; min-height: 52px; justify-content: center; font-size: 1rem; font-weight: 700; }
+  .ppm-sticky-total strong { font-size: var(--mt-number, 20px); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ppm-sticky-bar .button { flex: 1 1 auto; max-width: 220px; min-height: 52px; justify-content: center; font-size: var(--mt-cta, 15px); font-weight: 700; }
 
   /* ---------- Home: money first, a short profile, the rest behind one button ---------- */
   .pd-middle { display: contents; }
@@ -58,7 +58,7 @@
   .pd-idboxes { order: -1; }
   .pd-profile:not(.is-open) .pd-lines { display: none; }
   .pd-more-toggle { grid-column: 1 / -1; justify-content: center; min-height: 44px; margin-top: 10px; font-weight: 700; }
-  .pd-totals strong, .ph-today-grid strong { white-space: nowrap; overflow-wrap: normal; font-size: 1.15rem; }
+  .pd-totals strong, .ph-today-grid strong { white-space: nowrap; overflow-wrap: normal; font-size: var(--mt-number, 20px); }
   .ph-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ph-today-grid > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
@@ -80,14 +80,14 @@
   .pcart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .pcart-picture { padding: 8px; }
   .pcart-body { padding: 10px; gap: 6px; }
-  .pcart-title { min-height: 0; font-size: 15px; line-height: 1.35; }
+  .pcart-title { min-height: 0; font-size: var(--mt-body, 14px); line-height: 1.35; }
   .pcart-group, .pcart-note { display: none; }
-  .pcart-price strong { font-size: 18px; }
+  .pcart-price strong { font-size: var(--mt-card-title, 16px); }
   .pcart-price-row { padding-top: 6px; }
   .pcart-actions { grid-template-columns: 1fr; }
   .pcart-now { display: none; }
-  .pcart-add { min-height: 44px; font-size: 14px; padding: 6px; }
-  .pcart-details { min-height: 44px; font-size: 13px; }
+  .pcart-add { min-height: 44px; font-size: var(--mt-body, 14px); padding: 6px; }
+  .pcart-details { min-height: 44px; font-size: var(--mt-small, 13px); }
 
   /* ---------- My income: heads with no money fold away, no sideways table ---------- */
   .mm-heads:not(.show-zero) tr.is-zero { display: none; }
@@ -97,8 +97,8 @@
   /* ---------- Orders and team-orders: summary tiles two to a row, amounts on one line ---------- */
   :is(.dealer-shell, .subdealer-shell) .metric-grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric { padding: 10px 12px; }
-  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric strong { font-size: 1.1rem; white-space: nowrap; overflow-wrap: normal; }
-  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric span { font-size: .85rem; }
+  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric strong { font-size: var(--mt-number, 20px); white-space: nowrap; overflow-wrap: normal; }
+  :is(.dealer-shell, .subdealer-shell) .metric-grid.four .metric span { font-size: var(--mt-label, 12px); }
   :is(.dealer-shell, .subdealer-shell) .order-totals { padding: 12px 12px 0; }
   :is(.dealer-shell, .subdealer-shell) .order-filters .order-dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
   :is(.dealer-shell, .subdealer-shell) .order-filters > .button { width: 100%; justify-content: center; min-height: 48px; }
@@ -111,10 +111,10 @@
   .ptl-sum-name { flex: 1 1 100%; overflow-wrap: anywhere; }
   .ptl-sum-sep { display: none; }
   .ptl-sum-code { color: var(--ds-text-muted, #455364); }
-  .ptl-sum-depth { padding: 1px 10px; border-radius: 999px; background: var(--ds-brand-soft, #e3f1eb); color: var(--ds-brand-text, #00694d); font-size: .85rem; font-weight: 700; }
+  .ptl-sum-depth { padding: 1px 10px; border-radius: 999px; background: var(--ds-brand-soft, #e3f1eb); color: var(--ds-brand-text, #00694d); font-size: var(--mt-label, 12px); font-weight: 700; }
   .ptl-branch > details > .text-link { display: inline-flex; align-items: center; min-height: 44px; }
   .ptl-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .ptl-modes > .button { justify-content: center; min-height: 44px; padding: 4px 6px; font-size: .9rem; text-align: center; }
+  .ptl-modes > .button { justify-content: center; min-height: 44px; padding: 4px 6px; font-size: var(--mt-small, 13px); text-align: center; }
   .ptl-modes > a.button { grid-column: 1 / -1; }
 
   /* ---------- Order detail: a short progress list, current step opened ---------- */
