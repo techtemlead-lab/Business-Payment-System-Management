@@ -36,7 +36,57 @@
     --md-label: 4px;
     --md-head: 6px;
     --md-row: 6px;
+
+    /* Phone type scale (CSS pixels), set once here. siamsBay's phone screens use body 14 (text-sm), small
+       12 (text-xs, its most used pair), card titles 16 to 18, page titles 24 and numbers 24; Bangla is
+       harder to read small, so body stays 14, small is 13, labels 12 and the numbers are a little under theirs. */
+    --mt-body: 14px;
+    --mt-small: 13px;
+    --mt-label: 12px;
+    --mt-card-title: 16px;
+    --mt-name: 18px;
+    --mt-title: 20px;
+    --mt-number: 20px;
+    --mt-number-lg: 24px;
+    --mt-cta: 15px;
   }
+
+  /* The shared text tokens follow the scale (staff and owner "large" text keeps its own, higher tokens). */
+  :root .app-shell.app-shell {
+    --ds-fs-2xs: var(--mt-label);
+    --ds-fs-xs: var(--mt-label);
+    --ds-fs-sm: var(--mt-small);
+    --ds-fs-base: var(--mt-body);
+    --ds-fs-md: var(--mt-card-title);
+    --ds-fs-lg: 17px;
+    --ds-fs-xl: 19px;
+    --ds-fs-2xl: var(--mt-number);
+    --ds-fs-3xl: var(--mt-number-lg);
+  }
+
+  /* Dealer and sub-dealer screens: the phone default text zoom is 1 (desktop keeps 1.15). The bigger-text
+     steps stay, relative to it. The bars divide by the same number (--m-zoom), so they keep their height. */
+  :is(.dealer-shell, .subdealer-shell) { zoom: 1; }
+  html[data-text-size="small"] :is(.dealer-shell, .subdealer-shell) { zoom: 1; }
+  html[data-text-size="large"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.15; }
+  html[data-text-size="xlarge"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.3; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1; }
+  html[data-text-size="small"] .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1; }
+  html[data-text-size="large"] .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1.15; }
+  html[data-text-size="xlarge"] .app-shell:is(.dealer-shell, .subdealer-shell) { --m-zoom: 1.3; }
+
+  /* Partner home and dashboard sizes that were written in pixels or rem. */
+  .app-shell .ph-hero-who h2, .app-shell .pd-name { font-size: var(--mt-name); }
+  .app-shell .ph-hero-who p, .app-shell .ph-card-head p { font-size: var(--mt-small); }
+  .app-shell .ph-chip, .app-shell .ph-action-label, .app-shell .ph-today-grid span,
+  .app-shell .ph-targets .partner-home-target-meta, .app-shell .pd-line dt, .app-shell .pd-idboxes dt,
+  .app-shell .pd-totals span, .app-shell .appt-place, .app-shell .pd-type .appt-place { font-size: var(--mt-label); }
+  .app-shell .ph-balance, .app-shell .ph-hero-stats dd, .app-shell .ph-today h3, .app-shell .ph-card-head h3,
+  .app-shell .ph-today-grid strong, .app-shell .pd-counts dd, .app-shell .ph-birthday h3 { font-size: var(--mt-card-title); }
+  .app-shell .pd-totals strong { font-size: var(--mt-number); }
+  .app-shell .pd-idboxes dd, .app-shell .appt-title, .app-shell .pd-type .appt-title,
+  .app-shell .ph-follow-up b { font-size: var(--mt-body); }
+  .app-shell .ph-follow-up small { font-size: var(--mt-small); }
 
   /* ---- 2. Panels (partner, office, owner): page, headings, cards ------------------------------------ */
   .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .workspace-main {
@@ -432,6 +482,24 @@
   html.ref-fold-ready [data-mobile-fold] > [data-fold-body] {
     padding: 0 var(--md-card) var(--md-card);
   }
+
+  /* Public type: the smallest texts reach 12 to 14 px, titles follow the scale. */
+  body.ref-home .ref-page-plate h1 { font-size: var(--mt-title); }
+  body.ref-home .ref-page-plate-lead { font-size: var(--mt-body); }
+  body.ref-home .ref-announcement > div { font-size: var(--mt-small); }
+  body.ref-home .ref-shortcuts h3 { font-size: var(--mt-body); }
+  body.ref-home .ref-shortcuts p,
+  body.ref-home .ref-category-grid span,
+  body.ref-home .ref-product-info > p,
+  body.ref-home .ref-price del,
+  body.ref-home .ref-stock { font-size: var(--mt-label); }
+  body.ref-home .ref-section-title h2 { font-size: var(--mt-title); }
+  body.ref-home .ref-section-title p { font-size: var(--mt-small); }
+  body.ref-home .ref-product-info h3 { font-size: var(--mt-body); }
+  body.ref-home .ref-price strong { font-size: var(--mt-card-title); }
+  body.ref-home .ref-home-about h1 { font-size: var(--mt-card-title); }
+  body.ref-home .ref-home-about p { font-size: var(--mt-body); }
+  body.ref-home .ref-footer-bottom { font-size: var(--mt-label); }
 
   /* Public footer */
   body.ref-home .ref-footer {

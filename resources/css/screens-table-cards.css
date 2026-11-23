@@ -8,18 +8,18 @@
   .table-card{flex-wrap:wrap;align-items:flex-start}
   .table-card .mt-card-main{flex:1 1 0;min-width:0}
   .table-card .mt-card-title{line-height:1.5}
-  .table-card .mt-card-lines{margin-top:2px;font-size:var(--ds-fs-sm,14px);line-height:1.6}
+  .table-card .mt-card-lines{margin-top:2px;font-size:var(--mt-small,13px);line-height:1.6}
   .table-card-label{color:var(--ds-text-muted)}
   .table-card .mt-card-lines .badge,.table-card .mt-card-amount .badge{white-space:normal}
 
   .table-card :is(.table-card-more,.table-card-actions){flex:0 0 100%;min-width:0}
-  .table-card-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;padding:0 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md,10px);background:var(--ds-surface);color:var(--ds-brand-text,var(--ds-text-2));font-size:var(--ds-fs-sm,14px);font-weight:600}
+  .table-card-toggle{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:44px;padding:0 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md,10px);background:var(--ds-surface);color:var(--ds-brand-text,var(--ds-text-2));font-size:var(--mt-small,13px);font-weight:600}
   .table-card-toggle:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
   .table-card-more dl{display:grid;gap:0;margin:8px 0 0;padding:0}
   .table-card-more dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:8px 0;border-bottom:1px solid var(--ds-line-soft)}
   .table-card-more dl>div:last-child{border-bottom:0}
-  .table-card-more dt{flex:0 0 38%;color:var(--ds-text-muted);font-size:var(--ds-fs-sm,14px)}
-  .table-card-more dd{flex:1;min-width:0;margin:0;text-align:right;font-size:var(--ds-fs-sm,14px);overflow-wrap:anywhere}
+  .table-card-more dt{flex:0 0 38%;color:var(--ds-text-muted);font-size:var(--mt-small,13px)}
+  .table-card-more dd{flex:1;min-width:0;margin:0;text-align:right;font-size:var(--mt-small,13px);overflow-wrap:anywhere}
 
   .table-card-actions{display:flex;flex-wrap:wrap;gap:8px}
   .table-card-actions>div{display:flex;flex:1 1 100%;flex-wrap:wrap;gap:8px;min-width:0}
