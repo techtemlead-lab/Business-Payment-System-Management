@@ -1410,7 +1410,7 @@ return [
     'claimed_amount_bdt' => 'Amount paid (৳)',
     'submit_for_verification' => 'Submit for verification',
     'review_this_order' => 'Review this order',
-    'review_this_order_hint' => 'Approve only after the full payment is checked. Commission rates are fixed when you approve. Product prices do not change.',
+    'review_this_order_hint' => 'When the full payment is checked, the order is approved by itself. Use this box to hold or reject an order, or to approve one that needs a decision by hand. Commission rates are fixed when it is approved. Product prices do not change.',
     'replacement_hint' => 'If someone due to get a commission is inactive, you can pick an active partner to receive it instead. Leave it blank to keep the original receiver, and their commission stays on hold. Write a reason for each change.',
     'find_replacement_partners' => 'Find a replacement partner by name or code',
     'find_partners' => 'Find partners',
@@ -4916,6 +4916,7 @@ return [
     // Order activity log
     'event_order_submitted' => 'Order placed',
     'event_order_approved' => 'Order approved',
+    'event_order_auto_approve_waiting' => 'Not approved automatically, needs a person',
     'event_order_held' => 'Order put on hold',
     'event_order_rejected' => 'Order rejected',
     'event_order_cancelled' => 'Order cancelled',
@@ -7026,5 +7027,9 @@ return [
     'proof_image_alt' => 'Uploaded picture',
     'payment_proof_col' => 'Screenshot',
     'payment_proof_none' => 'None',
+    'auto_approved_reason' => 'The full payment was checked, so the order was approved automatically.',
+    'auto_approve_waiting_replacement' => 'A replacement for an inactive referrer must be chosen first, so this order waits for staff to approve it.',
+    'notice_admin_auto_approved_title' => 'Order approved automatically (#:number)',
+    'notice_admin_auto_approved_body' => 'The full payment for order #:number was checked and the order was approved. It is ready to be sent.',
     'pp_salary_dealer_no_amount' => 'This bonus is shared equally at month end among all dealers in Bangladesh who meet their target. How many do is known only at month end, so the amount cannot be told before the month ends.',
 ];

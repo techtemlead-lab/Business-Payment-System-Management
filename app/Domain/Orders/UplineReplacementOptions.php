@@ -26,15 +26,7 @@ final class UplineReplacementOptions
             return ['slots' => [], 'candidates' => []];
         }
 
-        $uplineIds = array_slice($order->commission_policy_snapshot['uplines'] ?? [], 0, self::Generations);
-        $uplines = User::query()->whereIn('id', array_filter($uplineIds, fn ($id): bool => $id !== null))->get()->keyBy('id');
-        $slots = [];
-        foreach ($uplineIds as $index => $id) {
-            $original = $id === null ? null : $uplines->get($id);
-            if ($original && ($original->status !== 'active' || ! in_array($original->role, ['dealer', 'sub_dealer'], true))) {
-                $slots[] = ['generation' => $index + 1, 'name' => $original->name];
-            }
-        }
+        $slots = $this->slotsFor($order);
         if ($slots === []) {
             return ['slots' => [], 'candidates' => []];
         }
@@ -44,5 +36,26 @@ final class UplineReplacementOptions
             ->orderBy('name')->limit(200)->get(['id', 'name', 'dealer_code']);
 
         return ['slots' => $slots, 'candidates' => $candidates];
+    }
+
+    /**
+     * The upline generations of this order that can no longer earn commission, whoever asks.
+     * An order with any of these is not approved by itself: finance picks the replacement first.
+     *
+     * @return list<array{generation: int, name: string}>
+     */
+    public function slotsFor(Order $order): array
+    {
+        $uplineIds = array_slice($order->commission_policy_snapshot['uplines'] ?? [], 0, self::Generations);
+        $uplines = User::query()->whereIn('id', array_filter($uplineIds, fn ($id): bool => $id !== null))->get()->keyBy('id');
+        $slots = [];
+        foreach ($uplineIds as $index => $id) {
+            $original = $id === null ? null : $uplines->get($id);
+            if ($original && ($original->status !== 'active' || ! in_array($original->role, ['dealer', 'sub_dealer'], true))) {
+                $slots[] = ['generation' => $index + 1, 'name' => $original->name];
+            }
+        }
+
+        return $slots;
     }
 }

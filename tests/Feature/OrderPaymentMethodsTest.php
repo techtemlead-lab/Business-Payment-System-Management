@@ -273,9 +273,10 @@ class OrderPaymentMethodsTest extends TestCase
         $this->assertDatabaseHas('payment_claims', ['id' => $claim->id, 'status' => 'verified', 'verified_by' => $finance->id, 'reason' => 'Rahim took the cash at the counter']);
         $this->assertSame(0, DB::table('journal_entries')->where('event_key', 'like', 'order.%')->count());
 
-        $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Cash confirmed'])
-            ->assertSessionHasNoErrors();
+        // The checked payment completes the price, so the order approves itself; nobody decides it by hand.
         $this->assertSame('approved', $order->fresh()->status);
+        $this->assertSame(__('portal.auto_approved_reason'), $order->fresh()->decision_reason);
+        $this->assertDatabaseHas('order_events', ['order_id' => $order->id, 'action' => 'order.approved', 'actor_id' => $finance->id]);
         $this->assertBooksAgree();
     }
 
@@ -302,12 +303,15 @@ class OrderPaymentMethodsTest extends TestCase
         $reviewer = User::factory()->staff('super_admin')->create();
         $this->order($dealer, $this->product(), 1, 'Office')->assertSessionHasNoErrors();
         $order = Order::where('user_id', $dealer->id)->sole();
+        // An order staff put on hold is not approved by its payment: it waits for a person.
+        $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'held', 'reason' => 'Checking stock'])
+            ->assertSessionHasNoErrors();
         app(OrderService::class)->verify($finance, (int) DB::table('payment_claims')->where('order_id', $order->id)->value('id'), true, 'Cash taken', (string) DB::table('payment_claims')->where('order_id', $order->id)->value('amount'));
 
         $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'rejected', 'reason' => 'Out of stock'])
             ->assertSessionHasErrors(['status' => __('portal.err_order_paid_needs_refund')]);
 
-        $this->assertSame('submitted', $order->fresh()->status);
+        $this->assertSame('held', $order->fresh()->status);
     }
 
     public function test_rejecting_an_order_paid_from_the_account_returns_the_money_at_once(): void
@@ -717,7 +721,10 @@ class OrderPaymentMethodsTest extends TestCase
 
     private function deliver(Order $order, User $staff): void
     {
-        $this->actingAs($staff)->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Payment confirmed'])->assertOk();
+        // A checked payment has already approved a bank-paid order; only the others still wait for a decision.
+        if (in_array($order->fresh()->status, ['submitted', 'held'], true)) {
+            $this->actingAs($staff)->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Payment confirmed'])->assertOk();
+        }
         $line = DB::table('order_lines')->where('order_id', $order->id)->sole();
         $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', ['courier' => 'Test courier', 'tracking' => 'TRACK-'.Str::random(8),
             'idempotency_key' => (string) Str::uuid(), 'items' => [['line_id' => $line->id, 'quantity' => $line->quantity]]])->assertOk();
