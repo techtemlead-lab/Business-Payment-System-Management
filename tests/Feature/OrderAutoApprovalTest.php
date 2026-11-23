@@ -46,6 +46,20 @@ class OrderAutoApprovalTest extends TestCase
         $this->assertSame('approval', $order->commission_policy_snapshot['capture_event']);
     }
 
+    public function test_the_partner_gets_one_notice_for_the_payment_check_and_the_approval(): void
+    {
+        $dealer = User::factory()->dealer()->create();
+        $finance = User::factory()->staff('finance')->create();
+        $order = $this->orderPaidByOffice($dealer);
+        $before = DB::table('account_notices')->where('user_id', $dealer->id)->count();
+
+        $this->verifyOfficeCash($finance, $order, '200.00');
+
+        $this->assertSame($before + 1, DB::table('account_notices')->where('user_id', $dealer->id)->count());
+        $latest = DB::table('account_notices')->where('user_id', $dealer->id)->orderByDesc('id')->value('title');
+        $this->assertSame(__('portal.notice_order_decision_title', ['status' => __('portal.order_status_approved')]), $latest);
+    }
+
     public function test_the_partner_gets_one_sms_for_the_payment_check_and_the_approval(): void
     {
         $dealer = User::factory()->dealer()->create(['phone' => '01720000077']);

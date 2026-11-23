@@ -408,16 +408,17 @@ class OrderService
                     'amount' => $claim->amount, 'order_paid_after' => $order->paid, 'order_total' => $order->total,
                     ...($approve && $claim->channel === self::OfficeChannel ? ['cash_counted' => $cashCounted] : []),
                 ]);
-                $partner = User::find($order->user_id);
-                $locale = $partner?->preferredLocale() ?? app()->getLocale();
-                $outcome = __($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected', [], $locale);
-                $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
-                    'number' => $order->number,
-                    'outcome' => $outcome,
-                ], $approve ? 'payment.verified' : 'payment.rejected');
                 $autoApproved = $approve && $this->approveWhenFullyPaid($actor, $order);
-                // An automatic approval sends its own text, which already says the full payment was checked: one SMS, not two.
+                // An automatic approval tells the partner itself (notice, email and SMS), and its text already says the
+                // full payment was checked: the partner gets one message for both, not two.
                 if (! $autoApproved) {
+                    $partner = User::find($order->user_id);
+                    $locale = $partner?->preferredLocale() ?? app()->getLocale();
+                    $outcome = __($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected', [], $locale);
+                    $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
+                        'number' => $order->number,
+                        'outcome' => $outcome,
+                    ], $approve ? 'payment.verified' : 'payment.rejected');
                     $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
                         'number' => $order->number,
                         'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
