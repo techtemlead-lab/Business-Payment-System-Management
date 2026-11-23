@@ -261,7 +261,7 @@ export default function Shell({ section, children, action }: { section: string; 
             }
         };
         document.addEventListener('keydown', keydown);
-        return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keydown); toggle.current?.focus(); };
+        return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keydown); focusMenuTrigger(toggle.current); };
     }, [open]);
 
     useEffect(() => {
@@ -677,12 +677,18 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Link href={`${base}/help#support-request`} onClick={() => setOpen(false)}>{translate('partner_hub', 'help_card_link')} <ArrowUpRight size={14} /></Link>
                         </div>
                     )}
+                    {/* Phones: sign-out is the last row of the one scrolling list (the copy in the header row is hidden there). */}
+                    <PartnerSignOut variant="drawer" />
                 </div>}
             </aside>
 
             <div className="workspace" inert={open}>
                 <header className="workspace-header glass-header">
                     <div className="breadcrumb">
+                        {/* Phones: the company logo takes the menu button's place (the menu opens from the bottom bar). */}
+                        <a href={base || '/'} className="workspace-header-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
+                            <img src={siteBrand?.logo || '/reference/logo.png'} alt="" width={40} height={40} />
+                        </a>
                         <button
                             ref={toggle}
                             className="icon-button workspace-menu-button"
@@ -864,10 +870,10 @@ export default function Shell({ section, children, action }: { section: string; 
                         <span>{translate('portal', 'footer_timezone_currency')}</span>
                     </footer>
                 </main>
-                {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}
+                {!staff && <DealerBottomNav onMenu={() => setOpen(true)} menuOpen={open} />}
                 {staff && (
                     <nav className="portal-bottom-nav" aria-label={translate('portal', 'company_navigation')}>
-                        <button type="button" onClick={() => setOpen(true)} aria-label={translate('portal', 'open_navigation')} title={translate('portal', 'open_navigation')}>
+                        <button type="button" data-menu-trigger onClick={() => setOpen(true)} aria-controls="workspace-navigation" aria-expanded={open} aria-label={translate('portal', 'open_navigation')} title={translate('portal', 'open_navigation')}>
                             <Menu size={20} />{translate('portal', 'menu')}
                         </button>
                         {staffBottomLinks(staffAvailable).map((item) => {
@@ -892,6 +898,12 @@ export default function Shell({ section, children, action }: { section: string; 
             />
         </div>
     );
+}
+
+/** Gives focus back after the drawer closes: the top-bar button, or on a phone (where it is hidden) the bottom bar's Menu item. */
+function focusMenuTrigger(topButton: HTMLButtonElement | null): void {
+    const visible = topButton && topButton.getClientRects().length > 0 ? topButton : null;
+    (visible ?? document.querySelector<HTMLElement>('.portal-bottom-nav [data-menu-trigger]'))?.focus();
 }
 
 function tabOfSearch(search: string): string | null {

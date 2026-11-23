@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {Link, router, usePage} from '@inertiajs/react';
-import {Search, Store, Menu, ShoppingBag, Home, Network, Wallet, LayoutGrid} from 'lucide-react';
+import {Search, Menu, ShoppingBag, Home, Wallet, LayoutDashboard, Package} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 import {partnerChromeEnabled} from '../shared/partnerChromeNav';
 
@@ -30,41 +30,33 @@ export function PartnerProductSearch(){
     );
 }
 
-export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
+/** The partner (dealer and sub-dealer) bottom bar: pictures only. Every item keeps its name as aria-label and tooltip. */
+export function DealerBottomNav({onMenu, menuOpen = false}:{onMenu:()=>void; menuOpen?: boolean}){
     const translate = useT();
     const page = usePage<any>();
     const {url} = page;
     const role = String(page.props.auth?.user?.role ?? 'dealer');
     const controls = page.props.dashboardControls;
     const path = url.split('?')[0] || '/';
-    const item = (href: string, label: string, Icon: typeof Home, className = '') => {
+    const item = (href: string, label: string, Icon: typeof Home) => {
         const active = href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
         return (
-            <Link href={href} className={`${className} ${active ? 'is-active' : ''}`.trim()} aria-current={active ? 'page' : undefined} title={label}>
-                <Icon size={href === '/' ? 22 : 20}/>
-                {label}
+            <Link href={href} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} aria-label={label} title={label}>
+                <Icon size={26} strokeWidth={2}/>
             </Link>
         );
     };
-
-    const ordersEnabled = partnerChromeEnabled(role, controls, 'orders');
-    const catalogEnabled = partnerChromeEnabled(role, controls, 'catalog');
-    const commerceHref = ordersEnabled ? '/orders' : (catalogEnabled ? '/catalog' : null);
-    const commerceIcon = ordersEnabled ? ShoppingBag : Store;
-    const commerceLabel = ordersEnabled ? translate('portal', 'orders') : translate('portal', 'shop');
+    const menuLabel = translate('portal', 'open_navigation');
 
     return (
-        <nav className="portal-bottom-nav" aria-label={translate('portal', 'account_navigation')}>
-            <button type="button" onClick={onMenu} aria-label={translate('portal', 'open_navigation')} title={translate('portal', 'open_navigation')}>
-                <Menu size={20}/>{translate('portal', 'menu')}
+        <nav className="portal-bottom-nav portal-bottom-nav--icons" aria-label={translate('portal', 'account_navigation')}>
+            <button type="button" data-menu-trigger onClick={onMenu} aria-label={menuLabel} aria-controls="workspace-navigation" aria-expanded={menuOpen} title={menuLabel}>
+                <Menu size={26} strokeWidth={2}/>
             </button>
-            {item('/', translate('portal', 'nav_module_home'), Home, 'portal-mobile-home')}
-            {commerceHref && item(commerceHref, commerceLabel, commerceIcon)}
-            {role === 'dealer'
-                ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'nav_bottom_network'), Network))
-                : null}
-            {partnerChromeEnabled(role, controls, 'earnings') && item('/my-money', translate('portal', 'nav_module_earnings'), Wallet)}
-            {(role !== 'dealer' || !partnerChromeEnabled(role, controls, 'network')) && item('/more', translate('portal', 'nav_bottom_more'), LayoutGrid)}
+            {item('/', translate('portal', 'nav_bottom_dashboard'), LayoutDashboard)}
+            {partnerChromeEnabled(role, controls, 'catalog') && item('/catalog', translate('portal', 'nav_bottom_products'), Package)}
+            {partnerChromeEnabled(role, controls, 'orders') && item('/orders', translate('portal', 'nav_bottom_orders'), ShoppingBag)}
+            {partnerChromeEnabled(role, controls, 'earnings') && item('/my-money', translate('portal', 'nav_bottom_wallet'), Wallet)}
         </nav>
     );
 }
