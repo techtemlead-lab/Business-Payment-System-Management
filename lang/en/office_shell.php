@@ -17,7 +17,6 @@ return [
     'text_size_normal' => 'Normal text',
     'view_options' => 'View options',
     'view_options_text' => 'Text size',
-    'view_options_theme' => 'Night mode',
     'funds_company' => 'Company funds',
     'funds_partners' => 'Funds held for partners',
     'funds_show_all' => 'Show the empty funds too (:count)',

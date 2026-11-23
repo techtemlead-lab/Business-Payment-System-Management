@@ -87,7 +87,7 @@ class OfficeOrganiseTest extends TestCase
         $this->assertStringContainsString("@import './organise-office.css';", $css);
         $this->assertGreaterThan(strpos($css, "@import './mobile-brand-bars-portal.css';"), strpos($css, "@import './organise-office.css';"));
 
-        foreach (['view_options', 'view_options_text', 'view_options_theme'] as $key) {
+        foreach (['view_options', 'view_options_text'] as $key) {
             $this->assertNotSame('office_shell.'.$key, __('office_shell.'.$key), $key);
             $this->assertNotSame(__('office_shell.'.$key, [], 'en'), __('office_shell.'.$key, [], 'bn'), $key);
         }

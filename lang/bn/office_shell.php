@@ -17,7 +17,6 @@ return [
     'text_size_normal' => 'ছোট লেখা',
     'view_options' => 'দেখার পছন্দ',
     'view_options_text' => 'লেখার আকার',
-    'view_options_theme' => 'রাতের মোড',
     'funds_company' => 'কোম্পানির ফান্ড',
     'funds_partners' => 'পার্টনারদের জন্য ফান্ড',
     'funds_show_all' => 'খালি ফান্ডগুলোও দেখুন (:count)',
