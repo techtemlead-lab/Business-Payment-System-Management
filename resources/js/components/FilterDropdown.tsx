@@ -92,19 +92,25 @@ export default function FilterPicker({ options, value, onChange, label, allLabel
     showLabel?: boolean;
 }) {
     const translate = useT();
+    const triggerId = useId();
     const everything = allLabel ?? translate('portal', 'all');
 
     if (search || options.length > maxChips) {
+        // The searchable drop-down sits inside the same frame as the plain one, so both look alike.
         return (
-            <AutoSelect
-                search
-                className={`ss-filter ss-fd${value !== '' ? ' ss-filter-on' : ''}${className ? ` ${className}` : ''}`}
-                ariaLabel={label}
-                value={value}
-                onChange={(next) => onChange(next)}
-                emptyLabel={label}
-                options={options.map((option) => ({ value: option.value, label: option.label }))}
-            />
+            <div className={['fd', 'fd-search', value !== '' ? 'is-on' : '', showLabel ? '' : 'fd-bare', chipClassName ?? ''].filter(Boolean).join(' ')}>
+                {showLabel && <label className="fd-label" htmlFor={triggerId}>{label}</label>}
+                <AutoSelect
+                    search
+                    id={triggerId}
+                    className={`ss-filter${className ? ` ${className}` : ''}`}
+                    ariaLabel={showLabel ? undefined : label}
+                    value={value}
+                    onChange={(next) => onChange(next)}
+                    emptyLabel={everything}
+                    options={options.map((option) => ({ value: option.value, label: option.label }))}
+                />
+            </div>
         );
     }
 

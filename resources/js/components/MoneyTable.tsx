@@ -5,7 +5,7 @@ import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
 import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
-import FilterPicker, { wantsSearch } from './FilterDropdown';
+import FilterPicker, { FilterDropdown, wantsSearch } from './FilterDropdown';
 
 export type MoneyColumn<T> = {
     key: string;
@@ -126,7 +126,6 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     latestUrl.current = url;
     const searchTimer = useRef<number | undefined>(undefined);
     const lastSearched = useRef(state.q);
-    const viewChips = useRef<HTMLDivElement>(null);
     const { scrollBox, isOverflowing } = useTableOverflow();
 
     useEffect(() => {
@@ -194,15 +193,6 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
 
     const activeView = choosingView ?? state.period;
     const viewChoices = [...VIEW_CHOICES.slice(0, 3), ...(data.extra_periods ?? []).map((value) => ({ value, word: `orders_period_${value}` })), ...VIEW_CHOICES.slice(3)];
-
-    useEffect(() => {
-        // On a phone the chips scroll sideways; keep the chosen one in sight.
-        const strip = viewChips.current;
-        const chosen = strip?.querySelector<HTMLElement>('[aria-pressed="true"]');
-        if (strip && chosen) {
-            strip.scrollLeft = chosen.offsetLeft - (strip.clientWidth - chosen.offsetWidth) / 2;
-        }
-    }, [activeView]);
 
     const chooseView = (value: string) => {
         if (value === 'day' || value === 'custom') {
@@ -351,7 +341,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     return (
         <div className={`money-table${busy ? ' is-busy' : ''}`} aria-busy={busy}>
             {segments && <div className="mt-segments">{segments}</div>}
-            <div className="mt-toolbar">
+            <div className={`mt-toolbar${!hideViewChips && (activeView === 'day' || activeView === 'custom') ? ' has-dates' : ''}`}>
                 <form className="mt-search" role="search" onSubmit={(event) => { event.preventDefault(); search(text); }}>
                     <div className="search-input">
                         <Search size={16} aria-hidden="true" />
@@ -364,16 +354,33 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                         {translate('portal', 'mt_sort')}
                     </button>
                 )}
-                {!hideViewChips && (
-                    <div className="mt-views" ref={viewChips} role="group" aria-label={translate('portal', 'mt_view_label')}>
-                        {viewChoices.map((choice) => (
-                            <button key={choice.value || 'all'} type="button" className="mt-view" aria-pressed={activeView === choice.value} onClick={() => chooseView(choice.value)}>
-                                {translate('portal', choice.word)}
-                            </button>
-                        ))}
+                {(!hideViewChips || toolbarFilters.length > 0) && (
+                    <div className="mt-filters mt-filters-phone">
+                        {!hideViewChips && (
+                            <>
+                                <FilterDropdown
+                                    label={translate('portal', 'filter_label_dates')}
+                                    ariaLabel={translate('portal', 'mt_view_label')}
+                                    showLabel
+                                    allLabel={translate('portal', 'orders_period_all')}
+                                    value={activeView}
+                                    onChange={chooseView}
+                                    options={viewChoices.filter((choice) => choice.value !== '').map((choice) => ({ value: choice.value, label: translate('portal', choice.word) }))}
+                                />
+                                {activeView === 'day' && (
+                                    <label className="fd-date"><span>{translate('portal', 'mt_view_day')}</span><DateInput value={from} onChange={(event) => changeFrom(event.target.value)} /></label>
+                                )}
+                                {activeView === 'custom' && (
+                                    <>
+                                        <label className="fd-date"><span>{translate('portal', 'mt_date_from')}</span><DateInput value={from} onChange={(event) => changeFrom(event.target.value)} /></label>
+                                        <label className="fd-date"><span>{translate('portal', 'mt_date_to')}</span><DateInput value={to} onChange={(event) => changeTo(event.target.value)} /></label>
+                                    </>
+                                )}
+                            </>
+                        )}
+                        {toolbarFilters.map((filter) => <React.Fragment key={filter.key}>{filterSelect(filter)}</React.Fragment>)}
                     </div>
                 )}
-                {toolbarFilters.length > 0 && <div className="mt-filters mt-filters-phone">{toolbarFilters.map((filter) => <React.Fragment key={filter.key}>{filterSelect(filter)}</React.Fragment>)}</div>}
                 {!usesFilterSheet && hasNarrowedView && <button type="button" className="text-link mt-clear" onClick={clearView}>{translate('portal', 'clear')}</button>}
                 {usesFilterSheet && (
                     <MoreFilterControls
@@ -395,17 +402,6 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                 {actions && <div className="mt-actions">{actions}</div>}
             </div>
 
-            {!hideViewChips && activeView === 'day' && (
-                <div className="mt-dates">
-                    <label>{translate('portal', 'mt_view_day')}<DateInput value={from} onChange={(event) => changeFrom(event.target.value)} /></label>
-                </div>
-            )}
-            {!hideViewChips && activeView === 'custom' && (
-                <div className="mt-dates">
-                    <label>{translate('portal', 'mt_date_from')}<DateInput value={from} onChange={(event) => changeFrom(event.target.value)} /></label>
-                    <label>{translate('portal', 'mt_date_to')}<DateInput value={to} onChange={(event) => changeTo(event.target.value)} /></label>
-                </div>
-            )}
             {dateRefusal && <FormErrors errors={{ money_table_range: dateRefusal }} className="error mt-error" />}
             {selecting && bulk && rows.length > 0 && <BulkBar kind={bulk.kind} pageIds={rows.map(rowId)} picked={picked} onPick={setPicked} />}
 
