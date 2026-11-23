@@ -4,7 +4,7 @@ import OfficePage from '../OfficePage';
 import { settingsBack } from './SettingsForm';
 import { ActionForm, Pagination, dateTime, number, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
-import { FilterChips } from '../../FilterChips';
+import { FilterDropdown } from '../../FilterDropdown';
 
 type ErrorRow = {
     id: number;
@@ -92,16 +92,17 @@ export default function Errors({ data }: { data: ErrorsData }) {
                 <label>{t('search')}
                     <input type="search" value={q} maxLength={100} placeholder={t('search_placeholder')} onChange={(event) => setQ(event.target.value)} />
                 </label>
-                <FilterChips
+                <FilterDropdown
                     label={t('status_label')}
                     showLabel
                     value={status}
                     onChange={(value) => { setStatus(value); open({ q, status: value, sort }); }}
                     options={['open', 'fixed', 'all'].map((value) => ({ value, label: t(`status_${value}`) }))}
                 />
-                <FilterChips
+                <FilterDropdown
                     label={t('sort_label')}
                     showLabel
+                    highlight={false}
                     value={sort}
                     onChange={(value) => { setSort(value); open({ q, status, sort: value }); }}
                     options={['last_seen', 'first_seen', 'count'].map((value) => ({ value, label: t(`sort_${value}`) }))}

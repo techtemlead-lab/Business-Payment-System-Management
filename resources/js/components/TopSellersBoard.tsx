@@ -7,7 +7,7 @@ import OfficePage from './office/OfficePage';
 import Figures from './office/Figures';
 import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
-import FilterPicker from './FilterChips';
+import FilterPicker from './FilterDropdown';
 import { businessMonth, localizeDigits } from '../business-date';
 
 /** One place on the board. Amount is null when the owner hides the taka figures. */

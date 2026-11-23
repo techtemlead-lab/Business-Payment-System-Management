@@ -5,7 +5,7 @@ import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
 import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
-import FilterPicker, { wantsSearch } from './FilterChips';
+import FilterPicker, { wantsSearch } from './FilterDropdown';
 
 export type MoneyColumn<T> = {
     key: string;
@@ -358,11 +358,10 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                         <input type="search" aria-label={searchPlaceholder} value={text} placeholder={searchPlaceholder} maxLength={100} onChange={(event) => typeSearch(event.target.value)} />
                     </div>
                 </form>
-                {!usesFilterSheet && (filters.length > 0 || sortableColumns.length > 0) && (
+                {!usesFilterSheet && sortableColumns.length > 0 && (
                     <button type="button" className="button small mt-sheet-button" onClick={() => setSheetOpen(true)}>
                         <SlidersHorizontal size={15} aria-hidden="true" />
-                        {translate('portal', 'mt_filters')}
-                        {chosenFilterCount > 0 && ` (${number(chosenFilterCount)})`}
+                        {translate('portal', 'mt_sort')}
                     </button>
                 )}
                 {!hideViewChips && (
@@ -374,7 +373,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
                         ))}
                     </div>
                 )}
-                {toolbarFilters.length > 0 && <div className="mt-filters">{toolbarFilters.map((filter) => <React.Fragment key={filter.key}>{filterSelect(filter)}</React.Fragment>)}</div>}
+                {toolbarFilters.length > 0 && <div className="mt-filters mt-filters-phone">{toolbarFilters.map((filter) => <React.Fragment key={filter.key}>{filterSelect(filter)}</React.Fragment>)}</div>}
                 {!usesFilterSheet && hasNarrowedView && <button type="button" className="text-link mt-clear" onClick={clearView}>{translate('portal', 'clear')}</button>}
                 {usesFilterSheet && (
                     <MoreFilterControls
@@ -502,9 +501,8 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
             )}
 
             {sheetOpen && (
-                <Modal title={translate('portal', 'mt_filters')} onClose={() => setSheetOpen(false)}>
+                <Modal title={translate('portal', 'mt_sort')} onClose={() => setSheetOpen(false)}>
                     <div className="mt-sheet">
-                        {filters.map((filter) => <div key={filter.key} className="mt-sheet-field">{filterSelect(filter, true)}</div>)}
                         {sortableColumns.length > 0 && (
                             <div className="mt-sheet-sort" role="group" aria-label={translate('portal', 'mt_sort')}>
                                 <span>{translate('portal', 'mt_sort')}</span>
