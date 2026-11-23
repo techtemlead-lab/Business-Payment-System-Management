@@ -1,3 +1,4 @@
+import ActionMenu from '../components/ActionMenu';
 import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, GitFork } from 'lucide-react';
@@ -88,8 +89,12 @@ export default function PartnerProfile({ sheet, month, targets, canSetTargets, c
                     </div>
                     <div className="ops-row is-wrap">
                         <Link className="button dark" href={`${base}/network-tree?tree_root=${sheet.id}`}><GitFork size={15} aria-hidden="true" /> {t('open_team_tree')}</Link>
-                        <Link className="button" href={`${listPath}?q=${encodeURIComponent(identity.dealer_code || sheet.name)}`}>{t('open_edit')}</Link>
-                        <Link className="button" href={`${base}/accounts/${sheet.id}/team-orders`}>{t('open_team_orders')}</Link>
+                        <ActionMenu
+                            items={[
+                                { key: 'edit', label: t('open_edit'), href: `${listPath}?q=${encodeURIComponent(identity.dealer_code || sheet.name)}` },
+                                { key: 'orders', label: t('open_team_orders'), href: `${base}/accounts/${sheet.id}/team-orders` },
+                            ]}
+                        />
                     </div>
                 </header>
 
