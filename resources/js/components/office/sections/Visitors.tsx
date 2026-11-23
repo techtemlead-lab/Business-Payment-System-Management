@@ -3,12 +3,12 @@ import { router } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import OfficePage from '../OfficePage';
 import { ReportFilterSheet } from '../../BranchPerformanceHub';
-import { FilterDropdown } from '../../FilterDropdown';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import { ActionForm, DateInput, Table, dateTime, number, type Row } from '../../UI';
 import PartnerActivityList, { type PartnerActivityReport } from './PartnerActivityList';
 import { useT } from '../../../shared/i18n/t';
 import { businessDate, businessMonth, localizeDigits } from '../../../business-date';
+import { FilterDropdown } from '../../FilterDropdown';
 
 type Bucket = 'hour' | 'day' | 'month';
 type TrendBar = { key: string; views: number; visitors: number };
@@ -142,11 +142,12 @@ export default function Visitors({ report, hub }: { report: VisitorsReport; hub?
                 <div className="mt-toolbar">
                     <ReportFilterSheet>{datePickers}</ReportFilterSheet>
                     <FilterDropdown
-                        label={translate('office_visitors', 'pick_period')}
+                        label={translate('portal', 'filter_label_dates')}
+                        ariaLabel={translate('office_visitors', 'pick_period')}
                         showLabel
+                        highlight={false}
                         value={period.key}
                         onChange={(choice) => visit({ period: choice })}
-                        highlight={false}
                         options={PERIODS.map((choice) => ({ value: choice, label: translate('office_visitors', `period_${choice}`) }))}
                     />
                     <div className="mt-filters vis-dates">{datePickers}</div>

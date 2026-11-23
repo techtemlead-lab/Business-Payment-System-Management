@@ -15,6 +15,8 @@ return [
     'view_only_note' => 'এই পাতা আপনি শুধু দেখতে পারবেন, বদলাতে পারবেন না।',
     'text_size_large' => 'বড় লেখা',
     'text_size_normal' => 'ছোট লেখা',
+    'view_options' => 'দেখার পছন্দ',
+    'view_options_text' => 'লেখার আকার',
     'funds_company' => 'কোম্পানির ফান্ড',
     'funds_partners' => 'পার্টনারদের জন্য ফান্ড',
     'funds_company_note' => 'কোম্পানির নিজের টাকা।',

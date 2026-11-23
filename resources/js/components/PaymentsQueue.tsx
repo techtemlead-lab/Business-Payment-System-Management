@@ -37,9 +37,9 @@ export default function PaymentsQueue({ data, onReview, actions, picked, onPick 
             ),
         },
         { key: 'partner', title: translate('portal', 'col_partner'), sortKey: 'partner', phone: 'sub', render: (row) => <>{row.name ?? '—'}{row.phone && <small className="cell-sub">{row.phone}</small>}</> },
-        { key: 'code', title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.dealer_code || '—' },
+        { key: 'code', detail: true, title: translate('office_orders', 'col_code'), phone: 'hide', render: (row) => row.dealer_code || '—' },
         { key: 'partner_type', title: translate('office_orders', 'col_partner_type'), phone: 'hide', render: (row) => <PartnerTypeCell user={row} /> },
-        { key: 'area', title: translate('portal', 'col_area'), sortKey: 'area', phone: 'hide', render: (row) => <>{joined([row.district, row.division]) || '—'}{row.branch_name && <small className="cell-sub">{row.branch_name}</small>}</> },
+        { key: 'area', detail: true, title: translate('portal', 'col_area'), sortKey: 'area', phone: 'hide', render: (row) => <>{joined([row.district, row.division]) || '—'}{row.branch_name && <small className="cell-sub">{row.branch_name}</small>}</> },
         {
             key: 'channel',
             title: translate('portal', 'col_channel'),
@@ -55,7 +55,7 @@ export default function PaymentsQueue({ data, onReview, actions, picked, onPick 
         },
         { key: 'amount', title: translate('portal', 'col_amount'), sortKey: 'amount', money: true, total: 'amount', phone: 'amount', render: (row) => <b>{money(row.amount)}</b> },
         { key: 'due', title: translate('portal', 'col_due'), sortKey: 'due', money: true, phone: 'hide', render: (row) => <>{money(orderDue({ ...row, status: row.order_status }))}<small className="cell-sub">{translate('portal', 'pay_order_value_paid', { value: money(row.total), paid: money(row.paid) })}</small></> },
-        { key: 'checked_by', title: translate('portal', 'col_checked_by'), sortKey: 'checked_by', phone: 'hide', render: (row) => (row.status !== 'pending' && row.checked_by ? <>{row.checked_by}<small className="cell-sub">{dateTime(row.checked_at)}</small></> : '—') },
+        { key: 'checked_by', detail: true, title: translate('portal', 'col_checked_by'), sortKey: 'checked_by', phone: 'hide', render: (row) => (row.status !== 'pending' && row.checked_by ? <>{row.checked_by}<small className="cell-sub">{dateTime(row.checked_at)}</small></> : '—') },
         { key: 'status', title: translate('portal', 'col_status'), sortKey: 'status', phone: 'sub', render: (row) => <><Badge status={row.status} />{row.status === 'rejected' && row.reason && <small className="cell-sub">{row.reason}</small>}</> },
         {
             key: 'action',

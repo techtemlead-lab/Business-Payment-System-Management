@@ -15,6 +15,8 @@ return [
     'view_only_note' => 'You can look at this page but not change it.',
     'text_size_large' => 'Larger text',
     'text_size_normal' => 'Normal text',
+    'view_options' => 'View options',
+    'view_options_text' => 'Text size',
     'funds_company' => 'Company funds',
     'funds_partners' => 'Funds held for partners',
     'funds_company_note' => 'The company's own money.',

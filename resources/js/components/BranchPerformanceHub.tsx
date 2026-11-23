@@ -142,19 +142,21 @@ export function ReportViewChips({ active, from, to, extraChoices = [], allowAll 
                 label={translate('portal', 'filter_label_dates')}
                 ariaLabel={translate('portal', 'mt_view_label')}
                 showLabel
-                allLabel={allowAll ? translate('portal', 'orders_period_all') : undefined}
+                highlight={false}
                 value={shown}
                 onChange={choose}
-                options={choices.filter((choice) => choice.value !== '').map((choice) => ({ value: choice.value, label: translate('portal', choice.word) }))}
+                options={choices.map((choice) => ({ value: choice.value, label: translate('portal', choice.word) }))}
             />
             {shown === 'day' && (
-                <label className="fd-date"><span>{translate('portal', 'mt_view_day')}</span><DateInput value={dayFrom} onChange={(event) => changeFrom(event.target.value)} /></label>
+                <div className="mt-dates">
+                    <label>{translate('portal', 'mt_view_day')}<DateInput value={dayFrom} onChange={(event) => changeFrom(event.target.value)} /></label>
+                </div>
             )}
             {shown === 'custom' && (
-                <>
-                    <label className="fd-date"><span>{translate('portal', 'mt_date_from')}</span><DateInput value={dayFrom} onChange={(event) => changeFrom(event.target.value)} /></label>
-                    <label className="fd-date"><span>{translate('portal', 'mt_date_to')}</span><DateInput value={dayTo} onChange={(event) => changeTo(event.target.value)} /></label>
-                </>
+                <div className="mt-dates">
+                    <label>{translate('portal', 'mt_date_from')}<DateInput value={dayFrom} onChange={(event) => changeFrom(event.target.value)} /></label>
+                    <label>{translate('portal', 'mt_date_to')}<DateInput value={dayTo} onChange={(event) => changeTo(event.target.value)} /></label>
+                </div>
             )}
         </>
     );

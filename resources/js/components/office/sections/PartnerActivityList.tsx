@@ -1,9 +1,9 @@
 import { router } from '@inertiajs/react';
 import { Laptop, Smartphone, Tablet } from 'lucide-react';
 import { Table, dateTime, number, type Row } from '../../UI';
-import { FilterDropdown } from '../../FilterDropdown';
 import { useT } from '../../../shared/i18n/t';
 import { localizeDigits } from '../../../business-date';
+import { FilterDropdown } from '../../FilterDropdown';
 
 export interface PartnerActivityRow {
     id: number;
@@ -75,7 +75,6 @@ export default function PartnerActivityList({ report }: { report: PartnerActivit
                     showLabel
                     value={report.filter}
                     onChange={(choice) => go({ status: choice, page: 1 })}
-                    highlight={false}
                     options={FILTERS.map((choice) => ({ value: choice, label: t(`filter_${choice}`) }))}
                 />
                 <form className="mt-filters" role="search" onSubmit={(event) => { event.preventDefault(); go({ q: String(new FormData(event.currentTarget).get('q') ?? '').trim(), page: 1 }); }}>
