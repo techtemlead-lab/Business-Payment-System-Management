@@ -1,0 +1,10 @@
+/*
+ * Order page cards (owner's word, 2026-11-23). Every selector starts with `:root body` so it ranks above
+ * the rules written in dashboard.css itself, which win a tie against imported files.
+ */
+
+/* ---- The stock warning on the order page ------------------------------------------------- */
+:root body .app-shell .notice.stock-short{background:var(--ds-warn-bg);border-color:color-mix(in srgb,var(--ds-warn-fg) 35%,transparent);color:var(--ds-warn-fg)}
+:root body .app-shell .notice.stock-short ul{margin:var(--ds-s-1) 0 0;padding-left:var(--ds-s-5)}
+:root body .app-shell .notice.stock-short ul.plain-list{list-style:none;padding-left:0}
+:root body .app-shell .notice.stock-short p{margin-top:var(--ds-s-2)}

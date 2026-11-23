@@ -12,6 +12,7 @@ import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
+import StockShortageNotice from '../components/StockShortageNotice';
 import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import OrderMoneyBreakdown, { type OrderMoneyBreakdownData } from '../components/OrderMoneyBreakdown';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
@@ -277,6 +278,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         </div>
         <OrderMoneyBreakdown data={moneyBreakdown} />
         {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', officeCashWaiting ? 'office_waiting_title' : 'waiting_title')}</b><p>{translate('order_payment', officeCashWaiting ? 'office_waiting_body' : 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
+        {staffOnOrder && itemsLeft && open && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && <StockShortageNotice order={order} stockByBranch={stockByBranch} unsentOf={unsentOf} />}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} phoneColumns={['name', 'quantity', 'total']} columns={[
                 { key: 'name', title: translate('portal', 'col_product'), render: line => line.is_free ? <>{line.name}<small className="cell-sub">{translate('schemes_commission', 'free_line_scheme', { scheme: line.scheme_title ?? translate('schemes_commission', 'free_line_label') })}</small></> : line.name }, { key: 'quantity', title: translate('portal', 'col_ordered_quantity'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched - (returnedOf.get(Number(line.id)) ?? 0)) },
