@@ -57,7 +57,7 @@ export default function RatesTable({ heads, totals }: { heads: Head[]; totals: P
                                         {!head.is_active && <span className="cp-off">{t('off')}</span>}
                                         {head.destination !== null && <small className="cp-subline">{t('extra_goes_label')}: {t(`dest_${head.destination}`)}</small>}
                                     </td>
-                                    <td data-label={t('col_kind')}>{t(`kind_${head.kind}`)}</td>
+                                    <td data-label={t('col_kind')} className="cp-kind">{t(`kind_${head.kind}`) === t(`head_${head.key}`) ? '' : t(`kind_${head.kind}`)}</td>
                                     <td data-label={t('col_dealer')} className="is-num">
                                         {head.dealer_pct === null ? <><span aria-hidden="true">—</span><span className="sr-only">{t('not_for_dealer')}</span></> : showPercent(head.dealer_pct)}
                                     </td>
