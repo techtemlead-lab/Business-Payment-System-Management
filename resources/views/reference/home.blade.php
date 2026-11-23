@@ -144,6 +144,12 @@
             </button>
             @endforeach
         </div>
+        {{-- Phone: the same choice as one drop-down instead of a strip that scrolls sideways. --}}
+        <select class="pf-select pf-featured-select" data-category-select aria-label="{{ __('site.product_category_filters') }}">
+            @foreach($featuredCategoryTabs as $tab)
+            <option value="{{ $tab['slug'] }}">{{ $tab['slug'] === 'all' ? $chrome('all_products', $siteCustomization['catalog_all_products_label'] ?? null) : $tab['name'] }} ({{ $tab['count'] }})</option>
+            @endforeach
+        </select>
         @endif
 
         <div class="ref-product-grid" id="refProductGrid">

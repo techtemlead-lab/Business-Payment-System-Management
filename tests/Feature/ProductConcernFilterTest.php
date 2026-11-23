@@ -175,11 +175,11 @@ class ProductConcernFilterTest extends TestCase
             ->assertDontSee('Tea product')
             ->getContent();
 
-        $this->assertStringContainsString('class="ref-filter-form" data-filter-autosubmit', $html);
+        $this->assertStringContainsString('class="pf-bar" data-filter-autosubmit', $html);
         $this->assertStringContainsString('action="/products#catalog-results"', $html);
         $this->assertStringContainsString('id="catalog-results"', $html);
-        $this->assertMatchesRegularExpression('/<input type="radio" name="category" value="Honey"\s+checked/', $html);
-        $this->assertStringContainsString('<input type="hidden" name="sort" value="price_asc">', $html);
+        $this->assertMatchesRegularExpression('/<option value="Honey"\s+selected>/', $html);
+        $this->assertMatchesRegularExpression('/<option value="price_asc"\s+selected>/', $html);
         $this->assertStringContainsString('name="min_price" value="5"', $html);
         $this->assertStringContainsString('Apply price', $html);
         $this->assertStringNotContainsString('Apply filters', $html);

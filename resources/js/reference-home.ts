@@ -90,8 +90,8 @@ function initFloatingChatTuck(): void {
     }, { passive: true });
 }
 initFloatingChatTuck();
-// Product filter: category, concern and stock choices apply at once; typed price fields keep their own button.
-document.querySelectorAll<HTMLFormElement>('[data-filter-autosubmit]').forEach(form=>form.addEventListener('change',event=>{const target=event.target as HTMLInputElement;if(target.type==='radio'||target.type==='checkbox')form.requestSubmit();}));
+// Product filter: category, concern, stock and sort choices apply at once; typed price fields keep their own button.
+document.querySelectorAll<HTMLFormElement>('[data-filter-autosubmit]').forEach(form=>form.addEventListener('change',event=>{const target=event.target as HTMLInputElement;if(target.type==='radio'||target.type==='checkbox'||target.tagName==='SELECT')form.requestSubmit();}));
 document.querySelectorAll<HTMLSelectElement>('[data-autosubmit]').forEach(select=>select.addEventListener('change',()=>select.form?.requestSubmit()));
 const tabs=[...document.querySelectorAll<HTMLButtonElement>('[data-info-tab]')];
 function activateTab(tab:HTMLButtonElement){tabs.forEach(other=>{const selected=other===tab;other.setAttribute('aria-selected',String(selected));other.tabIndex=selected?0:-1;const panel=document.getElementById(other.dataset.infoTab!);if(panel)panel.hidden=!selected;});}
@@ -135,6 +135,12 @@ categoryTabBtns.forEach(btn => {
             tabEmptyNotice.style.display = visibleCount === 0 ? 'block' : 'none';
         }
     });
+});
+
+// The phone's drop-down does the same as the tabs: it presses the tab with the chosen category.
+document.querySelector<HTMLSelectElement>('[data-category-select]')?.addEventListener('change', event => {
+    const slug = (event.target as HTMLSelectElement).value;
+    categoryTabBtns.forEach(btn => { if (btn.dataset.categoryFilter === slug) btn.click(); });
 });
 
 // Public previews provide information and dealer contact routes.
@@ -433,7 +439,6 @@ function initScrollReveal() {
         '.ref-auth-card',
         '.ref-partner-login-card',
         '.ref-catalog-toolbar',
-        '.ref-filter-sidebar',
         '.ref-detail-card',
         '.ref-product-description',
         '.ref-map-card',
@@ -737,27 +742,30 @@ function initMobileFolds() {
     sync();
 }
 
-/** Phones: the product filter opens as a bottom sheet from the "Filter" button. */
-function initFilterSheet() {
-    const sheet = document.querySelector<HTMLElement>('[data-filter-sheet]');
-    const opener = document.querySelector<HTMLButtonElement>('[data-filter-sheet-open]');
-    if (!sheet || !opener) return;
-    const backdrop = document.querySelector<HTMLElement>('.ref-filter-backdrop');
-    const setOpen = (open: boolean) => {
-        sheet.classList.toggle('is-open', open);
-        document.body.classList.toggle('ref-filter-sheet-open', open);
-        opener.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (backdrop) backdrop.hidden = !open;
-        if (open) {
-            sheet.querySelector<HTMLElement>('input, button')?.focus({ preventScroll: true });
-        } else {
-            opener.focus({ preventScroll: true });
-        }
+/**
+ * A picture that fails to load (a missing file, a bad link) is swapped for a tidy leaf placeholder
+ * instead of the browser's broken-image icon and alt text. A later picture that loads fine replaces it.
+ */
+function initBrokenImages() {
+    const placeholder = '/reference/photo-placeholder.svg';
+    const mark = (img: HTMLImageElement) => {
+        if (!img.closest('main') || img.dataset.broken === '1' || img.src.endsWith(placeholder)) return;
+        img.dataset.broken = '1';
+        img.removeAttribute('srcset');
+        img.classList.add('is-img-broken');
+        img.src = placeholder;
     };
-    opener.addEventListener('click', () => setOpen(true));
-    document.querySelectorAll<HTMLElement>('[data-filter-sheet-close]').forEach((node) => node.addEventListener('click', () => setOpen(false)));
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && sheet.classList.contains('is-open')) setOpen(false);
+    document.addEventListener('error', (event) => {
+        if (event.target instanceof HTMLImageElement) mark(event.target);
+    }, true);
+    document.addEventListener('load', (event) => {
+        const img = event.target;
+        if (!(img instanceof HTMLImageElement) || img.dataset.broken !== '1' || img.src.endsWith(placeholder)) return;
+        delete img.dataset.broken;
+        img.classList.remove('is-img-broken');
+    }, true);
+    document.querySelectorAll<HTMLImageElement>('main img').forEach((img) => {
+        if (img.complete && img.naturalWidth === 0 && img.currentSrc !== '') mark(img);
     });
 }
 
@@ -768,7 +776,7 @@ if (document.readyState === 'loading') {
         initFaqAccordions();
         initMdMessageToggles();
         initMobileFolds();
-        initFilterSheet();
+        initBrokenImages();
         bindLocaleSwitchForms();
         initPageProgressNavigation();
         prefetchLikelyNextPages();
@@ -780,7 +788,7 @@ if (document.readyState === 'loading') {
     initFaqAccordions();
     initMdMessageToggles();
     initMobileFolds();
-    initFilterSheet();
+    initBrokenImages();
     bindLocaleSwitchForms();
     initPageProgressNavigation();
     prefetchLikelyNextPages();
