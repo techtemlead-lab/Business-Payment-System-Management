@@ -569,6 +569,7 @@ return [
     'ops_download_reports' => 'Download a report',
     'ops_download_reports_hint' => 'Choose a period. The Excel file has all the data; PDF shows up to 5,000 rows. Amounts are in taka (৳). Dates use Bangladesh time.',
     'ops_report' => 'Report',
+    'ops_report_group' => 'Report group',
     'ops_report_products' => 'Delivered product sales',
     'ops_report_refunds' => 'Commission refund corrections',
     'ops_export_heading' => ':name report',

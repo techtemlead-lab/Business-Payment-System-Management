@@ -118,6 +118,8 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
                 <div className="notice warning" role="alert">
                     <b>{say('warn_missing_title')}</b>
                     <p>{say('warn_missing_body')}</p>
+                    <details className="tsy-details">
+                    <summary>{say('warn_show_list')}</summary>
                     <div className="table-wrap">
                         <table className="tsy-lines">
                             <thead><tr><th>{say('col_product')}</th><th className="is-money">{say('col_units')}</th><th className="is-money">{say('col_sales')}</th></tr></thead>
@@ -132,6 +134,7 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
                             </tbody>
                         </table>
                     </div>
+                    </details>
                 </div>
             )}
 
@@ -139,6 +142,8 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
                 <div className="notice warning" role="alert">
                     <b>{say('warn_margin_title')}</b>
                     <p>{say('warn_margin_body', { limit: report.plan_share.limit })}</p>
+                    <details className="tsy-details">
+                    <summary>{say('warn_show_list')}</summary>
                     <div className="table-wrap">
                         <table className="tsy-lines">
                             <thead>
@@ -165,6 +170,7 @@ export default function TreasuryProfit({ report, month, copy }: { report: Report
                             </tbody>
                         </table>
                     </div>
+                    </details>
                 </div>
             )}
 

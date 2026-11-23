@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { router } from '@inertiajs/react';
 import OfficePage from '../OfficePage';
+import Figures from '../Figures';
 import { settingsBack } from './SettingsForm';
 import { ActionForm, Pagination, dateTime, number, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
@@ -60,11 +61,13 @@ export default function Errors({ data }: { data: ErrorsData }) {
     return (
         <OfficePage title={t('title')} subtitle={t('subtitle')} back={settingsBack(translate)}>
             {!data.settings.enabled && <p className="notice" role="status">{t('off_notice')}</p>}
-            <div className="stat-row">
-                <div className="stat"><b>{number(data.counts.open)}</b><span>{t('open_count')}</span></div>
-                <div className="stat"><b>{number(data.counts.fixed)}</b><span>{t('fixed_count')}</span></div>
-                <div className="stat"><b>{number(data.counts.week)}</b><span>{t('week_count')}</span></div>
-            </div>
+            <Figures
+                items={[
+                    { key: 'open', label: t('open_count'), value: number(data.counts.open), text: true },
+                    { key: 'fixed', label: t('fixed_count'), value: number(data.counts.fixed), text: true },
+                    { key: 'week', label: t('week_count'), value: number(data.counts.week), text: true },
+                ]}
+            />
 
             {detail && (
                 <section className="panel" aria-label={t('d_title')}>

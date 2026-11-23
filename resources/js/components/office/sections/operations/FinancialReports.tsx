@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {Link, usePage} from '@inertiajs/react';
-import {ReportGroupTabs,type ReportGroup} from '../../../OfficeHubTabs';
+import type {ReportGroup} from '../../../OfficeHubTabs';
+import {FilterDropdown} from '../../../FilterDropdown';
 import {Row, label, DateInput} from '../../../UI';
 import {useT} from '../../../../shared/i18n/t';
 import {OperationsFrame,useOperationsPage,root} from '../../operationsShared';
@@ -32,7 +33,7 @@ function Reports({salesOnly=false,types=[],groups=[]}:{salesOnly?:boolean;types?
         setFrom(iso(start));
         setTo(iso(dhaka));
     };
-    return <section className="panel"><h2>{translate('portal','ops_download_reports')}</h2><p>{translate('portal','ops_download_reports_hint')}</p>{group&&<ReportGroupTabs groups={groups} active={group.key} onSelect={setGroupKey}/>}{group?.links.map(link=><p key={link.href}><Link className="text-link" href={link.href}>{link.label}</Link></p>)}<form className="action-form" action={root+'/reports'} method="get">
+    return <section className="panel rep-panel"><h2>{translate('portal','ops_download_reports')}</h2><p>{translate('portal','ops_download_reports_hint')}</p>{group&&groups.length>1&&<FilterDropdown label={translate('portal','ops_report_group')} showLabel highlight={false} value={group.key} onChange={setGroupKey} options={groups.map(item=>({value:item.key,label:item.label}))}/>}{group?.links.map(link=><p key={link.href}><Link className="text-link" href={link.href}>{link.label}</Link></p>)}<form className="action-form rep-form" action={root+'/reports'} method="get">
         <label>{translate('portal','ops_report')}<select key={group?.key} required name="type">{shownTypes.map(t=><option key={t} value={t}>{reportName(t)}</option>)}</select></label>
         <label>{translate('portal','ops_period')}<select value={period} onChange={e=>choosePeriod(e.target.value)}><option value="day">{translate('portal','ops_period_day')}</option><option value="week">{translate('portal','ops_period_week')}</option><option value="month">{translate('portal','ops_period_month')}</option><option value="last_month">{translate('portal','ops_period_last_month')}</option><option value="custom">{translate('portal','ops_period_custom')}</option></select></label>
         <label>{translate('portal','date_from')}<DateInput name="from" required value={from} onChange={e=>{setFrom(e.target.value);setPeriod('custom');}}/></label><label>{translate('portal','ops_through')}<DateInput name="to" required min={from} value={to} onChange={e=>{setTo(e.target.value);setPeriod('custom');}}/></label>

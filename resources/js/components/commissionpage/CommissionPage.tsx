@@ -38,7 +38,7 @@ export default function CommissionPage({ page, hub, fundCheck }: { page?: Commis
     return (
         <div className="cp-page" ref={pageRef}>
             <header className="cp-head">
-                <h1>{t('page_title')}</h1>
+                <h1 className="sr-only">{t('page_title')}</h1>
                 <p>{t('page_lead')}</p>
             </header>
 

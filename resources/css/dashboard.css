@@ -47,6 +47,7 @@
 @import './screens-order-cards.css';
 @import './screens-compact-spacing.css';
 @import './organise-office.css';
+@import './organise-owner.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
 /* Bangla digits ÃƒÂ Ã‚Â§Ã‚Â¦-ÃƒÂ Ã‚Â§Ã‚Â¯ come from Noto Sans Bengali, where every digit has the same width, so
