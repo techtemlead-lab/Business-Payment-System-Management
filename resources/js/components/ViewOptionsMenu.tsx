@@ -41,8 +41,7 @@ export default function ViewOptionsMenu({ onOpenGuide }: { onOpenGuide: () => vo
                         <span className="view-options-name">{translate('office_shell', 'view_options_text')}</span>
                         <TextSizeToggle />
                     </div>
-                    <div className="view-options-row">
-                        <span className="view-options-name">{translate('office_shell', 'view_options_theme')}</span>
+                    <div className="view-options-row is-single">
                         <ThemeToggle />
                     </div>
                     <button type="button" className="view-options-guide" onClick={() => { setOpen(false); onOpenGuide(); }}>
