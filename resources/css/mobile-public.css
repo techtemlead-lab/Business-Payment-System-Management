@@ -227,11 +227,11 @@
     body.ref-home .ref-featured-products .ref-product-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
     }
     body.ref-home .ref-featured-products .ref-product-grid > .ref-product-card {
-        flex: 0 0 calc((100% - 10px) / 2) !important;
-        width: calc((100% - 10px) / 2) !important;
+        flex: 0 0 calc((100% - 8px) / 2) !important;
+        width: calc((100% - 8px) / 2) !important;
         max-width: none;
     }
 
@@ -375,7 +375,7 @@
 
     body.ref-home .ref-product-grid.ref-catalog-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 10px;
+        gap: 8px;
     }
     body.ref-home .ref-product-card {
         display: flex;
@@ -384,8 +384,8 @@
     }
     body.ref-home .ref-product-card .ref-card-picture,
     body.ref-home .ref-product-card .ref-card-picture.is-stock {
-        aspect-ratio: 4 / 5;
-        padding: 8px;
+        aspect-ratio: 4 / 3;
+        padding: 4px;
         border-radius: 11px 11px 0 0;
     }
     body.ref-home .ref-product-card .ref-card-picture.is-stock {
@@ -397,19 +397,25 @@
     body.ref-home .ref-product-card .ref-card-price small {
         display: none;
     }
+    body.ref-home .ref-product-card .ref-card-meta:not(:has(.ref-card-flag)) {
+        display: none;
+    }
+    body.ref-home .ref-product-card .ref-card-meta {
+        min-height: 0;
+    }
     body.ref-home .ref-product-card .ref-card-body {
         display: flex;
         flex: 1;
         flex-direction: column;
-        gap: 6px;
-        padding: 10px;
+        gap: 4px;
+        padding: 6px 8px 8px;
     }
     body.ref-home .ref-product-card .ref-card-title,
     body.ref-home .locale-bn .ref-product-card .ref-card-title {
         min-height: 0;
         margin: 0;
         font-size: var(--mt-body, 14px);
-        line-height: 1.45;
+        line-height: 1.3;
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
@@ -431,22 +437,24 @@
         display: inline-flex;
         align-items: center;
         min-height: 44px;
-        padding: 0 12px;
+        padding: 0 10px;
         font-size: 13px;
     }
     body.ref-home .ref-product-card .ref-card-price-row {
         flex-wrap: wrap;
-        gap: 4px 8px;
+        gap: 2px 6px;
         align-items: center;
+        padding-top: 4px;
     }
     body.ref-home .ref-product-card .ref-card-price strong {
         font-size: var(--mt-card-title, 16px);
     }
     body.ref-home .ref-product-card .ref-card-cta {
-        margin-top: auto;
-        min-height: 44px;
-        padding: 0 8px;
-        font-size: 14px;
+        margin-top: 2px;
+        min-height: 36px;
+        padding: 4px 6px;
+        font-size: 13px;
+        line-height: 1.2;
     }
 
     /* ---- 4. Partnership: apply button always in reach, cards folded, form comfortable ---- */
