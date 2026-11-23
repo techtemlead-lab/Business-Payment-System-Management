@@ -37,7 +37,7 @@ class MobilePublicStylesTest extends TestCase
     public function test_markup_hooks_used_by_the_phone_styles_exist(): void
     {
         $views = resource_path('views/reference/');
-        $this->assertStringContainsString('data-filter-sheet-open', (string) file_get_contents($views.'catalog.blade.php'));
+        $this->assertStringContainsString('class="pf-bar" data-filter-autosubmit', (string) file_get_contents($views.'catalog.blade.php'));
         $this->assertStringContainsString('data-mobile-fold', (string) file_get_contents($views.'information.blade.php'));
         $this->assertStringContainsString('ref-apply-sticky', (string) file_get_contents($views.'information.blade.php'));
         $this->assertStringContainsString('ref-product-sticky', (string) file_get_contents($views.'product.blade.php'));
