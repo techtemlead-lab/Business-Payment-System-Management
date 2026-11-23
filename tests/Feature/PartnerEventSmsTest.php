@@ -205,10 +205,10 @@ class PartnerEventSmsTest extends TestCase
         ])->assertOk();
 
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
-        $this->assertSame(
-            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.approved', 'order.dispatched', 'shipment.delivered'],
-            $events,
-        );
+        // The payment check approves the order in the same step, so those two texts leave together in either order.
+        $this->assertSame(['order.submitted', 'payment.claimed'], array_slice($events, 0, 2));
+        $this->assertEqualsCanonicalizing(['payment.verified', 'order.approved'], array_slice($events, 2, 2));
+        $this->assertSame(['order.dispatched', 'shipment.delivered'], array_slice($events, 4));
 
         $orderNumber = DB::table('orders')->where('id', $id)->value('number');
         $messages = collect(config('madina.sms.sent'))->pluck('message');
