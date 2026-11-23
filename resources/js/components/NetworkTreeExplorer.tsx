@@ -4,7 +4,7 @@ import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin
 import { money, date, Table, type TableColumn, number } from './UI';
 import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
-import { FilterChips } from './FilterChips';
+import { FilterDropdown } from './FilterDropdown';
 
 interface DealerNode {
     id: number;
@@ -397,7 +397,7 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
 
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
-                        <FilterChips
+                        <FilterDropdown
                             label={translate('portal','net_all_ranks')}
                             value={rankFilter}
                             onChange={setRankFilter}

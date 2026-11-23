@@ -3,7 +3,7 @@ import {Link,router,usePage} from '@inertiajs/react';
 import {Search,ShieldCheck} from 'lucide-react';
 import {Row,Field,Badge,money,number,label,DateInput} from '../UI';
 import {useT} from '../../shared/i18n/t';
-import FilterPicker,{wantsSearch} from '../FilterChips';
+import FilterPicker,{wantsSearch} from '../FilterDropdown';
 /** Placeholder shown for the moment an office screen is being fetched. */
 export function SectionLoading(){const translate=useT();return <div className="section-loading" role="status" aria-live="polite"><span className="section-loading-bar"/><span className="section-loading-bar short"/><span className="section-loading-block"/><span className="sr-only">{translate('portal','loading')}</span></div>;}
 export type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;

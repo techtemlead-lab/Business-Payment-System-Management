@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
-import FilterPicker, { wantsSearch } from './FilterChips';
+import FilterPicker, { wantsSearch } from './FilterDropdown';
 
 export type ServerListSelect = {
     name: string;
