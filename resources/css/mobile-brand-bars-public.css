@@ -1,0 +1,102 @@
+/* =========================================================================
+   Phone bars of the public website in the company's logo green: the brand band, the header row,
+   the menu drawer header and the bottom bar. Colours, borders and shadows only (sizes live in mobile-public.css).
+   Variables: mobile-brand-bars.css. Imported after mobile-public.css; phones only (up to 767px).
+   The selectors start with body.ref-home so they beat the older single-class rules in reference-home.css
+   and the dark-theme rules in theme-dark.css.
+   ========================================================================= */
+@media (max-width: 767px) {
+  /* ---- Brand band and header row: the same green, one edge in gold between them ---------------------- */
+  body.ref-home .ref-company-bar,
+  body.ref-error-page .ref-company-bar {
+    background: var(--bar-bg-deep);
+    border-bottom: 1px solid var(--bar-line);
+  }
+  html[data-theme="dark"] body.ref-home .ref-header,
+  body.ref-home .ref-header {
+    background: var(--bar-bg);
+    border-bottom: 1px solid var(--bar-accent);
+    box-shadow: var(--bar-shadow);
+  }
+  body.ref-home .ref-header-inner {
+    background: transparent;
+  }
+  body.ref-home .ref-bar-logo {
+    background: var(--bar-ring);
+    box-shadow: 0 0 0 2px var(--bar-accent);
+  }
+  body.ref-home .ref-mobile-menu-btn,
+  body.ref-home .ref-mobile-search-btn {
+    color: var(--bar-fg);
+    border-radius: 12px;
+  }
+  body.ref-home .ref-mobile-menu-btn:hover,
+  body.ref-home .ref-mobile-search-btn:hover,
+  body.ref-home .ref-mobile-menu-btn:active,
+  body.ref-home .ref-mobile-search-btn:active {
+    color: var(--bar-fg);
+    background: var(--bar-hover);
+  }
+  body.ref-home :is(.ref-header, .ref-company-bar, .ref-mobile-nav, .ref-mobile-drawer-header) :is(a, button, input):focus-visible {
+    outline: 2px solid var(--bar-focus);
+    outline-offset: 2px;
+  }
+
+  /* ---- Drawer header ------------------------------------------------------------------------------------ */
+  body.ref-home .ref-mobile-drawer-header {
+    background: var(--bar-bg);
+    border-bottom: 1px solid var(--bar-accent);
+  }
+  body.ref-home .ref-mobile-drawer-logo {
+    background: var(--bar-ring);
+    box-shadow: 0 0 0 2px var(--bar-accent);
+  }
+  body.ref-home .ref-mobile-drawer-close {
+    color: var(--bar-fg);
+  }
+
+  /* ---- Bottom bar (same look as the panels) ------------------------------------------------------------- */
+  body.ref-home .ref-mobile-nav {
+    background: var(--bar-bg);
+    border-top: 1px solid var(--bar-line);
+    box-shadow: var(--bar-shadow-up);
+    color: var(--bar-fg);
+  }
+  body.ref-home .ref-mobile-nav > a,
+  body.ref-home .ref-mobile-nav > button {
+    color: var(--bar-fg-muted);
+  }
+  body.ref-home .ref-mobile-nav > a.ref-mobile-nav-item:is(:hover, :active, :focus-visible) {
+    color: var(--bar-fg);
+    background: var(--bar-hover);
+  }
+  body.ref-home .ref-mobile-nav > a.ref-mobile-nav-item:is(:hover, :focus-visible) i {
+    color: var(--bar-accent);
+  }
+  body.ref-home .ref-mobile-nav > a.ref-mobile-nav-item[aria-current="page"],
+  body.ref-home .ref-mobile-nav > a.ref-mobile-home[aria-current="page"] {
+    background: var(--bar-pill);
+    color: var(--bar-active);
+    box-shadow: inset 0 3px 0 var(--bar-accent);
+  }
+  body.ref-home .ref-mobile-nav > a.ref-mobile-nav-item[aria-current="page"] i {
+    color: var(--bar-accent);
+  }
+  /* The home logo bubble: white disc, gold ring, a soft green halo (the old rainbow ring is gone). */
+  body.ref-home .ref-mobile-home-icon,
+  html[data-theme="dark"] body.ref-home .ref-mobile-home-icon {
+    background: var(--bar-ring);
+    box-shadow: 0 0 0 3px var(--bar-accent), 0 4px 12px rgba(0, 30, 8, .4);
+  }
+  body.ref-home .ref-mobile-home-icon::before {
+    display: none;
+  }
+  body.ref-home .ref-mobile-home-icon img,
+  html[data-theme="dark"] body.ref-home .ref-mobile-home-icon img {
+    background: var(--bar-ring);
+    box-shadow: none;
+  }
+  body.ref-home .ref-mobile-nav .ref-mobile-home-label {
+    color: var(--bar-fg);
+  }
+}

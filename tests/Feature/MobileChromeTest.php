@@ -64,4 +64,29 @@ class MobileChromeTest extends TestCase
             $this->assertStringContainsString($class, $this->chromeCss());
         }
     }
+
+    public function test_the_phone_bars_take_their_colours_from_the_logo_variables_defined_once(): void
+    {
+        $tokens = File::get(resource_path('css/mobile-brand-bars.css'));
+
+        foreach (['--bar-bg', '--bar-bg-deep', '--bar-fg', '--bar-fg-muted', '--bar-active', '--bar-accent', '--bar-focus'] as $variable) {
+            $this->assertStringContainsString($variable.':', $tokens, "{$variable} is not defined");
+        }
+        $this->assertStringContainsString('html[data-theme="dark"]', $tokens, 'The dark theme needs its own darker green.');
+
+        $this->assertSame(1, substr_count(File::get(resource_path('css/dashboard.css')), "@import './mobile-brand-bars-portal.css';"));
+        $this->assertSame(1, substr_count(File::get(resource_path('css/reference-home.css')), "@import './mobile-brand-bars-public.css';"));
+
+        $portal = File::get(resource_path('css/mobile-brand-bars-portal.css'));
+        $public = File::get(resource_path('css/mobile-brand-bars-public.css'));
+        foreach ([$portal, $public] as $css) {
+            $this->assertSame(1, substr_count($css, '@media (max-width: 767px) {'), 'The bar colours apply on phones only.');
+            $this->assertSame('', trim((string) preg_replace('/\/\*.*?\*\//s', '', substr($css, 0, strpos($css, '@media')))), 'No rule outside the phone media query.');
+            $this->assertDoesNotMatchRegularExpression('/#[0-9a-f]{3,8}\s*;/i', preg_replace('/rgba?\([^)]*\)/', '', $css) ?? '', 'Bar colours come from the variables, not literals.');
+        }
+        $this->assertStringContainsString('.portal-bottom-nav', $portal);
+        $this->assertStringContainsString('.workspace-header', $portal);
+        $this->assertStringContainsString('.ref-mobile-nav', $public);
+        $this->assertStringContainsString('.ref-header', $public);
+    }
 }

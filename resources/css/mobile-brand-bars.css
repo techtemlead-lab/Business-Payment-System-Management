@@ -1,0 +1,43 @@
+/* =========================================================================
+   Brand colours of the phone bars (top bar, menu drawer, bottom bar), taken from the company logo.
+   One place to change them: this file. Used by the portal bundle (dashboard.css) and the public
+   bundle (reference-home.css). Nothing here is read on a wider screen, so desktop and tablet stay as they were.
+
+   Logo: deep green seal (#004800 .. #007800), lime accent (#309000), gold/brown accent (#A86000).
+   The gold is lifted to a light tone (#F2B83C), because the logo's own brown has too little contrast on the green.
+
+   Contrast (WCAG): white on --bar-bg 8.9:1, --bar-fg-muted on --bar-bg 5.9:1, gold line on --bar-bg 3.8:1 (UI element, 3:1 needed),
+   white on --bar-bg-deep 10.9:1. Dark theme: white-ish text on the darker green, above 11:1.
+   ========================================================================= */
+:root {
+  --bar-bg: #005c18;
+  --bar-bg-deep: #004a12;
+  --bar-fg: #ffffff;
+  --bar-fg-muted: rgba(255, 255, 255, .82);
+  --bar-active: #ffffff;
+  --bar-accent: #f2b83c;
+  --bar-focus: #ffd980;
+  --bar-pill: rgba(255, 255, 255, .14);
+  --bar-hover: rgba(255, 255, 255, .12);
+  --bar-line: rgba(255, 255, 255, .2);
+  --bar-on-accent: #3a2600;
+  --bar-ring: #ffffff;
+  --bar-shadow: 0 2px 10px rgba(0, 40, 10, .28);
+  --bar-shadow-up: 0 -4px 14px rgba(0, 40, 10, .28);
+}
+html[data-theme="dark"] {
+  --bar-bg: #0b2a14;
+  --bar-bg-deep: #071e0e;
+  --bar-fg: #eef6ee;
+  --bar-fg-muted: rgba(238, 246, 238, .8);
+  --bar-active: #ffffff;
+  --bar-accent: #e9b949;
+  --bar-focus: #ffd980;
+  --bar-pill: rgba(255, 255, 255, .1);
+  --bar-hover: rgba(255, 255, 255, .1);
+  --bar-line: rgba(255, 255, 255, .14);
+  --bar-on-accent: #2a1c00;
+  --bar-ring: #dfe9df;
+  --bar-shadow: 0 2px 10px rgba(0, 0, 0, .45);
+  --bar-shadow-up: 0 -4px 14px rgba(0, 0, 0, .45);
+}

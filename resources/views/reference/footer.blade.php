@@ -137,55 +137,55 @@
 @endif
 <nav class="ref-mobile-nav" aria-label="{{ __('site.mobile_navigation') }}">
     @if($publicPageEnabled['products'] ?? true)
-    <a href="{{ $site('/products') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/products') }}" class="ref-mobile-nav-item"@if(request()->is('products*')) aria-current="page"@endif>
         <i class="fa-solid fa-store" aria-hidden="true"></i>
         <span>{{ $chrome('products', $siteCustomization['mobile_nav_products'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['services'] ?? true)
-    <a href="{{ $site('/services') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/services') }}" class="ref-mobile-nav-item"@if(request()->is('services*')) aria-current="page"@endif>
         <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
         <span>{{ __('site.services') }}</span>
     </a>
     @elseif($publicPageEnabled['about'] ?? true)
-    <a href="{{ $site('/about') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/about') }}" class="ref-mobile-nav-item"@if(request()->is('about*')) aria-current="page"@endif>
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>{{ $chrome('about', $siteCustomization['mobile_nav_about'] ?? null) }}</span>
     </a>
     @endif
     @if($publicPageEnabled['dealers'] ?? true)
-    <a href="{{ $site('/dealers') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/dealers') }}" class="ref-mobile-nav-item"@if(request()->is('dealers*')) aria-current="page"@endif>
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
         <span>{{ $chrome('dealers', $siteCustomization['mobile_nav_dealers'] ?? null) }}</span>
     </a>
     @elseif($publicPageEnabled['partnership'] ?? true)
-    <a href="{{ $site('/partnership') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/partnership') }}" class="ref-mobile-nav-item"@if(request()->is('partnership*')) aria-current="page"@endif>
         <i class="fa-solid fa-handshake" aria-hidden="true"></i>
         <span>{{ __('site.partner') }}</span>
     </a>
     @elseif($publicPageEnabled['contact'] ?? true)
-    <a href="{{ $site('/contact') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/contact') }}" class="ref-mobile-nav-item"@if(request()->is('contact*')) aria-current="page"@endif>
         <i class="fa-solid fa-headset" aria-hidden="true"></i>
         <span>{{ __('site.contact') }}</span>
     </a>
     @endif
-    <a href="{{ $site('/') }}" class="ref-mobile-home" aria-label="{{ __('site.home') }}">
+    <a href="{{ $site('/') }}" class="ref-mobile-home" aria-label="{{ __('site.home') }}"@if(request()->is('/')) aria-current="page"@endif>
         <span class="ref-mobile-home-icon">
             <img src="{{ \App\Support\SiteCustomization::logoUrl() }}" alt="" width="40" height="40" decoding="async">
         </span>
         <span class="ref-mobile-home-label">{{ $chrome('home', $siteCustomization['header_home_title'] ?? null) }}</span>
     </a>
     @if($publicPageEnabled['about'] ?? true)
-    <a href="{{ $site('/about') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/about') }}" class="ref-mobile-nav-item"@if(request()->is('about*')) aria-current="page"@endif>
         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>{{ filled($siteCustomization['mobile_nav_about'] ?? null) ? $chrome('about', $siteCustomization['mobile_nav_about']) : __('site.mobile_nav_about_short') }}</span>
     </a>
     @elseif($publicPageEnabled['faq'] ?? true)
-    <a href="{{ $site('/faq') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/faq') }}" class="ref-mobile-nav-item"@if(request()->is('faq*')) aria-current="page"@endif>
         <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
         <span>{{ __('site.faq') }}</span>
     </a>
     @elseif($publicPageEnabled['contact'] ?? true)
-    <a href="{{ $site('/contact') }}" class="ref-mobile-nav-item">
+    <a href="{{ $site('/contact') }}" class="ref-mobile-nav-item"@if(request()->is('contact*')) aria-current="page"@endif>
         <i class="fa-solid fa-headset" aria-hidden="true"></i>
         <span>{{ __('site.contact') }}</span>
     </a>
