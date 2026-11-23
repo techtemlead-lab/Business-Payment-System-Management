@@ -3,12 +3,14 @@ import { router } from '@inertiajs/react';
 import { CheckCircle2, Pencil, Trash2 } from 'lucide-react';
 import { ActionForm, Badge, Empty, Pagination, date, type Field, type Row } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import { useIsPhone } from '../../shared/useIsPhone';
 
 type CustomerBookData = { customers: Row; today: string; due_count: number };
 
 /** A partner's own customers. Nobody else can open this page, not even the owner. */
 export default function CustomerBookHub({ data, filters }: { data: CustomerBookData; filters: Row }) {
     const translate = useT();
+    const isPhone = useIsPhone();
     const [editing, setEditing] = useState<number | null>(null);
     const [search, setSearch] = useState(String(filters?.q ?? ''));
     const status = String(filters?.status ?? '');
@@ -28,11 +30,12 @@ export default function CustomerBookHub({ data, filters }: { data: CustomerBookD
     };
     return (
         <>
-            <section className="panel narrow-panel">
-                <h2>{translate('dealer_tools', 'customer_add_title')}</h2>
+            {/* A phone keeps the list first: the add form folds under its heading. */}
+            <details key={isPhone ? 'phone' : 'wide'} className="panel narrow-panel partner-fold" open={!isPhone}>
+                <summary><h2>{translate('dealer_tools', 'customer_add_title')}</h2></summary>
                 <p className="muted">{translate('dealer_tools', 'customer_private_hint')}</p>
                 <ActionForm action="/commands/customers" fields={fields} submit={translate('dealer_tools', 'customer_save')} />
-            </section>
+            </details>
             <section className="panel">
                 <div className="panel-heading">
                     <div>

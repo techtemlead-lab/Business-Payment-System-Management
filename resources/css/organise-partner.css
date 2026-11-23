@@ -179,12 +179,12 @@
   .mm-hero-pending b { font-size: 17px; }
   .mm-hero-pending small { display: none; }
   .mm-hero-small { gap: 2px 12px; font-size: var(--mt-small, 13px); }
-  .mm-hero-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); margin-top: var(--ds-s-2, 8px); }
+  .mm-hero-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); margin-top: var(--ds-s-2, 8px); }
   .mm-hero-actions > :first-child { grid-column: 1 / -1; }
-  .mm-hero-actions > :first-child.button { min-height: 48px; font-size: var(--mt-cta, 15px); }
-  .mm-hero-actions .button { flex: none; min-height: 52px; height: auto; padding: 6px 4px; justify-content: center; text-align: center; white-space: normal; overflow-wrap: anywhere; font-size: var(--mt-small, 13px); line-height: 1.3; }
-  .mm-hero-actions .mm-downloads > summary { width: 100%; justify-content: center; }
-  .mm-hero-actions .mm-downloads { min-width: 0; }
+  .app-shell .mm-hero-actions .button { flex: none; min-height: 46px; height: auto; padding: 6px 8px; justify-content: center; text-align: center; white-space: normal; overflow-wrap: anywhere; font-size: var(--mt-small, 13px); line-height: 1.3; }
+  .app-shell .mm-hero-actions > :first-child.button { min-height: 48px; font-size: var(--mt-cta, 15px); }
+  .mm-hero-actions .mm-downloads { grid-column: 1 / -1; min-width: 0; }
+  .app-shell .mm-hero-actions .mm-downloads > summary { width: 100%; min-height: 40px; justify-content: center; border-style: dashed; background: transparent; }
   .mm-downloads-menu { left: auto; right: 0; }
   .mm-fold { padding-inline: var(--md-card, 12px); }
 
@@ -201,4 +201,70 @@
   .team-summary .metric strong { font-size: var(--mt-number, 20px); }
   .team-summary .metric small { font-size: var(--mt-label, 12px); line-height: 1.4; }
   .team-summary .metric-grid.three > .metric:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+/* ================================================================ second pass (screens checked at 390 and 1440 px) */
+/* Purchase: the page title and the card heading already say it; the dark banner keeps only the link to the product list. */
+.app-shell .b2b-purchase-container > .ppm-hero { justify-content: flex-end; padding: 0; background: none; border: 0; box-shadow: none; }
+.app-shell .b2b-purchase-container .ppm-hero > div:first-child { display: none; }
+.app-shell .b2b-purchase-container .ppm-hero .ppm-hero-link { border: 1px solid var(--ds-line, #dfe5e0); background: var(--ds-surface, #fff); color: var(--ds-brand-text, #00694d); }
+
+@media (max-width: 767px) {
+  .app-shell .b2b-purchase-container > .ppm-hero { padding: 0; }
+  .b2b-purchase-container .ppm-search .field-hint,
+  .b2b-purchase-container .ppm-pick-prompt { display: none; }
+  /* Product list: the header card repeats the page title and the "New order" button above it. */
+  .pcd-intro { display: none; }
+
+  /* My account (income by head): the page title is in the top bar; the long intro goes. */
+  .mm-partner-head h2 { display: none; }
+  .mm-partner-head p { font-size: var(--mt-small, 13px); }
+  .mm-part-hint { font-size: var(--mt-small, 13px); margin-bottom: var(--ds-s-2, 8px); }
+  .mm-heads-wrap { border-radius: var(--ds-r-lg, 16px); overflow: hidden; }
+  .mm-heads tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 0 var(--ds-s-3, 12px); margin: 0; padding: var(--ds-s-2, 8px) var(--ds-s-4, 12px); border: 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); border-radius: 0; background: none; box-shadow: none; }
+  .mm-heads tbody tr.is-selected { box-shadow: inset 3px 0 0 var(--ds-brand, #006a4e); background: var(--ds-surface-2, #f4f7f5); }
+  .mm-heads tbody th, .mm-heads tbody td { padding: 2px 0; border: 0; border-radius: 0; background: none; box-shadow: none; min-height: 0; }
+  .mm-heads tbody th button { min-height: 36px; font-weight: 700; }
+  .mm-heads td.num::before { font-size: var(--mt-label, 12px); }
+  .mm-heads td.num { font-size: var(--mt-body, 15px); }
+}
+
+/* Partner list filters on a phone: search on top, pickers two to a row, dates side by side, actions last. */
+@media (max-width: 767px) {
+  .app-shell:is(.dealer-shell, .subdealer-shell) .table-panel > form.filter-bar.order-filters,
+  .app-shell:is(.dealer-shell, .subdealer-shell) .stmt-panel > form.filter-bar.order-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); padding: var(--ds-s-3, 8px) var(--md-card, 12px); }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .order-search { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--ds-s-2, 8px); width: 100%; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .order-search .search-input { width: auto; max-width: none; height: 44px; min-height: 44px; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .order-search .button { height: 44px; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters > span,
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters > .fd { min-width: 0; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .fd { width: 100%; max-width: none; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .order-dates { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .date-input-wrapper { width: 100%; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .order-filter-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ds-s-2, 8px); margin: 0; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters .order-filter-actions .button { flex: 1 1 auto; }
+  /* Team orders: the long hint under the heading is one slim line. */
+  .stmt-panel .panel-heading p.muted + p.muted { font-size: var(--mt-small, 13px); }
+}
+
+/* A panel whose heading folds its body (the add forms on a phone) */
+.partner-fold > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--ds-s-2, 8px); min-height: 44px; cursor: pointer; list-style: none; }
+.partner-fold > summary::-webkit-details-marker { display: none; }
+.partner-fold > summary > h2 { margin: 0; }
+.partner-fold > summary::after { content: ""; flex: none; width: 9px; height: 9px; margin: 0 4px 3px 2px; border-right: 2px solid var(--ds-text-muted, #5b6b7a); border-bottom: 2px solid var(--ds-text-muted, #5b6b7a); transform: rotate(45deg); transition: transform .15s ease; }
+.partner-fold[open] > summary::after { transform: rotate(225deg) translate(-2px, -2px); }
+.partner-fold > summary:focus-visible { outline: 2px solid var(--ds-brand, #006a4e); outline-offset: 2px; border-radius: var(--ds-r-md, 8px); }
+@media (min-width: 768px) { .partner-fold > summary { cursor: default; pointer-events: none; } .partner-fold > summary::after { display: none; } }
+
+@media (max-width: 767px) {
+  .mm-heads-wrap .mm-heads tbody tr > * { background: transparent !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; }
+  .mm-heads-wrap .mm-heads tbody tr { border-bottom: 1px solid var(--ds-line-soft, #ecf0ed) !important; }
+  .app-shell:is(.dealer-shell, .subdealer-shell) .order-filters > span[data-tour] { grid-column: 1 / -1; }
+}
+
+@media (max-width: 767px) {
+  .mm-heads-wrap .mm-heads tbody th { padding: 0 !important; min-height: 0 !important; height: auto !important; }
+  .mm-heads-wrap .mm-heads tbody th button { min-height: 32px !important; height: auto !important; padding: 0 !important; }
+  .mm-heads-wrap .mm-heads tbody td { padding: 0 !important; }
+  .mm-partner-head p { display: none; }
 }

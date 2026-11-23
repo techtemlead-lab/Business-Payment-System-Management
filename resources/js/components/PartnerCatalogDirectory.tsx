@@ -93,7 +93,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
     return (
         <div className="ops-stack is-wide">
             {/* Header Action Banner */}
-            <div className="ops-card ops-row is-between is-wrap is-wide">
+            <div className="ops-card ops-row is-between is-wrap is-wide pcd-intro">
                 <div>
                     <h2 className="hub-title is-lg">
                         {translate('portal', 'b2b_catalog_list_title')}
