@@ -20,3 +20,79 @@
   --font-fallback: 'Nirmala UI', 'Vrinda', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-stack: 'Madina Digits', var(--font-body-en), var(--font-body-bn), var(--font-fallback);
 }
+
+/*
+ * Computer and tablet fit (768 px and wider). Noto Sans Bengali is about a tenth wider than Hind Siliguri, which the
+ * menus, tables and top bar were laid out for. So: Bangla menu labels and table headers use weight 500, dense
+ * places use line height 1.45 to 1.5, the menu is a little wider, and the top bar gives the page title room.
+ * Selectors repeat .app-shell so they win over the older rules without !important.
+ */
+@media (min-width: 768px) {
+  .app-shell.app-shell :is(.nav-section-toggle, .nav-mother-toggle, .sidebar-guide-button, .nav-group a, .nav-mother-body > a, .nav-section-body > a) {
+    font-weight: 500;
+    line-height: 1.45;
+    letter-spacing: 0;
+  }
+  .app-shell.app-shell .sidebar :is(a.selected, .has-active > .nav-section-toggle, .is-open > .nav-section-toggle) {
+    font-weight: 600;
+  }
+  /* A long label stays on one line; the ellipsis is the last resort and the full text is in the title. */
+  .app-shell.app-shell .sidebar :is(.nav-link-label, .nav-section-toggle > span:not(.nav-attention-badge), .nav-mother-toggle > span:not(.nav-attention-badge)) {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Tables: header cells weight 500, rows no taller than needed. */
+  .locale-bn .app-shell.app-shell :is(table th, .table-block th) {
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .locale-bn .app-shell.app-shell :is(table td, .table-block td) {
+    line-height: 1.45;
+  }
+
+  /* Top bar: the page title keeps room, the search and the branch box give way. */
+  .app-shell.app-shell .workspace-header .breadcrumb {
+    flex: 1 1 220px;
+    min-width: 220px;
+  }
+  .app-shell.app-shell .workspace-header .breadcrumb > b {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .app-shell.app-shell .workspace-header .breadcrumb > span {
+    flex: 0 1 auto;
+  }
+  .app-shell.app-shell .workspace-header .branch-workspace-select {
+    flex: 0 1 180px;
+    min-width: 120px;
+  }
+  .app-shell.app-shell .workspace-header .global-search-trigger {
+    max-width: 190px;
+  }
+  .app-shell.app-shell .workspace-header .global-search-trigger .global-search-trigger-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .app-shell.app-shell .workspace-header .global-search-trigger kbd {
+    display: none;
+  }
+  .app-shell.app-shell .workspace-header .user-caption {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* The side menu is wider on a computer (228 to 256 px) so the long Bangla labels fit on one line. */
+@media (min-width: 1024px) {
+  .app-shell.app-shell {
+    --sidebar-width: 256px;
+  }
+}
