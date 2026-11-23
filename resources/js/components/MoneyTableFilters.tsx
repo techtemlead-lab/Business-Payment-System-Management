@@ -35,7 +35,24 @@ const VIEW_KEYS = ['q', 'period', 'from', 'to', 'sort', 'dir'];
  * Every choice filter sits in the header as chips (or, for a long list of people, places or products,
  * a searchable drop-down). Only number ranges, date ranges and free text open in the "More filters" sheet.
  */
-export const isToolbarFilter = (filter: MoneyFilter): boolean => (filter.type ?? 'select') === 'select';
+export const isToolbarFilter = (filter: MoneyFilter): boolean => (filter.type ?? 'select') === 'select' && filter.group !== 'more';
+
+/** The most drop-downs one toolbar shows beside the search box: more would run off the page, so the rest wait in "More filters". */
+export const TOOLBAR_FILTER_LIMIT = 4;
+
+/** Marks every drop-down past the limit as a "more" filter; the page's own choice (a group set by the server) is kept. */
+export function limitToolbarFilters(filters: MoneyFilter[]): MoneyFilter[] {
+    let shown = 0;
+
+    return filters.map((filter) => {
+        if (!isToolbarFilter(filter)) {
+            return filter;
+        }
+        shown += 1;
+
+        return shown > TOOLBAR_FILTER_LIMIT ? { ...filter, group: 'more' as const } : filter;
+    });
+}
 
 /** The address keys that belong to one filter. */
 export const filterKeys = (filter: MoneyFilter): string[] => (filter.type === 'range' || filter.type === 'date_range' ? [filter.from as string, filter.to as string] : [filter.key]);
