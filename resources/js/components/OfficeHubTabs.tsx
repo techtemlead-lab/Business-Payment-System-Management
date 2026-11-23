@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from '@inertiajs/react';
-import { number } from './UI';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import AdaptiveTabs from './AdaptiveTabs';
 import { useT } from '../shared/i18n/t';
 
 export type OfficeHub = {
@@ -52,59 +51,30 @@ export function useScrollEdges<T extends HTMLElement>() {
     return { ref, onScroll: measure, edgeClass, measure };
 }
 
-/** Scrolls the open tab to the middle of its own strip without moving the page. */
-function centreActiveTab(strip: HTMLElement | null): void {
-    const tab = strip?.querySelector<HTMLElement>('.is-active, [aria-selected="true"]');
-    if (!strip || !tab || strip.scrollWidth <= strip.clientWidth) {
-        return;
-    }
-    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const tabLeft = tab.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
-    strip.scrollTo({ left: tabLeft - (strip.clientWidth - tab.offsetWidth) / 2, behavior: reduced ? 'auto' : 'smooth' });
-}
-
 /** Tabs across pages the office uses as one. Each tab is the page's own address, so old links keep working. */
 export default function OfficeHubTabs({ hub }: { hub: OfficeHub }) {
-    const { ref: strip, onScroll, edgeClass } = useScrollEdges<HTMLElement>();
-    const activeTab = hub.tabs.find((tab) => tab.active)?.key;
-
-    // On a phone the strip scrolls sideways: keep the open tab in the middle, so its neighbours show on both sides.
-    useEffect(() => {
-        centreActiveTab(strip.current);
-    }, [activeTab, strip]);
-
     if (hub.tabs.length < 2) {
         return null;
     }
 
     return (
-        <nav ref={strip} onScroll={onScroll} className={`office-tabs${edgeClass}`} aria-label={hub.label}>
-            {hub.tabs.map((tab) => (
-                <Link key={tab.key} href={tab.href} className={`office-tab${tab.active ? ' is-active' : ''}`} aria-current={tab.active ? 'page' : undefined}>
-                    {tab.label}
-                    {(tab.count ?? 0) > 0 && <b className="office-tab-count">{number(tab.count)}</b>}
-                </Link>
-            ))}
-        </nav>
+        <AdaptiveTabs
+            kind="underline"
+            ariaLabel={hub.label}
+            tabs={hub.tabs.map((tab) => ({ key: tab.key, label: tab.label, href: tab.href, active: tab.active, count: tab.count }))}
+        />
     );
 }
 
 /** The Report Centre's groups: orders, money, partners, stock and staff. */
 export function ReportGroupTabs({ groups, active, onSelect }: { groups: ReportGroup[]; active: string; onSelect: (key: string) => void }) {
     const translate = useT();
-    const { ref: strip, onScroll, edgeClass } = useScrollEdges<HTMLDivElement>();
-
-    useEffect(() => {
-        centreActiveTab(strip.current);
-    }, [active, strip]);
 
     return (
-        <div ref={strip} onScroll={onScroll} className={`order-status-tabs${edgeClass}`} role="tablist" aria-label={translate('portal', 'ops_report')}>
-            {groups.map((group) => (
-                <button key={group.key} type="button" role="tab" aria-selected={group.key === active} className={`order-status-tab${group.key === active ? ' is-active' : ''}`} onClick={() => onSelect(group.key)}>
-                    {group.label}
-                </button>
-            ))}
-        </div>
+        <AdaptiveTabs
+            kind="pill"
+            ariaLabel={translate('portal', 'ops_report')}
+            tabs={groups.map((group) => ({ key: group.key, label: group.label, active: group.key === active, onSelect: () => onSelect(group.key) }))}
+        />
     );
 }

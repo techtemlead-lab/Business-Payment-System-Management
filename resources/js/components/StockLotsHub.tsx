@@ -5,6 +5,8 @@ import { useT } from '../shared/i18n/t';
 import StockLotHoldTab from './StockLotHoldTab';
 import StockLotDetailsTab from './StockLotDetailsTab';
 import { PartnerTypeCell } from './office/portalShared';
+import { FilterDropdown } from './FilterDropdown';
+import AdaptiveTabs from './AdaptiveTabs';
 
 const TABS = [
     { key: 'near', label: 'tab_near_expiry' },
@@ -34,14 +36,22 @@ function NearExpiry({ data }: { data: Row }) {
     return (
         <section className="panel">
             <div className="os-tab-actions">
-                <div className="preset-chips" role="group">
-                    {(data.day_choices ?? []).map((days: number) => (
-                        <button key={days} type="button" className={`button small ${!showingExpired && data.days === days ? 'dark' : ''}`} onClick={() => { setShowingExpired(false); router.get('/stock-lots', { tab: 'near', days }, { preserveState: true, replace: true }); }}>
-                            {t('days_option', { days: String(days) })}
-                        </button>
-                    ))}
-                    <button type="button" className={`button small ${showingExpired ? 'dark' : ''}`} onClick={() => setShowingExpired(true)}>{translate('office_stock', 'already_expired')}</button>
-                </div>
+                <FilterDropdown
+                    label={translate('office_stock', 'warning_days_title')}
+                    ariaLabel={translate('office_stock', 'warning_days_title')}
+                    highlight={false}
+                    value={showingExpired ? 'expired' : String(data.days)}
+                    onChange={(value) => {
+                        if (value === 'expired') {
+                            setShowingExpired(true);
+
+                            return;
+                        }
+                        setShowingExpired(false);
+                        router.get('/stock-lots', { tab: 'near', days: Number(value) }, { preserveState: true, replace: true });
+                    }}
+                    options={[...(data.day_choices ?? []).map((days: number) => ({ value: String(days), label: t('days_option', { days: String(days) }) })), { value: 'expired', label: translate('office_stock', 'already_expired') }]}
+                />
                 <button type="button" className="button small" onClick={() => setAskingDays(true)}>{translate('office_stock', 'warning_days_button')}</button>
             </div>
             {showingExpired
@@ -175,13 +185,11 @@ export default function StockLotsHub({ data }: { data: Row }) {
 
     return (
         <div data-tour="stock-lots-hub">
-            <div className="preset-chips" role="tablist">
-                {TABS.map((tab) => (
-                    <button key={tab.key} type="button" role="tab" aria-selected={data.tab === tab.key} className={`button small ${data.tab === tab.key ? 'dark' : ''}`} onClick={() => router.get('/stock-lots', { tab: tab.key })}>
-                        {translate('stock_lots', tab.label)}{tab.key === 'details' && data.missing_details_count > 0 ? ` (${data.missing_details_count})` : ''}
-                    </button>
-                ))}
-            </div>
+            <AdaptiveTabs
+                kind="pill"
+                ariaLabel={translate('stock_lots', 'tab_near_expiry')}
+                tabs={TABS.map((tab) => ({ key: tab.key, label: `${translate('stock_lots', tab.label)}${tab.key === 'details' && data.missing_details_count > 0 ? ` (${data.missing_details_count})` : ''}`, active: data.tab === tab.key, onSelect: () => router.get('/stock-lots', { tab: tab.key }) }))}
+            />
             {data.tab !== 'details' && data.missing_details_count > 0 && <p className="notice" role="status">{translate('stock_lots', 'missing_details_notice', { count: String(data.missing_details_count) })} <button type="button" className="button small" onClick={() => router.get('/stock-lots', { tab: 'details' })}>{translate('stock_lots', 'fill_in_action')}</button></p>}
             {data.tab === 'near' && <NearExpiry data={data} />}
             {data.tab === 'recall' && <Recall data={data} />}

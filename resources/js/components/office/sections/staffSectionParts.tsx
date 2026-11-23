@@ -5,7 +5,7 @@ import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
 import { AutoSelect } from '../../SearchSelect';
-import FilterPicker from '../../FilterDropdown';
+import FilterPicker, { FilterDropdown } from '../../FilterDropdown';
 
 export type StaffFieldOption = { value: string; label: string; channel?: string };
 export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string; place?: ReasonPlace };
@@ -57,8 +57,22 @@ export function ViewSwitch<T extends string>({ views, active, fallback, label: g
         return text ? `${path}?${text}` : path;
     };
 
+    // Up to three views fit as one segmented control; more become a drop-down, never a strip that scrolls.
+    if (views.length > 3) {
+        return (
+            <FilterDropdown
+                label={groupLabel}
+                ariaLabel={groupLabel}
+                highlight={false}
+                value={active}
+                onChange={(view) => router.get(hrefFor(view as T), {}, { preserveState: true, preserveScroll: true, replace: true, only: ['view'] })}
+                options={views.map((view) => ({ value: view.key, label: view.label }))}
+            />
+        );
+    }
+
     return (
-        <div className="office-switch" role="group" aria-label={groupLabel} style={{ maxWidth: "100%", overflowX: "auto" }}>
+        <div className="office-switch" role="group" aria-label={groupLabel}>
             {views.map((view) => (
                 <Link key={view.key} href={hrefFor(view.key)} className={view.key === active ? 'is-active' : undefined} aria-current={view.key === active ? 'true' : undefined} preserveState preserveScroll replace only={['view']}>
                     {view.label}
