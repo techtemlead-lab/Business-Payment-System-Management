@@ -207,7 +207,7 @@ class PartnerEventSmsTest extends TestCase
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
         // The payment check approves the order in the same step, and the partner gets one text for both.
         $this->assertSame(
-            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.dispatched', 'shipment.delivered'],
+            ['order.submitted', 'payment.verified', 'order.dispatched', 'shipment.delivered'],
             $events,
         );
 
@@ -300,6 +300,8 @@ class PartnerEventSmsTest extends TestCase
 
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
         $this->assertContains('commission.matured', $events);
+        // One text per partner for the whole release run, however many commission rows matured.
+        $this->assertSame(1, collect(config('madina.sms.sent'))->where('user_id', $dealer->id)->where('event', 'commission.matured')->count());
         $this->assertTrue(
             collect(config('madina.sms.sent'))->contains(fn ($row) => str_contains((string) ($row['message'] ?? ''), 'অপেক্ষার সময় শেষ')),
         );

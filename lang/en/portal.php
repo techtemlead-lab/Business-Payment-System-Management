@@ -2960,6 +2960,8 @@ return [
     'notice_order_submitted_body' => ':number is waiting for review.',
     'notice_order_decision_title' => 'Order :status',
     'notice_order_decision_body' => ':number: :reason',
+    'notice_order_submitted_paid_title' => 'Order submitted, payment sent for checking',
+    'notice_order_submitted_paid_body' => ':number: ৳:amount via :channel is waiting to be checked.',
     'notice_payment_claimed_title' => 'Payment sent for checking',
     'notice_payment_claimed_body' => ':number: ৳:amount via :channel is waiting to be checked.',
     'notice_payment_reviewed_title' => 'Payment reviewed',

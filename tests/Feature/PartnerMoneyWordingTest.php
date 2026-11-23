@@ -44,7 +44,7 @@ class PartnerMoneyWordingTest extends TestCase
 
         $order = Order::query()->where('user_id', $dealer->id)->firstOrFail();
         $body = (string) DB::table('account_notices')->where('user_id', $dealer->id)
-            ->where('title', __('portal.notice_payment_claimed_title', [], 'bn'))
+            ->where('title', __('portal.notice_order_submitted_paid_title', [], 'bn'))
             ->value('body');
 
         // One taka format everywhere: lakh grouping, Bangla digits, no ".00" on whole taka.

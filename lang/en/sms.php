@@ -15,6 +15,7 @@ return [
     'commission_settled' => 'Madina: Tk :amount added for :kind (:month). Check your earnings.',
     'order_submitted' => 'Madina: order :number was received and is waiting for approval.',
     'order_decision' => 'Madina: order :number is now :status. :reason',
+    'order_submitted_paid' => 'Madina: order :number was received with your payment (:amount via :channel). We will check it and approve the order.',
     'payment_claimed' => 'Madina: we got your payment for order :number (:amount via :channel). We will check it.',
     'payment_reviewed' => 'Madina: payment for order :number was :outcome.',
     'shipment_dispatched' => 'Madina: order :number was sent by :courier. Tracking: :tracking.',

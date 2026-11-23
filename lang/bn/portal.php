@@ -2960,6 +2960,8 @@ return [
     'notice_order_submitted_body' => ':number যাচাইয়ের অপেক্ষায়।',
     'notice_order_decision_title' => 'অর্ডার :status',
     'notice_order_decision_body' => ':number: :reason',
+    'notice_order_submitted_paid_title' => 'অর্ডার জমা হয়েছে, পেমেন্ট যাচাইয়ের জন্য পাঠানো হয়েছে',
+    'notice_order_submitted_paid_body' => ':number: :channel দিয়ে ৳:amount যাচাইয়ের অপেক্ষায়।',
     'notice_payment_claimed_title' => 'পেমেন্ট যাচাইয়ের জন্য পাঠানো হয়েছে',
     'notice_payment_claimed_body' => ':number: :channel দিয়ে ৳:amount যাচাইয়ের অপেক্ষায়।',
     'notice_payment_reviewed_title' => 'পেমেন্ট যাচাই হয়েছে',
