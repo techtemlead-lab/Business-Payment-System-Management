@@ -77,12 +77,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         ]);
         $verifyRes->assertOk();
 
-        // ...and only then is the order approved.
-        $approvalRes = $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
-            'status' => 'approved',
-            'reason' => 'Approved after full payment was verified',
-        ]);
-        $approvalRes->assertOk();
+        // ...and the verified full payment approves the order by itself.
         $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'approved']);
 
         // 3. First Dispatch: 6 of 10 units
@@ -241,11 +236,8 @@ class CrossFeatureCombinationsTest extends E2ETestCase
             'reason' => 'Payment verified in bank account',
         ])->assertOk();
 
-        // ...then staff approve and dispatch.
-        $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
-            'status' => 'approved',
-            'reason' => 'Subdealer order approved after full payment',
-        ])->assertOk();
+        // ...the verified payment approves the order by itself, then staff dispatch.
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'approved']);
 
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/dispatch", [
             'idempotency_key' => (string) Str::uuid(),

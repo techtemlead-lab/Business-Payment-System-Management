@@ -58,7 +58,7 @@ class OrderSplitPaymentTest extends TestCase
         $claim = DB::table('payment_claims')->where('order_id', $order->id)->where('channel', 'bKash')->value('id');
         app(OrderService::class)->verify($finance, (int) $claim, true, 'Money seen in bKash');
         $this->assertSame('200.00', (string) $order->fresh()->paid);
-        $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Paid in full'])->assertSessionHasNoErrors();
+        // The last part was checked, so the order is paid in full and approves itself.
         $this->assertSame('approved', $order->fresh()->status);
         $this->assertBooksAgree();
     }
@@ -92,7 +92,6 @@ class OrderSplitPaymentTest extends TestCase
 
         $this->actingAs($finance)->onPortal('manage')->post('/commands/claims/'.$claim->id.'/verify', ['approve' => '1', 'reason' => 'Cash received at the counter', 'cash_counted' => '80.00'])->assertSessionHasNoErrors();
         $this->assertDatabaseHas('receipts', ['order_id' => $order->id, 'channel' => 'Office', 'reference' => 'OFC-'.$order->number, 'amount' => '80.00']);
-        $this->actingAs($reviewer)->onPortal('sadmin')->post('/commands/orders/'.$order->id.'/decision', ['status' => 'approved', 'reason' => 'Cash confirmed'])->assertSessionHasNoErrors();
         $this->assertSame('approved', $order->fresh()->status);
         $this->assertBooksAgree();
     }

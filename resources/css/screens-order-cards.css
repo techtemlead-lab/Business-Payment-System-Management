@@ -1,0 +1,28 @@
+/*
+ * Order page cards (owner's word, 2026-11-23): cards that start closed and open on a click, and the
+ * stock warning. Every selector starts with `:root body` so it ranks above the rules written in
+ * dashboard.css itself, which win a tie against imported files.
+ */
+
+/* ---- Cards that start closed (FoldCard) -------------------------------------------------- */
+:root body .app-shell .fold-card{padding:0;overflow:hidden}
+:root body .app-shell .fold-card>.fold-card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-3);min-height:44px;padding:8px var(--ds-s-4);cursor:pointer;list-style:none;user-select:none}
+:root body .app-shell .fold-card>.fold-card-head::-webkit-details-marker{display:none}
+:root body .app-shell .fold-card>.fold-card-head::after{content:"";flex:none;order:3;width:8px;height:8px;margin:0 4px 0 var(--ds-s-2);border-right:2px solid var(--ds-text-muted);border-bottom:2px solid var(--ds-text-muted);transform:rotate(45deg) translate(-2px,-2px);transition:transform .15s ease}
+:root body .app-shell .fold-card[open]>.fold-card-head::after{transform:rotate(225deg) translate(-2px,-2px)}
+:root body .app-shell .fold-card>.fold-card-head:hover{background:var(--ds-surface-2)}
+:root body .app-shell .fold-card>.fold-card-head h2{margin:0;font-size:var(--ds-fs-md);flex:1;min-width:0}
+:root body .app-shell .fold-card .fold-card-hint{flex:none;order:2;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+:root body .app-shell .fold-card[open]>.fold-card-head{border-bottom:1px solid var(--ds-line-soft)}
+:root body .app-shell .fold-card>.fold-card-body{padding:var(--ds-s-3) var(--ds-s-4) var(--ds-s-4)}
+:root body .app-shell .fold-card.table-panel>.fold-card-body{padding:0}
+:root body .app-shell .fold-card .fold-card{margin:var(--ds-s-3) 0 0;box-shadow:none}
+@media (prefers-reduced-motion:reduce){
+  :root body .app-shell .fold-card>.fold-card-head::after{transition:none}
+}
+
+/* ---- The stock warning on the order page ------------------------------------------------- */
+:root body .app-shell .notice.stock-short{background:var(--ds-warn-bg);border-color:color-mix(in srgb,var(--ds-warn-fg) 35%,transparent);color:var(--ds-warn-fg)}
+:root body .app-shell .notice.stock-short ul{margin:var(--ds-s-1) 0 0;padding-left:var(--ds-s-5)}
+:root body .app-shell .notice.stock-short ul.plain-list{list-style:none;padding-left:0}
+:root body .app-shell .notice.stock-short p{margin-top:var(--ds-s-2)}

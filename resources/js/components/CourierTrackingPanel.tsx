@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Row, ActionForm, dateTime } from './UI';
 import { useT } from '../shared/i18n/t';
 import { courierCheckedText } from './courierCheckedText';
+import FoldCard from './FoldCard';
 
 const STEPS = ['waiting_pickup', 'picked_up', 'in_transit', 'delivered'];
 const ALL_STEPS = [...STEPS, 'returned'];
@@ -98,6 +99,21 @@ function ParcelTracking({ order, shipment, canManage }: { order: Row; shipment: 
 }
 
 /**
+ * Whether the order page has a courier panel at all. An order collected at the office has no courier
+ * parcel to follow (the order page says so instead), and nor has one with no courier chosen yet.
+ * The page uses this to size the row the panel sits in.
+ */
+export function courierPanelShown(order: Row, shipments: Row[], events: Row[]): boolean {
+    if (order.delivery_method === 'office') {
+        return false;
+    }
+
+    return Boolean(order.courier_choice)
+        || shipments.some(shipment => shipment.courier_provider || updatedByHand(shipment))
+        || events.some(event => event.action === 'order.courier_changed');
+}
+
+/**
  * Courier panel on the order page. Dealers follow their parcel (steps, tracking number,
  * the courier's own page) and see any courier change with its note. Staff can also change
  * the courier, try a refused booking again, or mark a parcel picked up.
@@ -123,8 +139,7 @@ export default function CourierTrackingPanel({ order, shipments, events, courier
         ?? courierChoices.find(choice => choice.key === order.courier_choice)?.label
         ?? (order.courier_choice ? providerName(String(order.courier_choice)) : translate('courier', 'company_decides'));
 
-    // Collected at the office: there is no courier parcel to follow (the order page says so instead).
-    if (order.delivery_method === 'office' || (!order.courier_choice && courierShipments.length === 0 && changes.length === 0)) {
+    if (!courierPanelShown(order, shipments, events)) {
         return null;
     }
 
@@ -137,13 +152,12 @@ export default function CourierTrackingPanel({ order, shipments, events, courier
         </div>)}
         {courierShipments.length === 0 && order.courier_choice && ['submitted', 'held'].includes(order.status) && <p className="muted">{translate('courier', 'waiting_for_booking')}</p>}
         {courierShipments.map(shipment => <ParcelTracking key={shipment.id} order={order} shipment={shipment} canManage={canManage} />)}
-        {canChange && <div className="panel narrow-panel">
-            <h3>{translate('courier', 'change_title')}</h3>
+        {canChange && <FoldCard title={translate('courier', 'change_title')}>
             <p className="muted">{translate('courier', 'change_hint')}</p>
             {others.length ? <ActionForm action={`/commands/orders/${order.id}/courier`} fields={[
                 { name: 'courier', label: translate('courier', 'change_label'), required: true, options: others.map(choice => ({ value: choice.key, label: choice.label })) },
                 { name: 'note', label: translate('reason_fields', 'box_courier_change_note'), type: 'textarea', hint: translate('courier', 'change_note_hint'), place: 'order.courier_change' },
             ]} submit={translate('courier', 'change_submit')} /> : <p className="muted">{translate('courier', 'no_other_courier')}</p>}
-        </div>}
+        </FoldCard>}
     </section>;
 }

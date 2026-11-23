@@ -152,10 +152,8 @@ class CompanyOnlySalesTest extends TestCase
             'approve' => true,
             'reason' => 'Matched bank statement',
         ])->assertOk();
-        $this->onPortal('manage')->postJson('/api/v1/orders/'.$orderId.'/decision', [
-            'status' => 'approved',
-            'reason' => 'Payment confirmed',
-        ])->assertOk();
+        // The verified full payment has already approved the order.
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'approved']);
     }
 
     private function approveAndDispatch(User $staff, string $orderId): void

@@ -1410,7 +1410,7 @@ return [
     'claimed_amount_bdt' => 'Amount paid (৳)',
     'submit_for_verification' => 'Submit for verification',
     'review_this_order' => 'Review this order',
-    'review_this_order_hint' => 'Approve only after the full payment is checked. Commission rates are fixed when you approve. Product prices do not change.',
+    'review_this_order_hint' => 'When the full payment is checked, the order is approved by itself. Use this box to hold or reject an order, or to approve one that needs a decision by hand. Commission rates are fixed when it is approved. Product prices do not change.',
     'replacement_hint' => 'If someone due to get a commission is inactive, you can pick an active partner to receive it instead. Leave it blank to keep the original receiver, and their commission stays on hold. Write a reason for each change.',
     'find_replacement_partners' => 'Find a replacement partner by name or code',
     'find_partners' => 'Find partners',
@@ -2982,6 +2982,7 @@ return [
     'order_status_held' => 'on hold',
     'order_status_rejected' => 'rejected',
     'payment_outcome_verified' => 'verified',
+    'payment_outcome_verified_approved' => 'verified and the order is approved',
     'payment_outcome_rejected' => 'rejected',
     'err_settle_month_open' => 'Wait until the month is over before closing its salary or rank bonus.',
     'err_settle_royalty_shares' => 'The rank bonus fund needs at least one rank share above zero.',
@@ -4916,6 +4917,7 @@ return [
     // Order activity log
     'event_order_submitted' => 'Order placed',
     'event_order_approved' => 'Order approved',
+    'event_order_auto_approve_waiting' => 'Not approved automatically, needs a person',
     'event_order_held' => 'Order put on hold',
     'event_order_rejected' => 'Order rejected',
     'event_order_cancelled' => 'Order cancelled',
@@ -7030,5 +7032,7 @@ return [
     'proof_image_alt' => 'Uploaded picture',
     'payment_proof_col' => 'Screenshot',
     'payment_proof_none' => 'None',
+    'auto_approved_reason' => 'The full payment was verified.',
+    'auto_approve_waiting_replacement' => 'A replacement for an inactive referrer must be chosen first, so this order waits for staff to approve it.',
     'pp_salary_dealer_no_amount' => 'This bonus is shared equally at month end among all dealers in Bangladesh who meet their target. How many do is known only at month end, so the amount cannot be told before the month ends.',
 ];

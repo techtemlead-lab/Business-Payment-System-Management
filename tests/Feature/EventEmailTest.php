@@ -314,10 +314,9 @@ class EventEmailTest extends TestCase
 
         $claimId = DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => 'bkash', 'reference' => 'REF-EMAIL-1', 'amount' => $order->total, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
         $orders->verify($admin, $claimId, true, 'Money received');
+        // The checked payment also approves the order by itself, and the partner gets one email for both.
         Mail::assertSent(EventNoticeMail::class, 2);
-
-        $orders->decision($admin, $order->fresh(), 'approved', 'Paid in full');
-        Mail::assertSent(EventNoticeMail::class, 3);
+        $this->assertSame('approved', $order->fresh()->status);
 
         $rejected = $orders->create($this->partner(['email' => 'second.partner@gmail.com', 'phone' => '01720000092']), ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
         $orders->decision($admin, $rejected, 'rejected', 'Wrong item');

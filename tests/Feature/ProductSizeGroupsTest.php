@@ -324,7 +324,8 @@ class ProductSizeGroupsTest extends TestCase
 
         $claim = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
         $this->actingAs($staff)->onPortal('manage')->postJson('/api/v1/claims/'.$claim.'/verify', ['approve' => true, 'reason' => 'Matched bank statement'])->assertOk();
-        $this->onPortal('manage')->postJson('/api/v1/orders/'.$orderId.'/decision', ['status' => 'approved', 'reason' => 'Payment confirmed'])->assertOk();
+        // The verified full payment has already approved the order.
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'approved']);
         $line = DB::table('order_lines')->where('order_id', $orderId)->value('id');
         $this->onPortal('manage')->postJson('/api/v1/orders/'.$orderId.'/dispatch', [
             'courier' => 'Portal courier',

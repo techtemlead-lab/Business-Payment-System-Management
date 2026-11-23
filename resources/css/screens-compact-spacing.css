@@ -1,0 +1,49 @@
+/*
+ * Compact spacing for every panel (owner's word, 2026-11-23): the gaps between cards, between rows
+ * of cards and between table rows were too wide. One scale, on wide screens only; the phone layout
+ * has its own spacing in mobile-*.css.
+ *
+ * This file is imported before the rules written in dashboard.css itself, and those win a tie, so
+ * every selector here starts with `:root body` to rank above them.
+ */
+
+@media (min-width:641px){
+  /* ---- Cards and the gaps between them ---------------------------------------------------- */
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .panel{padding:var(--ds-s-3) var(--ds-s-4);margin-bottom:var(--ds-s-3)}
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .table-panel,
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .fold-card{padding:0}
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .table-panel>.panel-heading{padding:var(--ds-s-3) var(--ds-s-4) 0;margin-bottom:var(--ds-s-2)}
+  :root body .app-shell .panel-heading{margin-bottom:var(--ds-s-2);gap:var(--ds-s-3)}
+  :root body .app-shell .panel h2{margin-bottom:var(--ds-s-2)}
+  :root body .app-shell .panel-heading h2{margin-bottom:0}
+
+  /* ---- Rows of cards: two columns, KPI strips, form grids ---------------------------------- */
+  :root body .app-shell .two-column,
+  :root body .app-shell .overview-grid{gap:var(--ds-s-3);margin-bottom:var(--ds-s-3)}
+  :root body .app-shell .metric-grid{gap:var(--ds-s-3);margin-bottom:var(--ds-s-3)}
+  :root body .app-shell .metric{padding:var(--ds-s-3) var(--ds-s-4)}
+  :root body .app-shell .metric strong{margin:var(--ds-s-2) 0 var(--ds-s-1)}
+  :root body .app-shell .form-grid{gap:var(--ds-s-2) var(--ds-s-3)}
+  :root body .app-shell .action-form{gap:var(--ds-s-3)}
+  :root body .app-shell .action-form>.button{margin-top:0}
+  :root body .app-shell .timeline-item{margin-bottom:var(--ds-s-3)}
+
+  /* ---- Table rows ------------------------------------------------------------------------- */
+  /* Top and bottom only: the side padding of wide and dense tables is set per table elsewhere. */
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) th{padding-top:var(--ds-s-2);padding-bottom:var(--ds-s-2)}
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) td{padding-top:6px;padding-bottom:6px;line-height:1.35}
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .table-block th{padding-top:var(--ds-s-2);padding-bottom:var(--ds-s-2)}
+  :root body .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .table-block td{padding-top:6px;padding-bottom:6px}
+  :root body .app-shell .cell-sub{margin-top:2px}
+
+  /* ---- Notices, page heading, bars --------------------------------------------------------- */
+  :root body .app-shell .notice,
+  :root body .app-shell .success,
+  :root body .app-shell .error{padding:var(--ds-s-2) var(--ds-s-3);margin-bottom:var(--ds-s-3)}
+  :root body .app-shell .page-heading{margin-bottom:var(--ds-s-4)}
+  :root body .app-shell .order-title{margin:var(--ds-s-3) 0}
+  :root body .app-shell .filter-bar,
+  :root body .app-shell .toolbar-end,
+  :root body .app-shell .section-note{margin-bottom:var(--ds-s-3)}
+  :root body .app-shell .workspace-main{padding-top:var(--ds-s-4)}
+}

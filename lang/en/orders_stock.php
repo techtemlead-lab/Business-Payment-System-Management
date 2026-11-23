@@ -172,4 +172,12 @@ return [
     'tps_summary_step' => 'Step :n of :total',
     'tps_show' => 'Show all steps',
     'tps_hide' => 'Hide',
+
+    // Stock lower than the order needs (notice on the order page for the office)
+    'short_title' => 'The stock is lower than this order needs',
+    'short_line' => ':product: needs :need, in stock :have (:short short)',
+    'short_options_title' => 'What to do with the missing goods',
+    'short_opt_due' => 'Keep the money as due: send what is in stock first, then record the missing pieces as owed. They go out free with the partner\'s next order.',
+    'short_opt_refund' => 'Or refund the value of the missing pieces through the order\'s refund step.',
+    'short_opt_later' => 'Or send them later: set the expected supply date below, and the rest goes out when the stock arrives.',
 ];

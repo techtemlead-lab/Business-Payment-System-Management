@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { Row, money, number, date, FormErrors } from './UI';
+import FoldCard from './FoldCard';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { amountInWords } from '../shared/orderAmountWords';
@@ -245,13 +246,11 @@ export default function OrderReturnsPanel({ order, data }: { order: Row; data: R
         </section>}
         {data.partner_can_cancel && <PartnerForm order={order} data={data} kind="cancel" />}
         {data.partner_can_return && <PartnerForm order={order} data={data} kind="return" />}
-        {data.staff_can_start && <details className="panel" data-testid="return-start">
-            <summary><h2 className="inline-heading">{translate('orders_stock', 'start_title')}</h2></summary>
+        {data.staff_can_start && <FoldCard testId="return-start" title={translate('orders_stock', 'start_title')}>
             <p className="muted">{translate('orders_stock', 'panel_hint')}</p>
             <StaffForm key={`start-${order.status}-${data.refunds.length}`} order={order} data={data} />
-        </details>}
-        {(data.refunds.length > 0 || data.history.length > 0) && <section className="panel" data-testid="return-history">
-            <h2>{translate('orders_stock', 'history_title')}</h2>
+        </FoldCard>}
+        {(data.refunds.length > 0 || data.history.length > 0) && <FoldCard testId="return-history" title={translate('orders_stock', 'history_title')}>
             {data.refunds.map(refund => <div className="timeline-item" key={String(refund.id)}><i /><div>
                 <b>{translate('orders_stock', 'refund_row', {
                     amount: money(refund.amount).replace('৳', ''), kind: translate('orders_stock', `kind_${refund.kind}`), date: date(refund.created_at),
@@ -264,7 +263,7 @@ export default function OrderReturnsPanel({ order, data }: { order: Row; data: R
                 <b>{translate('orders_stock', `kind_${item.kind}`)} · {translate('orders_stock', `state_${item.status}`)}</b>
                 <p>{item.decided_at ? date(item.decided_at) : ''}{item.decided_by_name ? ` · ${item.decided_by_name}` : ''}{item.decision_reason ? ` · ${item.decision_reason}` : ''}</p>
             </div></div>)}
-        </section>}
+        </FoldCard>}
         {showsStaff && cents(data.paid_left) === 0 && !open && <p className="muted">{translate('orders_stock', 'nothing_refundable')}</p>}
     </>;
 }

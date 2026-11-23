@@ -256,7 +256,20 @@ class OrderService
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements, $bookNow): void {
+        $this->applyDecision($actor, $order, $status, $reason, $replacements, $bookNow);
+    }
+
+    /**
+     * The decision itself, with no permission check: the caller has already checked who may decide.
+     * The payment check calls it too, when a verified payment completes an order's price.
+     *
+     * `$announce` false leaves telling the partner to the caller, which sends one message for the payment and the decision.
+     *
+     * @param  array<int, int>  $replacements
+     */
+    private function applyDecision(User $actor, Order $order, string $status, string $reason, array $replacements, bool $bookNow, bool $announce = true): void
+    {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements, $bookNow, $announce): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
@@ -302,16 +315,18 @@ class OrderService
             $partner = User::find($locked->user_id);
             $locale = $partner?->preferredLocale() ?? app()->getLocale();
             $statusLabel = __('portal.order_status_'.$status, [], $locale);
-            $this->partnerNotice($locked->user_id, 'portal.notice_order_decision_title', 'portal.notice_order_decision_body', [
-                'status' => $statusLabel,
-                'number' => $locked->number,
-                'reason' => ReasonFields::shown($reason, $locale),
-            ], 'order.'.$status);
-            $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
-                'status' => SmsText::make('portal.order_status_'.$status),
-                'number' => $locked->number,
-                'reason' => ReasonFields::shown($reason, SmsText::Locale),
-            ]);
+            if ($announce) {
+                $this->partnerNotice($locked->user_id, 'portal.notice_order_decision_title', 'portal.notice_order_decision_body', [
+                    'status' => $statusLabel,
+                    'number' => $locked->number,
+                    'reason' => ReasonFields::shown($reason, $locale),
+                ], 'order.'.$status);
+                $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
+                    'status' => SmsText::make('portal.order_status_'.$status),
+                    'number' => $locked->number,
+                    'reason' => ReasonFields::shown($reason, SmsText::Locale),
+                ]);
+            }
             if ($status === 'approved' && OfficePickup::isPickupOrder($locked)) {
                 // Collected at the office: nothing is booked; the partner is told to come for the goods.
                 $this->partnerNotice($locked->user_id, 'order_delivery.notice_approved_pickup_title', 'order_delivery.notice_approved_pickup_body', [
@@ -397,16 +412,19 @@ class OrderService
                     'amount' => $claim->amount, 'order_paid_after' => $order->paid, 'order_total' => $order->total,
                     ...($approve && $claim->channel === self::OfficeChannel ? ['cash_counted' => $cashCounted] : []),
                 ]);
+                $autoApproved = $approve && $this->approveWhenFullyPaid($actor, $order);
+                // One message for the payment, on each channel. When the check also approved the order it says so
+                // ("verified and the order is approved"), and the approval sends nothing of its own.
+                $outcomeKey = $approve ? ($autoApproved ? 'portal.payment_outcome_verified_approved' : 'portal.payment_outcome_verified') : 'portal.payment_outcome_rejected';
                 $partner = User::find($order->user_id);
                 $locale = $partner?->preferredLocale() ?? app()->getLocale();
-                $outcome = __($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected', [], $locale);
                 $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
                     'number' => $order->number,
-                    'outcome' => $outcome,
+                    'outcome' => __($outcomeKey, [], $locale),
                 ], $approve ? 'payment.verified' : 'payment.rejected');
                 $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
                     'number' => $order->number,
-                    'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
+                    'outcome' => SmsText::make($outcomeKey),
                 ]);
                 if (! $approve) {
                     // A wallet-part order whose other payment was turned down: say what is due and by when.
@@ -419,6 +437,40 @@ class OrderService
             }
             throw $exception;
         }
+    }
+
+    /**
+     * Owner's rule (2026-11-23): a verified payment that brings the order to its full price approves the
+     * order by itself; staff no longer approve and check payment as two separate steps.
+     *
+     * Only a freshly submitted order is approved this way. An order staff put on hold stays held, an
+     * order whose upline needs a replacement picked by hand waits for that choice, and an order the
+     * approval refuses (for example its price does not fund the commissions) waits for a person. In each
+     * case an activity line says why, and the payment check itself still stands.
+     *
+     * @return bool whether the order was approved here
+     */
+    private function approveWhenFullyPaid(User $actor, Order $order): bool
+    {
+        $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+        if ($locked->status !== 'submitted' || $locked->is_opening_balance || Money::cents($locked->outstanding()) > 0) {
+            return false;
+        }
+        if (app(UplineReplacementOptions::class)->slotsFor($locked) !== []) {
+            $this->event($locked, $actor, 'order.auto_approve_waiting', ['reason' => __('portal.auto_approve_waiting_replacement')]);
+
+            return false;
+        }
+        $locale = User::find($locked->user_id)?->preferredLocale() ?? app()->getLocale();
+        try {
+            $this->applyDecision($actor, $locked, 'approved', __('portal.auto_approved_reason', [], $locale), [], false, false);
+        } catch (ValidationException $exception) {
+            $this->event($locked, $actor, 'order.auto_approve_waiting', ['reason' => (string) collect($exception->errors())->flatten()->first()]);
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

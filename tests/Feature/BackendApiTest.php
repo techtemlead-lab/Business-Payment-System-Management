@@ -106,7 +106,8 @@ class BackendApiTest extends TestCase
         $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', ['approve' => true, 'reason' => 'Verified Bank payment'])
             ->assertOk()
             ->assertJsonPath('data.message', __('portal.flash_payment_review'));
-        $this->postJson('/api/v1/orders/'.$id.'/decision', ['status' => 'approved', 'reason' => 'Paid in full'])->assertOk();
+        // The verified full payment has already approved the order.
+        $this->assertDatabaseHas('orders', ['id' => $id, 'status' => 'approved']);
         $line = DB::table('order_lines')->where('order_id', $id)->value('id');
         $dispatch = ['courier' => 'Test Courier', 'tracking' => 'API-TRACK-1', 'idempotency_key' => (string) Str::uuid(), 'items' => [['line_id' => $line, 'quantity' => 2]]];
         $this->postJson('/api/v1/orders/'.$id.'/dispatch', $dispatch)->assertOk()->assertJsonPath('data.status', 'dispatched');

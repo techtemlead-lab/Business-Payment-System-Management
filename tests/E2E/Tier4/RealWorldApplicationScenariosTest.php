@@ -89,11 +89,8 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
             'reason' => 'Bank credit verified',
         ])->assertOk();
 
-        // ...then the admin approves the order.
-        $this->actingAs($admin)->postJson("/api/v1/orders/{$orderId}/decision", [
-            'status' => 'approved',
-            'reason' => 'Network downline order approved after full payment',
-        ])->assertOk();
+        // ...and the verified full payment approves the order by itself.
+        $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'approved']);
 
         // 4. Warehouse dispatches full order
         $this->actingAs($admin)->postJson("/api/v1/orders/{$orderId}/dispatch", [

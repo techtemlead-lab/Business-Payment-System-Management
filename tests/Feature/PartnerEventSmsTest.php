@@ -191,10 +191,7 @@ class PartnerEventSmsTest extends TestCase
             'approve' => true,
             'reason' => 'Matched bank statement',
         ])->assertOk();
-        $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/decision', [
-            'status' => 'approved',
-            'reason' => 'Payment confirmed',
-        ])->assertOk();
+        // The verified full payment has already approved the order.
         $line = DB::table('order_lines')->where('order_id', $id)->value('id');
         $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/dispatch', [
             'courier' => 'Portal courier',
@@ -208,8 +205,9 @@ class PartnerEventSmsTest extends TestCase
         ])->assertOk();
 
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
+        // The payment check approves the order in the same step, and the partner gets one text for both.
         $this->assertSame(
-            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.approved', 'order.dispatched', 'shipment.delivered'],
+            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.dispatched', 'shipment.delivered'],
             $events,
         );
 
@@ -276,10 +274,7 @@ class PartnerEventSmsTest extends TestCase
             'approve' => true,
             'reason' => 'Matched',
         ])->assertOk();
-        $this->postJson('/api/v1/orders/'.$order->id.'/decision', [
-            'status' => 'approved',
-            'reason' => 'OK',
-        ])->assertOk();
+        // The verified full payment has already approved the order.
         $line = DB::table('order_lines')->where('order_id', $order->id)->value('id');
         $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
             'courier' => 'C',
@@ -461,10 +456,7 @@ class PartnerEventSmsTest extends TestCase
             'approve' => true,
             'reason' => 'Matched',
         ])->assertOk();
-        $this->postJson('/api/v1/orders/'.$order->id.'/decision', [
-            'status' => 'approved',
-            'reason' => 'OK',
-        ])->assertOk();
+        // The verified full payment has already approved the order.
         $line = DB::table('order_lines')->where('order_id', $order->id)->value('id');
         $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
             'courier' => 'C',
