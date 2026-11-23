@@ -1,0 +1,22 @@
+/*
+ * The font stack of the whole app: public site and all four portals, from ONE set of variables.
+ * Change a font here and nothing else (also update the <link> in resources/views/partials/fonts.blade.php).
+ *
+ *   --font-body-en   English text. Inter: made for screens, very clear at 14 px, 400 to 700.
+ *   --font-body-bn   Bangla text. Noto Sans Bengali: full conjunct support, even stroke, 400 to 700 (also the
+ *                    Bangla default of the owner's siamsBay shop software).
+ *   --font-heading   Public page headings (Marcellus for English, Tiro Bangla for Bangla).
+ *   --font-fallback  System Bangla and Latin fonts, used while a font loads or if the font host is unreachable.
+ *
+ * Both body fonts sit in one stack: the browser takes Latin letters from Inter and Bangla letters from Noto Sans
+ * Bengali, so a mixed sentence reads as one design. 'Madina Digits' comes first and only covers the Bangla digits
+ * (U+09E6 to U+09EF), which keeps every digit the same width so amounts line up in tables.
+ * Bangla line height stays 1.5 or more (--ds-lh in dashboard.css, 1.65 on the public pages).
+ */
+:root {
+  --font-body-en: 'Inter';
+  --font-body-bn: 'Noto Sans Bengali';
+  --font-heading: 'Marcellus', 'Tiro Bangla', 'Noto Serif Bengali', Georgia, serif;
+  --font-fallback: 'Nirmala UI', 'Vrinda', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-stack: 'Madina Digits', var(--font-body-en), var(--font-body-bn), var(--font-fallback);
+}

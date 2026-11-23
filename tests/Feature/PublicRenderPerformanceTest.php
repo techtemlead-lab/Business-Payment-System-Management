@@ -48,7 +48,6 @@ class PublicRenderPerformanceTest extends TestCase
         $html = $this->get('/')->assertOk()->getContent();
 
         $this->assertStringContainsString('/reference/fontawesome-local.css', $html);
-        $this->assertStringNotContainsString('fonts.bunny.net/css?family=noto-sans-bengali', $html);
         $this->assertStringContainsString('/madina-header-logo.png?v=10', $html);
         $this->assertStringContainsString('rel="preload" as="image"', $html);
     }
@@ -59,9 +58,9 @@ class PublicRenderPerformanceTest extends TestCase
 
         $html = $this->get('/')->assertOk()->getContent();
 
-        $this->assertStringContainsString('tiro-bangla:400|anek-bangla:', $html);
-        // Only the digits ০-৯ come from Noto Sans Bengali, through a small unicode-range face.
-        $this->assertStringNotContainsString('fonts.bunny.net/css?family=noto-sans-bengali', $html);
+        $this->assertStringContainsString('family=inter:400,500,600,700|noto-sans-bengali:400,500,600,700', $html);
+        $this->assertStringContainsString('marcellus:400|tiro-bangla:400', $html);
+        // The digits ০-৯ keep their own equal-width face, through a small unicode-range face.
         foreach (['resources/css/reference-home.css', 'resources/css/dashboard.css'] as $css) {
             $text = (string) file_get_contents(base_path($css));
             $this->assertStringContainsString("font-family:'Madina Digits'", $text);

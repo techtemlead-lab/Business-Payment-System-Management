@@ -63,4 +63,39 @@ class MobileDensityStylesheetTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/min-height:\s*(?:[0-9]|[1-3][0-9]|4[0-3])px\s*[;!]/', $css.';');
         $this->assertDoesNotMatchRegularExpression('/\binput\b[^{]*\{[^}]*font-size/', $css);
     }
+
+    public function test_the_phone_type_scale_is_one_set_of_variables_and_keeps_readable_floors(): void
+    {
+        $css = $this->css('mobile-density.css');
+
+        foreach (['--mt-body', '--mt-small', '--mt-label', '--mt-card-title', '--mt-number'] as $name) {
+            $this->assertStringContainsString($name.':', $css);
+        }
+        $this->assertMatchesRegularExpression('/--mt-body:\s*14px/', $css, 'Body text on a phone is at least 14 px.');
+        $this->assertMatchesRegularExpression('/--mt-label:\s*1[2-9]px/', $css);
+        $this->assertStringContainsString(':is(.dealer-shell, .subdealer-shell) { zoom: 1; }', $css, 'The phone default zoom of the partner screens is 1.');
+    }
+
+    public function test_one_font_stack_serves_the_public_site_and_all_portals(): void
+    {
+        $fonts = $this->css('fonts.css');
+        foreach (['--font-body-en', '--font-body-bn', '--font-heading', '--font-fallback', '--font-stack'] as $name) {
+            $this->assertStringContainsString($name.':', $fonts);
+        }
+        $this->assertStringContainsString("'Madina Digits', var(--font-body-en)", $fonts, 'Bangla digits keep their equal-width face first.');
+        $this->assertStringContainsString("'Nirmala UI'", $fonts);
+
+        foreach (['dashboard.css', 'reference-home.css'] as $file) {
+            $css = $this->css($file);
+            $this->assertStringContainsString("@import './fonts.css';", $css, $file);
+            $this->assertStringContainsString('--ds-font:var(--font-stack);', $css, $file);
+        }
+
+        $partial = (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/partials/fonts.blade.php');
+        $this->assertStringContainsString('family=inter:400,500,600,700|noto-sans-bengali:400,500,600,700&display=swap', $partial);
+        $this->assertStringContainsString('rel="preload" as="font"', $partial);
+        foreach (['app.blade.php', 'company/auth.blade.php', 'reference/layout.blade.php', 'errors/layout.blade.php'] as $view) {
+            $this->assertStringContainsString("@include('partials.fonts')", (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/'.$view), $view);
+        }
+    }
 }
