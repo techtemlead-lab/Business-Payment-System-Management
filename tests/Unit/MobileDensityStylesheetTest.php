@@ -1,0 +1,66 @@
+<?php
+
+namespace Tests\Unit;
+
+use PHPUnit\Framework\TestCase;
+
+/**
+ * The phone density sheet (tighter spacing on phones) must reach phones only, and both the panels and the public
+ * site must load it.
+ */
+class MobileDensityStylesheetTest extends TestCase
+{
+    private function css(string $file): string
+    {
+        return (string) file_get_contents(dirname(__DIR__, 2).'/resources/css/'.$file);
+    }
+
+    public function test_every_rule_sits_inside_the_phone_media_query(): void
+    {
+        $css = trim((string) preg_replace('#/\*.*?\*/#s', '', $this->css('mobile-density.css')));
+
+        $this->assertStringStartsWith('@media (max-width: 767px) {', $css);
+
+        $depth = 0;
+        $closedAt = null;
+        foreach (str_split($css) as $position => $char) {
+            if ($char === '{') {
+                $depth++;
+            } elseif ($char === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    $closedAt = $position;
+                    break;
+                }
+            }
+        }
+
+        $this->assertNotNull($closedAt, 'The media query is never closed.');
+        $this->assertSame(strlen($css) - 1, $closedAt, 'There is a rule after the phone media query.');
+    }
+
+    public function test_panels_and_public_pages_import_the_density_sheet_after_the_other_phone_sheets(): void
+    {
+        $dashboard = $this->css('dashboard.css');
+        $this->assertStringContainsString("@import './mobile-density.css';", $dashboard);
+        $this->assertGreaterThan(
+            strpos($dashboard, "@import './mobile-office.css';"),
+            strpos($dashboard, "@import './mobile-density.css';"),
+        );
+
+        $public = $this->css('reference-home.css');
+        $this->assertStringContainsString("@import './mobile-density.css';", $public);
+        $this->assertGreaterThan(
+            strpos($public, "@import './mobile-public.css';"),
+            strpos($public, "@import './mobile-density.css';"),
+        );
+    }
+
+    public function test_tap_targets_and_form_text_are_not_shrunk(): void
+    {
+        $css = $this->css('mobile-density.css');
+
+        $this->assertDoesNotMatchRegularExpression('/min-height:\s*(?:[0-9]|[1-3][0-9]|4[0-3])px\s*[;!]/', $css.';');
+        $this->assertDoesNotMatchRegularExpression('/\binput\b[^{]*\{[^}]*font-size/', $css);
+    }
+}
