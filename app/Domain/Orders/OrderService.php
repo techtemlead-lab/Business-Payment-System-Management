@@ -120,32 +120,45 @@ class OrderService
             if ($channel === AccountOrderPayment::Channel) {
                 app(AccountOrderPayment::class)->pay($order, $user, $submittedBy);
             }
-            $this->partnerNotice($user->id, 'portal.notice_order_submitted_title', 'portal.notice_order_submitted_body', [
-                'number' => $order->number,
-            ], 'order.submitted');
-            $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
-                'number' => $order->number,
-            ]);
-            Audit::notifyAdminsAndStaff(
-                ['orders', 'finance'],
-                __('portal.notice_admin_new_order_title', ['number' => $order->number]),
-                __('portal.notice_admin_new_order_body', [
-                    'name' => $user->name,
-                    'code' => $user->dealer_code ?: '—',
-                    'amount' => Money::display(Money::decimal($total)),
+            // An order placed with a bank or mobile payment attached is one event: the partner gets one notice, one
+            // email and one SMS for it, and the office one notice (the payment notice below), not two of each.
+            $paidWithOrder = $claimedWithOrder && $channel !== self::OfficeChannel;
+            if ($paidWithOrder) {
+                $partnerLocale = $user->preferredLocale();
+                $this->partnerNotice($user->id, 'portal.notice_order_submitted_paid_title', 'portal.notice_order_submitted_paid_body', [
                     'number' => $order->number,
-                ]),
-                $submittedBy?->id
-            );
-            if ($claimedWithOrder && $channel === self::OfficeChannel) {
-                $this->officeCashNotices($user, $order, (string) $data['amount']);
-            } elseif ($claimedWithOrder) {
-                $this->paymentClaimedNotice($user->id, $order->number, (string) $data['amount'], (string) $data['channel']);
-                $this->partnerSms($user->id, 'payment.claimed', 'sms.payment_claimed', [
+                    'amount' => TakaText::afterSign((string) $data['amount'], $partnerLocale),
+                    'channel' => __('portal.pay_channel_'.Str::lower((string) $data['channel']), [], $partnerLocale),
+                ], 'order.submitted');
+                $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted_paid', [
                     'number' => $order->number,
                     'amount' => (string) $data['amount'],
                     'channel' => (string) $data['channel'],
                 ]);
+            } else {
+                $this->partnerNotice($user->id, 'portal.notice_order_submitted_title', 'portal.notice_order_submitted_body', [
+                    'number' => $order->number,
+                ], 'order.submitted');
+                $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
+                    'number' => $order->number,
+                ]);
+            }
+            if (! $paidWithOrder) {
+                Audit::notifyAdminsAndStaff(
+                    ['orders', 'finance'],
+                    __('portal.notice_admin_new_order_title', ['number' => $order->number]),
+                    __('portal.notice_admin_new_order_body', [
+                        'name' => $user->name,
+                        'code' => $user->dealer_code ?: '—',
+                        'amount' => Money::display(Money::decimal($total)),
+                        'number' => $order->number,
+                    ]),
+                    $submittedBy?->id
+                );
+            }
+            if ($claimedWithOrder && $channel === self::OfficeChannel) {
+                $this->officeCashNotices($user, $order, (string) $data['amount']);
+            } elseif ($claimedWithOrder) {
                 Audit::notifyAdminsAndStaff(
                     ['finance', 'orders'],
                     __('portal.notice_admin_payment_claim_title', ['number' => $order->number]),

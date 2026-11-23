@@ -412,6 +412,30 @@ final class CommissionSettlement
      * @param  array<string, mixed>  $result
      * @return array<string, mixed>
      */
+    /** One notice, one email and one text for everything a partner received in a release run. */
+    private function announceMaturedRelease(int $userId, string $amountDecimal): void
+    {
+        $partner = User::find($userId);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        Audit::notice(
+            $userId,
+            __('portal.notice_commission_matured_title', [], $locale),
+            __('portal.notice_commission_matured_body', ['amount' => Money::display($amountDecimal, $locale)], $locale),
+            'commission.posted',
+        );
+        DB::afterCommit(function () use ($userId, $amountDecimal): void {
+            $partner = User::find($userId);
+            if (! $partner) {
+                return;
+            }
+            app(PartnerEventSms::class)->send(
+                $partner,
+                'commission.matured',
+                SmsText::make('sms.commission_matured', ['amount' => $amountDecimal]),
+            );
+        });
+    }
+
     private function rememberSettlement(string $month, string $kind, ?string $requestKey, ?int $actorId, array $result): array
     {
         if ($requestKey === null) {
@@ -1092,6 +1116,8 @@ final class CommissionSettlement
             $count = 0;
             $total = 0;
             $skipped = 0;
+            // What each partner received in this run, so they get one message, not one per commission row.
+            $releasedTo = [];
             foreach ($funds as $fund) {
                 $due = $fund->metadata['maturation_due_at'] ?? null;
                 if (! $due || now()->lt(CarbonImmutable::parse($due)) || ! User::whereKey($fund->user_id)->where('status', 'active')->exists()) {
@@ -1122,27 +1148,12 @@ final class CommissionSettlement
                 ]);
                 $this->wallets->credit($fund->user_id, $amount);
                 $fund->update(['status' => 'available', 'metadata' => [...$fund->metadata, 'maturation_released' => true, 'matured_at' => now()->toIso8601String()]]);
-                $amountDecimal = Money::decimal($amount);
-                Audit::notice(
-                    $fund->user_id,
-                    __('portal.notice_commission_matured_title', [], $locale),
-                    __('portal.notice_commission_matured_body', ['amount' => Money::display($amountDecimal, $locale)], $locale),
-                    'commission.posted',
-                );
-                $userId = (int) $fund->user_id;
-                DB::afterCommit(function () use ($userId, $amountDecimal): void {
-                    $partner = User::find($userId);
-                    if (! $partner) {
-                        return;
-                    }
-                    app(PartnerEventSms::class)->send(
-                        $partner,
-                        'commission.matured',
-                        SmsText::make('sms.commission_matured', ['amount' => $amountDecimal]),
-                    );
-                });
+                $releasedTo[(int) $fund->user_id] = ($releasedTo[(int) $fund->user_id] ?? 0) + $amount;
                 $count++;
                 $total += $amount;
+            }
+            foreach ($releasedTo as $userId => $cents) {
+                $this->announceMaturedRelease($userId, Money::decimal($cents));
             }
 
             if ($count > 0) {
