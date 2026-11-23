@@ -1,12 +1,12 @@
 /*
  * Dealers and sub-dealers: bigger, darker text and bigger buttons (AX-01).
  * The whole partner screen is zoomed, so every size grows together. "Normal" lifts the
- * 14 px body text to about 16 px; the switch in the top bar offers smaller and larger steps.
+ * 14 px body text to about 15.5 px; the switch in the top bar offers smaller and larger steps.
  */
 :is(.dealer-shell, .subdealer-shell) {
   --ds-text-muted: #455364;
   --ds-text-faint: #4f5c6b;
-  zoom: 1.15;
+  zoom: 1.1;
 }
 html[data-text-size="small"] :is(.dealer-shell, .subdealer-shell) { zoom: 1; }
 html[data-text-size="large"] :is(.dealer-shell, .subdealer-shell) { zoom: 1.3; }

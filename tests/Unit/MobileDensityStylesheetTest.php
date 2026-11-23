@@ -98,4 +98,17 @@ class MobileDensityStylesheetTest extends TestCase
             $this->assertStringContainsString("@include('partials.fonts')", (string) file_get_contents(dirname(__DIR__, 2).'/resources/views/'.$view), $view);
         }
     }
+
+    public function test_computer_and_tablet_keep_bangla_menus_tables_and_the_top_bar_on_one_line(): void
+    {
+        $fonts = $this->css('fonts.css');
+
+        $this->assertStringContainsString('@media (min-width: 768px) {', $fonts);
+        $this->assertStringContainsString('text-overflow: ellipsis;', $fonts);
+        $this->assertStringContainsString('--sidebar-width: 256px;', $fonts);
+        $this->assertMatchesRegularExpression('/\.breadcrumb \{\s*flex: 1 1 220px;\s*min-width: 220px;/', $fonts);
+
+        $office = $this->css('screens-office-shell.css');
+        $this->assertStringContainsString('--ds-fs-base:14.5px', $office, 'Staff and owner text fits the wider Bangla font.');
+    }
 }
