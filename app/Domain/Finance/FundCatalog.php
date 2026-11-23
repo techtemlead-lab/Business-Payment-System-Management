@@ -21,9 +21,10 @@ final class FundCatalog
 
     /**
      * Old money only. The card appears only while something came in. royalty_pool is the single rank royalty fund of
-     * orders posted before the four rank funds (RankRoyaltyFunds).
+     * orders posted before the four rank funds (RankRoyaltyFunds). rank_reward is the sub-dealer 4% extra of orders
+     * posted before it went to its own company fund (sub_dealer_extra); it is not a rank prize fund.
      */
-    public const HiddenWhileEmpty = ['royalty_pool', 'car_bike', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
+    public const HiddenWhileEmpty = ['royalty_pool', 'car_bike', 'rank_reward', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];
 
     /** The order the cards appear in. */
     private const Order = ['company_share', 'company_profit', 'management', 'marketing', 'tour', 'sub_dealer_extra', 'bike', 'car', 'car_bike', 'salary_pool', 'royalty_mo', 'royalty_am', 'royalty_sm', 'royalty_me', 'royalty_pool', 'rank_bonus', 'rank_reward', 'clinic', 'benefits', 'salary_reserve', 'geographic_reserve', 'referral_reserve'];

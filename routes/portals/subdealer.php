@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PartnerProgressController;
+use App\Http\Controllers\PartnerReorderController;
 use App\Http\Controllers\PartnerStatementController;
 use App\Http\Controllers\PayoutReceiptController;
 use App\Http\Controllers\TeamOrdersController;
@@ -31,6 +32,7 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware(['auth', 'active', 'portal:subdealer', 'agreement'])->group(function () use ($registerCommands): void {
     $registerCommands('subdealer');
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
+    Route::get('/orders/{order}/reorder', PartnerReorderController::class)->middleware('throttle:30,1');
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
     Route::get('/full-report/pdf', [DashboardController::class, 'fullReportPdf'])->middleware('throttle:10,1');

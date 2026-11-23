@@ -2,6 +2,7 @@
 
 namespace App\Domain\Audience;
 
+use App\Domain\Accounts\IdentityKeys;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Support\Audit;
@@ -24,7 +25,7 @@ final class PublicPartnerApplication
     {
         $id = DB::transaction(function () use ($data): string {
             $email = mb_strtolower(trim((string) $data['email']));
-            if (DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->exists()) {
+            if (IdentityKeys::emailTaken($email)) {
                 throw ValidationException::withMessages(['email' => __('portal.err_public_app_reject')]);
             }
             $open = DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [$email])->whereIn('status', ['pending', 'correction'])->first(['application_number']);

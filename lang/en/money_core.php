@@ -35,7 +35,7 @@ return [
     'mc_kind_salary' => 'Monthly salary',
     'mc_kind_royalty' => 'Rank royalty',
     'mc_kind_area_quota' => 'Area target, month end',
-    'mc_kind_additional_rank' => 'Sub-dealer rank fund, month end',
+    'mc_kind_additional_rank' => 'Sub-dealer extra (old orders), month end',
     'mc_month_label' => 'Month',
     'flash_already_closed' => ':kind for :month was already closed on :date. Nothing was left to pay.',
 

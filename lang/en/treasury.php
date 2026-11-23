@@ -20,7 +20,7 @@ return [
     'fund_salary_pool' => 'Salary',
     'fund_royalty_pool' => 'Rank royalty fund (older orders)',
     'fund_rank_bonus' => 'Rank bonus fund',
-    'fund_rank_reward' => 'Sub-dealer rank fund',
+    'fund_rank_reward' => 'Sub-dealer extra (old orders)',
     'fund_clinic' => 'Clinic fund',
     'fund_benefits' => 'Commission extra fund',
     'fund_salary_reserve' => 'Old salary money',

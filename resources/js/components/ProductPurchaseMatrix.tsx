@@ -17,6 +17,7 @@ import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../sha
 import { amountInWords } from '../shared/orderAmountWords';
 import { useOrderCart } from '../shared/usePartnerCart';
 import { useIsPhone } from '../shared/useIsPhone';
+import { takeReorderNotes } from '../shared/reorderOrder';
 import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
 interface Props {
@@ -224,7 +225,8 @@ export default function ProductPurchaseMatrix({
     };
 
     // One tap: the cart becomes this past order, at today's prices.
-    const [repeatNotes, setRepeatNotes] = useState<string[]>([]);
+    // Notes left by "Order this again" on the My orders page (skipped products) are shown once here.
+    const [repeatNotes, setRepeatNotes] = useState<string[]>(() => takeReorderNotes());
     const fillCartFromOrder = (option: RepeatOption) => {
         setCart(option.items.filter(item => item.quantity > 0).map(item => ({ product: item.product, quantity: item.quantity })));
         setRepeatNotes(repeatChangeNotes(option, translate));
@@ -485,15 +487,16 @@ export default function ProductPurchaseMatrix({
                 </div>
             )}
 
-            {/* On a phone the reorder cards and running schemes fold under one row, so the order form comes first. */}
+            {/* On a phone the running schemes fold under one row, so the order form comes first. */}
             <div className={`ppm-more${moreOpen ? ' is-open' : ''}`}>
-                {isPhone && (repeatOrders.length > 0 || runningSchemes.length > 0) && (
+                {isPhone && runningSchemes.length > 0 && (
                     <button type="button" className="button ppm-more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>
                         {page(moreOpen ? 'mobile_more_hide' : 'mobile_more_show')}
                     </button>
                 )}
                 <div className="ppm-more-body">
-                    <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />
+                    {/* The last orders show at once on a computer; a phone keeps the order form uncluttered, so no card there. */}
+                    {!isPhone && <RepeatOrderPanel orders={repeatOrders} onFill={fillCartFromOrder} />}
                     <SchemeNotices schemes={runningSchemes} cartQuantities={Object.fromEntries(cart.map(item => [Number(item.product.id), item.quantity]))} />
                 </div>
             </div>

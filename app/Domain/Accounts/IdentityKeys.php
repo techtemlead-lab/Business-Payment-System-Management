@@ -2,13 +2,14 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\LocalDigits;
 use Illuminate\Validation\ValidationException;
 
 /**
- * One person, one account (client, 2026-11-22): the same NID number or birth-certificate number may not open a second
- * account, besides the mobile number and the email.
+ * One person, one account, WHEN THE OWNER SWITCHES IT ON (it is off by default): the same NID number or
+ * birth-certificate number may not open a second account, besides the mobile number and the email.
  *
  * Both numbers are stored encrypted, so they cannot be compared in the database. Each account therefore also keeps a
  * one-way key of its number (an HMAC made with the application key, in users.nid_hash and
@@ -23,6 +24,24 @@ final class IdentityKeys
     public const Nid = 'nid';
 
     public const BirthCertificate = 'birth_certificate';
+
+    /** True when the owner's one-person-one-account switch is on. Off by default: sharing is allowed until it is switched on. */
+    public static function enforced(): bool
+    {
+        return app(SecuritySettings::class)->oneAccountPerIdentityEnforced();
+    }
+
+    /** True when the switch is on and another account already has this email address. */
+    public static function emailTaken(mixed $email, ?int $ignoreUserId = null): bool
+    {
+        $clean = mb_strtolower(trim(is_scalar($email) ? (string) $email : ''));
+        if ($clean === '' || ! self::enforced()) {
+            return false;
+        }
+
+        return User::query()->whereRaw('LOWER(email) = ?', [$clean])
+            ->when($ignoreUserId !== null, fn ($query) => $query->whereKeyNot($ignoreUserId))->exists();
+    }
 
     /** The key of a number, or null when there is no number. */
     public static function key(string $type, mixed $number): ?string
@@ -57,6 +76,9 @@ final class IdentityKeys
      */
     public static function refuseDuplicates(mixed $nid, mixed $birthCertificate = null, ?int $ignoreUserId = null): void
     {
+        if (! self::enforced()) {
+            return;
+        }
         if (self::holder(self::Nid, $nid, $ignoreUserId) !== null) {
             throw ValidationException::withMessages(['nid' => __('portal.acct_val_nid_taken')]);
         }

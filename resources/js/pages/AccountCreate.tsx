@@ -87,6 +87,8 @@ export default function AccountCreate({
     // Only owners may let an account share a mobile number another account already uses.
     // The server refuses an NID number from anyone without this permission, so the choice is not offered to them.
     const canEnterNid = ((usePage().props as any).auth?.capabilities ?? []).includes('identity_write');
+    // Whether the public website lists dealers at all (owner switch, off by default): the question \"show this account on the website?\" is asked only then.
+    const dealerListOn = (usePage().props as any).publicPageEnabled?.dealers === true;
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
     const defaultRole = roles[0] || (intent === 'sub_dealer' ? 'sub_dealer' : intent === 'staff' ? 'employee' : 'dealer');
     const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
@@ -926,7 +928,8 @@ export default function AccountCreate({
                                     <textarea rows={2} value={form.data.reason} onChange={(e) => setBox('reason', e.target.value)} />
                                 </Box>
                             )}
-                            {(form.data.role === 'dealer' || form.data.role === 'sub_dealer') && (
+                            {/* The question about the website only makes sense while the public dealer list is on. */}
+                            {dealerListOn && (form.data.role === 'dealer' || form.data.role === 'sub_dealer') && (
                                 <label className="checkbox-label acf-box is-wide acf-check">
                                     <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
                                     <span>{translate('portal', 'acct_directory_visible')}</span>

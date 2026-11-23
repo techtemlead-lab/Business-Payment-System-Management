@@ -17,7 +17,7 @@ return [
     'fund_bike' => 'Bike award fund',
     'fund_car' => 'Car award fund',
     'fund_car_bike' => 'Car and bike award fund (old)',
-    'fund_rank_reward' => 'Rank award reserve',
+    'fund_rank_reward' => 'Sub-dealer extra fund (old orders)',
     'fund_salary_reserve' => 'Old salary money',
     'fund_company_share' => 'Company 30% share (manufacturer)',
     'fund_clinic' => 'Clinic fund',

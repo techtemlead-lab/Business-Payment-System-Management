@@ -4,13 +4,14 @@ import {ArrowUpRight,Download} from 'lucide-react';
 import {OfficeListTable,SavedFilterMenu} from '../../OfficeListTools';
 import {Row,Pagination,Badge,money,number,date,label} from '../../UI';
 import {useT} from '../../../shared/i18n/t';
+import ReorderOrderButton from '../../partnercart/ReorderOrderButton';
 import {orderDiscountPercent,orderMrpTotal} from '../../orderLineDiscount';
 import {AgingPill,Filter,OrderSentCell,PartnerTypeCell,StatusTabs,SummaryFigures,countedTotalLabel,deliveredFooter,notYetSendable,orderDue,orderItemCount,orderSentCount,orderStatuses,ordersExportHref,pageTotalLabel,usePortalSection,type PortalSectionProps} from '../portalShared';
 export function OrderTable({page,empty,emptyBody,tools=true,searchable=true,report=false,overdue=false,listKey}:{page:Row,empty?:string,emptyBody?:string,tools?:boolean,searchable?:boolean,report?:boolean,overdue?:boolean,listKey?:string}){const translate=useT();const {portalBase:base,portal,auth}=usePage<any>().props;const staff=portal==='manage'||portal==='sadmin'||auth?.user?.workspace_mode==='staff';const [opened,setOpened]=useState<Row|null>(null);
  const statusCell=(r:Row)=><><Badge status={r.came_back?'returned':r.status}/>{['rejected','cancelled'].includes(r.status)&&r.decision_reason&&<small className="cell-sub" data-testid="order-closed-reason">{r.decision_reason}</small>}</>;
  /** A partner's list stays short; the row opens the side panel with the rest. */
  const partnerColumns=[
-  {key:'number',title:translate('portal','col_order'),render:(r:Row)=><><Link className="record-link" href={`${base}/orders/${r.id}`} onClick={(event)=>event.stopPropagation()}>{r.number}</Link><small className="cell-sub">{date(r.created_at)}</small></>},
+  {key:'number',title:translate('portal','col_order'),render:(r:Row)=><><Link className="record-link" href={`${base}/orders/${r.id}`} onClick={(event)=>event.stopPropagation()}>{r.number}</Link><small className="cell-sub">{date(r.created_at)}</small>{r.is_opening_balance?null:<ReorderOrderButton orderId={r.id}/>}</>},
   {key:'branch',title:translate('portal','col_branch'),render:(r:Row)=>r.fulfillment_branch?.name||'—'},
   {key:'lines',title:translate('portal','col_items'),align:'right' as const,sortValue:orderItemCount,render:(r:Row)=>number(orderItemCount(r))},
   {key:'delivered',title:translate('portal','col_delivered'),align:'right' as const,sortValue:(r:Row)=>orderItemCount(r)?orderSentCount(r)/orderItemCount(r):0,render:(r:Row)=>notYetSendable.includes(r.status)?'—':<OrderSentCell row={r}/>},

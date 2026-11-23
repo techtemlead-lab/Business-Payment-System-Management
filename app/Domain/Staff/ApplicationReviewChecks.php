@@ -2,6 +2,7 @@
 
 namespace App\Domain\Staff;
 
+use App\Domain\Accounts\IdentityKeys;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
 use App\Models\AreaDealerAssignment;
@@ -46,7 +47,7 @@ final class ApplicationReviewChecks
                 $warnings[] = ['kind' => 'phone_in_application', 'text' => __('joining.check_phone_in_application', ['number' => (string) $other->application_number])];
             }
         }
-        if (User::query()->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->exists()) {
+        if (IdentityKeys::emailTaken($email)) {
             $warnings[] = ['kind' => 'email_in_use', 'text' => __('joining.check_email_in_use')];
         }
         $name = trim((string) ($payload['name'] ?? ''));

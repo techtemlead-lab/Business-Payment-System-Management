@@ -62,6 +62,8 @@ function csrfToken(): string {
 }
 
 export default function AccountEditor({ account, onDone }: { account: Row; onDone: () => void }) {
+    // The question about the public website is asked only while the public dealer list is on (owner switch, off by default).
+    const dealerListOn = (usePage<any>().props.publicPageEnabled)?.dealers === true;
     const translate = useT();
     const authProps = ((usePage().props as any).auth ?? {}) as any;
     const caps = (authProps.capabilities ?? []) as string[];
@@ -270,7 +272,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     return <label key={field}>{fieldLabel}<input maxLength={150} {...(field === 'name_bn' ? { 'data-bangla-from': 'ace-name-en', 'data-bangla-kind': 'name' } : {})} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>;
                 })}
                 <label>{translate('portal', 'col_status')}<select value={form.data.status} onChange={event => form.setData('status', event.target.value)}><option value="active">{translate('portal', 'status_active')}</option><option value="suspended">{translate('portal', 'status_suspended')}</option></select>{isPartner && form.data.status === 'suspended' && account.status !== 'suspended' && <small className="notice" role="status">{translate('payouts', 'suspend_hold_note')}</small>}</label>
-                {(account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
+                {dealerListOn && (account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
             <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude', 'permanent_place_id', 'area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id']}/>

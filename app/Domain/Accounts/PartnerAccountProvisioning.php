@@ -74,7 +74,7 @@ final class PartnerAccountProvisioning
             throw ValidationException::withMessages(['identity_type' => __('portal.acct_val_identity_type')]);
         }
 
-        if (User::query()->whereRaw('LOWER(email) = ?', [$email])->exists()) {
+        if (IdentityKeys::emailTaken($email)) {
             throw ValidationException::withMessages(['email' => __('portal.acct_val_email_taken')]);
         }
         // One person, one account: the same NID or birth-certificate number never opens a second one.
@@ -228,6 +228,9 @@ final class PartnerAccountProvisioning
                 CommissionWallet::lock();
                 // Checked again inside the lock that every account creation passes through, so two at the same moment cannot both win.
                 IdentityKeys::refuseDuplicates($input['nid'] ?? null, $input['birth_certificate_number'] ?? null);
+                if (IdentityKeys::emailTaken($email)) {
+                    throw ValidationException::withMessages(['email' => __('portal.acct_val_email_taken')]);
+                }
                 if ($this->phones->enforced() && $this->phones->holders($phone) !== []) {
                     throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
                 }

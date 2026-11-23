@@ -4,6 +4,7 @@ namespace App\Domain\Staff;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\FirstPassword;
+use App\Domain\Accounts\IdentityKeys;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Audience\PublicPartnerApplication;
@@ -102,7 +103,7 @@ final class StaffOperations
             if ($phones->isTaken($data['phone'])) {
                 throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
             }
-            if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()
+            if (IdentityKeys::emailTaken($data['email'])
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->where('status', 'pending')->exists()) {
                 throw ValidationException::withMessages(['email' => __('portal.err_staff_email_taken')]);
             }
@@ -193,7 +194,7 @@ final class StaffOperations
                 }
                 $data = [...$payload, ...$corrections];
                 $partners = app(PartnerAccountProvisioning::class);
-                if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()) {
+                if (IdentityKeys::emailTaken($data['email'])) {
                     throw ValidationException::withMessages(['email' => __('portal.err_staff_email_exists')]);
                 }
                 $phones = app(AccountPhoneRules::class);
