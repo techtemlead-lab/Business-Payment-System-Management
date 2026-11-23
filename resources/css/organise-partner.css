@@ -1,0 +1,204 @@
+/*
+ * Dealer and sub-dealer panels: one tidy standard (the "organise" round).
+ *  - View, period and report pickers are drop-downs (or a compact segmented control of three or fewer).
+ *  - Dashboard: money first, the one main action, what is waiting, then progress, then the report.
+ *  - Wallet: the balance and its actions on top, everything that is "not yet in the balance" folded away.
+ *  - Order page: one main action and a "More" menu.
+ * Colours, radii and spacing come from the --ds tokens and the phone scale in mobile-density.css.
+ * Imported last in dashboard.css.
+ */
+
+/* ---------------------------------------------------------------- shared: picker drop-downs */
+.pv-select { min-width: 0; }
+.ps-select { margin: 0 0 var(--ds-s-3, 8px); }
+.ps-select .fd { width: 100%; max-width: 260px; }
+.pd-report-pick { margin: 0 0 var(--ds-s-4, 12px); }
+.pd-report-pick .fd { width: 100%; max-width: 320px; }
+.pcd-category { flex: 0 1 240px; }
+.ppm-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 240px)); gap: var(--ds-s-2, 8px); margin: var(--ds-s-2, 8px) 0; }
+.ppm-filters .fd { width: 100%; max-width: none; }
+
+/* ---------------------------------------------------------------- partner hub tabs */
+/* Computer: the tab row as it was. The drop-down exists only for a phone. */
+.partner-hub-nav .phn-select { display: none; }
+
+/* A folded block (wallet and dashboard): the title and, when there is one, the amount; the rest opens on a tap. */
+.pd-waiting > summary,
+.mm-fold > summary { display: flex; align-items: center; gap: var(--ds-s-2, 8px); min-height: 44px; cursor: pointer; list-style: none; font-weight: 700; font-size: var(--ds-fs-md, 16px); color: var(--ds-text, #0b1f33); }
+.pd-waiting > summary::-webkit-details-marker,
+.mm-fold > summary::-webkit-details-marker { display: none; }
+.pd-waiting > summary > span,
+.mm-fold > summary > span { flex: 1 1 auto; min-width: 0; }
+.pd-waiting > summary > strong,
+.mm-fold > summary > strong { flex: none; color: var(--ds-warn-fg, #8a5a00); font-variant-numeric: tabular-nums; }
+.pd-waiting > summary::after,
+.mm-fold > summary::after { content: ""; flex: none; width: 9px; height: 9px; margin: 0 4px 3px 2px; border-right: 2px solid var(--ds-text-muted, #5b6b7a); border-bottom: 2px solid var(--ds-text-muted, #5b6b7a); transform: rotate(45deg); transition: transform .15s ease; }
+.pd-waiting[open] > summary::after,
+.mm-fold[open] > summary::after { transform: rotate(225deg) translate(-2px, -2px); }
+.pd-waiting > summary:focus-visible,
+.mm-fold > summary:focus-visible { outline: 2px solid var(--ds-brand, #006a4e); outline-offset: 2px; border-radius: var(--ds-r-md, 8px); }
+.mm-fold { padding: 0 var(--ds-s-4, 12px); background: var(--ds-surface, #fff); border: 1px solid var(--ds-line, #dfe5e0); border-radius: var(--ds-r-lg, 16px); }
+.mm-fold-body { display: flex; flex-direction: column; gap: var(--ds-s-5, 16px); padding-bottom: var(--ds-s-4, 12px); }
+.pd-waiting { padding-top: 4px; padding-bottom: 4px; }
+.pd-waiting-body { display: grid; gap: var(--ds-s-3, 8px); padding-bottom: var(--ds-s-2, 8px); }
+/* The cards inside a folded block lose their own frame so the block reads as one. */
+.pd-waiting-body .pd-card { padding: var(--ds-s-3, 8px) 0 0; border: 0; border-top: 1px solid var(--ds-line-soft, #ecf0ed); border-radius: 0; background: none; box-shadow: none; }
+.pd-waiting-body .pd-card:first-child { border-top: 0; padding-top: 0; }
+.pd-waiting-body .pd-held ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.pd-waiting-body .pd-held p.muted { margin: 2px 0 0; }
+.mm-fold-body .mm-page-block, .mm-fold-body > section > h2 { font-size: var(--ds-fs-md, 16px); }
+
+/* Dashboard: the main action under the three figures */
+.pd-primary { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--ds-s-3, 8px); }
+.pd-primary .button { justify-content: center; gap: 8px; min-height: 48px; font-size: var(--ds-fs-md, 16px); font-weight: 700; }
+.pd-primary:has(> :only-child) { grid-template-columns: minmax(0, 1fr); }
+.pd-report-pick + .mt-wrap, .pd-report-pick + div { min-width: 0; }
+
+/* Targets: the explanations are folded; the bars say it already */
+.ph-notes-toggle { display: inline-flex; align-items: center; min-height: 40px; margin: var(--ds-s-2, 8px) 0 0; padding: 0; border: 0; background: none; color: var(--ds-brand-text, #00694d); font: inherit; font-size: var(--ds-fs-sm, 14px); font-weight: 600; cursor: pointer; }
+.ph-notes-toggle:focus-visible { outline: 2px solid var(--ds-brand, #006a4e); outline-offset: 2px; border-radius: var(--ds-r-sm, 6px); }
+
+/* The long "starter steps" box on every page: one slim line */
+.app-shell .prereq-helper { margin-bottom: var(--ds-s-3, 8px); gap: var(--ds-s-2, 8px); }
+.app-shell .prereq-checklist { padding: 2px var(--ds-s-4, 12px); border-radius: var(--ds-r-lg, 16px); border-color: var(--ds-line, #dfe5e0); background: var(--ds-surface, #fff); }
+.app-shell .prereq-checklist summary { display: flex; align-items: center; min-height: 40px; font-size: var(--ds-fs-sm, 14px); color: var(--ds-text-2, #334155); }
+.app-shell .prereq-checklist[open] { padding-bottom: var(--ds-s-3, 8px); }
+
+/* Order page: one main button and a "More" menu */
+.od-more { position: relative; }
+.od-more > summary { list-style: none; cursor: pointer; }
+.od-more > summary::-webkit-details-marker { display: none; }
+.od-more > summary::after { content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 0 3px 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.od-more[open] > summary::after { transform: rotate(225deg) translate(-1px, -1px); margin-bottom: 0; }
+.od-more > summary:focus-visible { outline: 2px solid var(--ds-brand, #006a4e); outline-offset: 2px; }
+.app-shell .od-more-menu.panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; display: flex; flex-direction: column; align-items: stretch; gap: var(--ds-s-2, 8px); min-width: 230px; margin: 0; padding: var(--ds-s-2, 8px); box-shadow: var(--ds-shadow-md, 0 8px 24px rgba(11, 31, 51, .16)); }
+.app-shell .od-more-menu .button { justify-content: flex-start; min-height: 44px; }
+.app-shell:is(.dealer-shell, .subdealer-shell) .od-more-menu .panel.odt-share-menu { position: static; min-width: 0; padding: var(--ds-s-2, 8px) 0 0; border: 0; border-top: 1px solid var(--ds-line, #dfe5e0); border-radius: 0; background: none; box-shadow: none; }
+
+/* Top sellers: three months as one segmented control */
+.tsb-months { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; padding: 3px; border: 1px solid var(--ds-line, #dfe5e0); border-radius: var(--ds-r-lg, 12px); background: var(--ds-surface-2, #f4f7f5); }
+.tsb-months .tsb-month { justify-content: center; min-height: 40px; padding: 4px 8px; border: 0; border-radius: var(--ds-r-md, 9px); background: transparent; box-shadow: none; }
+.tsb-months .tsb-month.is-active { background: var(--ds-brand, #006a4e); color: var(--ds-on-brand, #fff); }
+
+/* A short note folded behind a question, in place of a paragraph under the figures */
+.partner-note { margin: var(--ds-s-2, 8px) 0 0; font-size: var(--ds-fs-sm, 14px); }
+.partner-note > summary { display: inline-flex; align-items: center; min-height: 40px; cursor: pointer; color: var(--ds-brand-text, #00694d); font-weight: 600; list-style: none; }
+.partner-note > summary::-webkit-details-marker { display: none; }
+.partner-note > summary::before { content: "?"; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; margin-right: 8px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 12px; line-height: 1; }
+.partner-note > summary:focus-visible { outline: 2px solid var(--ds-brand, #006a4e); outline-offset: 2px; border-radius: var(--ds-r-sm, 6px); }
+.partner-note > p { margin: 0 0 var(--ds-s-2, 8px); }
+
+/* Computer: the money column reads balance, main action, waiting money, income by head, and last the identity boxes. */
+.pd-middle > .pd-totals { order: 1; }
+.pd-middle > .pd-primary { order: 2; }
+.pd-middle > .pd-waiting { order: 3; }
+.pd-middle > .pd-heads { order: 4; }
+.pd-middle > .pd-idboxes { order: 5; }
+
+/* Computer: the wallet actions sit in a row next to the balance already; keep the folded block as wide as the page. */
+@media (min-width: 768px) {
+  .partner-hub-nav .partner-hub-title { margin-bottom: var(--ds-s-2, 8px); }
+}
+
+/* ================================================================ PHONE */
+@media (max-width: 767px) {
+  /* Hub tabs: more than three become one drop-down; two or three become a segmented row. The hub name is the page title above. */
+  .partner-hub-nav { margin-bottom: var(--ds-s-3, 8px); }
+  .partner-hub-nav .partner-hub-title { display: none; }
+  .partner-hub-nav.phn-many .phn-select { display: grid; }
+  .partner-hub-nav.phn-many .order-status-tabs { display: none; }
+  .partner-hub-nav.phn-few .order-status-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; margin: 0; padding: 3px; overflow: visible; border: 1px solid var(--ds-line, #dfe5e0); border-radius: var(--ds-r-lg, 12px); background: var(--ds-surface-2, #f4f7f5); -webkit-mask-image: none; mask-image: none; }
+  .partner-hub-nav.phn-few .order-status-tab { justify-content: center; min-height: 40px; padding: 4px 6px; border-radius: var(--ds-r-md, 9px); text-align: center; }
+  .ps-select .fd { max-width: none; }
+  .pd-report-pick .fd { max-width: none; }
+  .pcd-category { flex: 1 1 100%; }
+  .ppm-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* ---- Dashboard: money, what to do, progress, report, then the person card ---- */
+  .dealer-shell .pd-wrap, .subdealer-shell .pd-wrap { display: contents; container-type: normal; }
+  .dealer-shell .pd-grid, .subdealer-shell .pd-grid { display: contents; }
+  /* pd-middle, pd-grid and pd-wrap all take no box of their own on a phone, so these are the page's direct flex items. */
+  .partner-home.ph > * { order: 40; }
+  .partner-home.ph > .ph-birthday { order: 0; }
+  .partner-home.ph .pd-totals { order: 1; }
+  .partner-home.ph .pd-primary { order: 2; }
+  .partner-home.ph .pd-waiting { order: 3; }
+  .partner-home.ph .pd-heads { order: 4; }
+  .partner-home.ph > [data-testid="partner-alerts"] { order: 5; }
+  .partner-home.ph > [data-testid="next-steps"] { order: 6; }
+  .partner-home.ph > .ph-follow-up { order: 7; }
+  .partner-home.ph .pd-right { order: 8; }
+  .partner-home.ph > .ph-callme { order: 9; }
+  .partner-home.ph .pd-report { order: 10; }
+  .partner-home.ph > .ph-today { order: 11; }
+  .partner-home.ph > [data-tour="recent-orders"] { order: 12; }
+  .partner-home.ph .pd-idboxes { order: 13; }
+  .partner-home.ph .pd-profile { order: 14; }
+  .partner-home.ph > .sponsor-card { order: 15; }
+  .partner-home.ph > .partner-home-referral { order: 16; }
+  .partner-home.ph > .ph-profile-link { order: 17; }
+
+  .partner-home.ph .pd-card { padding: var(--md-card, 12px); border-radius: var(--ds-r-lg, 16px); }
+  .partner-home.ph .pd-report, .partner-home.ph .pd-right .ph-targets { margin: 0; }
+
+  .pd-middle { gap: var(--md-gap, 8px); }
+  .pd-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-s-2, 8px) var(--ds-s-4, 12px); }
+  .pd-totals div { display: block; padding: 0; border: 0; }
+  .pd-totals .is-balance { grid-column: 1 / -1; order: -1; display: flex; align-items: baseline; justify-content: space-between; padding: 10px 12px; }
+  .pd-totals .is-balance strong { font-size: 26px; line-height: 1.2; margin: 0; }
+  .pd-totals strong { margin-top: 2px; font-size: 17px; }
+  .pd-totals span { font-size: var(--mt-small, 13px); }
+  .pd-idboxes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); }
+  .pd-idboxes .is-contact { display: none; }
+  .pd-idboxes div { padding: 8px 10px; }
+  .pd-idboxes dd { font-size: 15px; }
+  .pd-head-list { grid-template-columns: 1fr; gap: 6px; margin-top: 8px; }
+  .pd-head-list li { padding: 8px 10px; }
+  .pd-heads-top .text-link { min-height: 40px; display: inline-flex; align-items: center; }
+
+  /* The person card: a small photo and the three counts in one row */
+  .pd-profile { grid-template-columns: 64px 1fr; column-gap: 12px; }
+  .pd-photo .avatar.large, .pd-photo .partner-home-avatar, .pd-photo img { width: 64px; height: 64px; font-size: 26px; }
+  .pd-name { font-size: 17px; }
+  .pd-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; padding-top: 10px; }
+  .pd-counts div { flex-direction: column; align-items: flex-start; gap: 0; }
+  .pd-counts dt { font-size: var(--mt-label, 12px); line-height: 1.35; }
+  .pd-counts dd { font-size: 17px; }
+
+  /* Help card: two buttons side by side, no extra title weight */
+  .partner-home.ph .ph-callme { margin: 0; padding: var(--md-card, 12px); border-width: 1px; }
+  .ph-callme h3 { margin: 0 0 8px; font-size: var(--mt-card-title, 16px); }
+  .ph-callme-actions { gap: 8px; }
+  .ph-callme-button { flex: 1 1 100%; min-height: 48px; font-size: var(--mt-cta, 15px); }
+
+  /* ---- Wallet: balance with one main button, three small ones under it ---- */
+  .mm-hero { padding: var(--md-card, 12px); gap: 2px; }
+  .mm-hero-label { font-size: var(--mt-small, 13px); }
+  .mm-hero-number { font-size: 28px; }
+  .mm-hero-pending { font-size: var(--mt-small, 13px); }
+  .mm-hero-pending b { font-size: 17px; }
+  .mm-hero-pending small { display: none; }
+  .mm-hero-small { gap: 2px 12px; font-size: var(--mt-small, 13px); }
+  .mm-hero-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); margin-top: var(--ds-s-2, 8px); }
+  .mm-hero-actions > :first-child { grid-column: 1 / -1; }
+  .mm-hero-actions > :first-child.button { min-height: 48px; font-size: var(--mt-cta, 15px); }
+  .mm-hero-actions .button { flex: none; min-height: 52px; height: auto; padding: 6px 4px; justify-content: center; text-align: center; white-space: normal; overflow-wrap: anywhere; font-size: var(--mt-small, 13px); line-height: 1.3; }
+  .mm-hero-actions .mm-downloads > summary { width: 100%; justify-content: center; }
+  .mm-hero-actions .mm-downloads { min-width: 0; }
+  .mm-downloads-menu { left: auto; right: 0; }
+  .mm-fold { padding-inline: var(--md-card, 12px); }
+
+  /* ---- Order page: title block, then the buttons in one row ---- */
+  .app-shell .order-title { gap: var(--ds-s-2, 8px); }
+  .app-shell .order-title > .ops-row { width: 100%; align-items: center; gap: var(--ds-s-2, 8px); }
+  .app-shell .order-title > .ops-row > a.button { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+  .od-more > summary { min-height: 44px; display: inline-flex; align-items: center; }
+  .app-shell .od-more-menu.panel { left: 0; right: auto; min-width: min(280px, calc(100vw - 48px)); }
+
+  /* ---- Team page: the five figures in two columns, the explanation small ---- */
+  .team-summary .metric-grid.three { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ds-s-2, 8px); }
+  .team-summary .metric { padding: 8px 10px; }
+  .team-summary .metric strong { font-size: var(--mt-number, 20px); }
+  .team-summary .metric small { font-size: var(--mt-label, 12px); line-height: 1.4; }
+  .team-summary .metric-grid.three > .metric:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}

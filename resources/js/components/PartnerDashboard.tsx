@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Building2, CalendarDays, Hash, Landmark, Mail, MapPin, Users } from 'lucide-react';
+import { Building2, CalendarDays, Hash, Landmark, Mail, MapPin, ShoppingBag, Users } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { ProfilePhoto } from './ProfilePhoto';
 import { date, money, number, type Row } from './UI';
@@ -9,6 +9,7 @@ import CompanyBenefitsList from './mymoney/CompanyBenefits';
 import { useT } from '../shared/i18n/t';
 import { useIsPhone } from '../shared/useIsPhone';
 import AppointmentPill from './AppointmentPill';
+import PartnerViewSelect from './PartnerViewSelect';
 
 /** One line of the profile card: a small icon, a word and the value. */
 function CardLine({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
@@ -71,8 +72,8 @@ function IdentityBoxes({ card }: { card: Row }) {
 
     return (
         <dl className="pd-card pd-idboxes" data-testid="home-idboxes">
-            {boxes.filter(([, value]) => value !== null && value !== undefined && value !== '').map(([label, value]) => (
-                <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+            {boxes.filter(([, value]) => value !== null && value !== undefined && value !== '').map(([label, value], index) => (
+                <div key={label} className={index < 2 ? 'is-contact' : undefined}><dt>{label}</dt><dd>{value}</dd></div>
             ))}
         </dl>
     );
@@ -84,6 +85,10 @@ function MoneyColumn({ totals, cards, held, pending, benefits, card }: { totals:
     const { portalBase: base, portalCatalog } = usePage<any>().props;
     const heldLines: Row[] = held?.lines ?? [];
     const mayWithdraw: boolean = (portalCatalog?.sections ?? []).includes('my-money');
+    const isPhone = useIsPhone();
+    const canOrder: boolean = (portalCatalog?.sections ?? []).includes('purchase');
+    const pendingTotal = Number(pending?.total ?? 0);
+    const hasWaiting = pendingTotal > 0 || (pending?.rewards ?? []).length > 0 || (pending?.month_end ?? []).length > 0 || Number(held?.total ?? 0) > 0 || Boolean(benefits && (benefits as any).lines?.length);
 
     return (
         <section className="pd-middle" data-tour="home-metrics" aria-label={translate('my_money', 'title')}>
@@ -93,6 +98,19 @@ function MoneyColumn({ totals, cards, held, pending, benefits, card }: { totals:
                 <div title={translate('cr_partner', 'total_withdrawn_hint')}><span>{translate('cr_partner', 'total_withdrawn')}</span><strong>{money(totals.withdrawn)}</strong></div>
                 <div className="is-balance"><span>{translate('cr_partner', 'total_balance')}</span><strong>{money(totals.balance)}</strong></div>
             </div>
+            {(canOrder || mayWithdraw) && (
+                <div className="pd-primary" data-testid="home-primary-actions">
+                    {canOrder && <Link className="button dark pd-primary-main" href={`${base}/purchase`}><ShoppingBag size={18} aria-hidden="true" />{translate('portal', 'new_purchase_request')}</Link>}
+                    {mayWithdraw && <Link className="button pd-primary-side" href={`${base}/my-money?withdraw=1`} data-testid="home-withdraw">{translate('findability', 'btn_withdraw')}</Link>}
+                </div>
+            )}
+            {hasWaiting && (
+                <details key={isPhone ? 'phone' : 'wide'} className="pd-card pd-waiting" open={!isPhone} data-testid="home-waiting">
+                    <summary>
+                        <span>{translate('my_money', 'waiting_group_title')}</span>
+                        {pendingTotal > 0 && <strong>{money(pending?.total)}</strong>}
+                    </summary>
+                    <div className="pd-waiting-body">
             {/* Money that waits for the month's target or the month-end close: beside the balance, never inside it. */}
             {Number(pending?.total ?? 0) > 0 && (
                 <div className="pd-card pd-held" data-testid="home-pending-balance">
@@ -169,12 +187,14 @@ function MoneyColumn({ totals, cards, held, pending, benefits, card }: { totals:
                     )}
                 </div>
             )}
+                    </div>
+                </details>
+            )}
             <div className="pd-card pd-heads">
                 <div className="pd-heads-top">
                     <h3>{translate('cr_partner', 'heads_title')}</h3>
                     <div className="pd-heads-actions">
                         {/* The most wanted action sits on the home page; the wallet opens its withdrawal dialog (findability #2). */}
-                        {mayWithdraw && <Link className="button small dark" href={`${base}/my-money?withdraw=1`} data-testid="home-withdraw">{translate('findability', 'btn_withdraw')}</Link>}
                         <Link className="text-link" href={`${base}/my-money`}>{translate('cr_partner', 'open_wallet')}</Link>
                     </div>
                 </div>
@@ -274,12 +294,13 @@ export function IncomeReport() {
     return (
         <section className="pd-card pd-report" id="mm-book" aria-labelledby="pd-report-title">
             <h3 id="pd-report-title">{translate('cr_partner', 'report_title')}</h3>
-            <div className="pd-tabs" role="tablist" aria-label={translate('cr_partner', 'report_title')}>
-                {report.tabs.map((tab) => (
-                    <button key={tab.key} type="button" role="tab" aria-selected={tab.key === report.tab} className={`pd-tab${tab.key === report.tab ? ' is-on' : ''}`} onClick={() => choose(tab.key)}>
-                        {tab.label}
-                    </button>
-                ))}
+            <div className="pd-report-pick">
+                <PartnerViewSelect
+                    label={translate('cr_partner', 'report_title')}
+                    value={report.tab}
+                    options={report.tabs.map((tab) => ({ value: tab.key, label: tab.label }))}
+                    onChange={choose}
+                />
             </div>
             <MoneyTable
                 data={report.table}

@@ -3,6 +3,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Package, Search, ShoppingBag, ArrowRight, ShoppingCart, LayoutGrid, List } from 'lucide-react';
 import { money, number, Table, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { FilterDropdown } from './FilterDropdown';
 import { catalogWord } from '../shared/catalogWords';
 import PartnerCartCard from './partnercart/PartnerCartCard';
 import CartChooser from './partnercart/CartChooser';
@@ -121,29 +122,14 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                     />
                 </div>
 
-                <div className="ops-row is-wrap is-snug">
-                    <button
-                        type="button"
-                        onClick={() => setSelectedCat('')}
-                        className={`pcd-chip${!selectedCat ? ' is-active' : ''}`}
-                    >
-                        {translate('portal', 'b2b_all_categories')} ({cardCount(products)})
-                    </button>
-                    {allCategories.map(cat => {
-                        const count = cardCount(products.filter(p => p.category === cat));
-                        const active = selectedCat === cat;
-                        return (
-                            <button
-                                key={cat}
-                                type="button"
-                                onClick={() => setSelectedCat(cat)}
-                                className={`pcd-chip${active ? ' is-active' : ''}`}
-                            >
-                                {catalogWord(translate, 'category', cat)} ({count})
-                            </button>
-                        );
-                    })}
-                </div>
+                <FilterDropdown
+                    className="pcd-category"
+                    label={translate('portal', 'b2b_all_categories')}
+                    allLabel={`${translate('portal', 'b2b_all_categories')} (${cardCount(products)})`}
+                    value={selectedCat}
+                    onChange={setSelectedCat}
+                    options={allCategories.map(cat => ({ value: cat, label: catalogWord(translate, 'category', cat), count: cardCount(products.filter(p => p.category === cat)) }))}
+                />
 
                 {/* View Mode Toggle */}
                 <div className="hub-seg ops-ml-auto">

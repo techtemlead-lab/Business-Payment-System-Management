@@ -17,6 +17,7 @@ import { choiceName, oneCardPerGroup, sizesByGroup, type SizeCard } from '../sha
 import { amountInWords } from '../shared/orderAmountWords';
 import { useOrderCart } from '../shared/usePartnerCart';
 import { useIsPhone } from '../shared/useIsPhone';
+import { FilterDropdown } from './FilterDropdown';
 import { takeReorderNotes } from '../shared/reorderOrder';
 import { cardStock, filterChoices, partnerPrice, priceRange, searchProducts, stockKnown, stockState } from '../shared/orderSearch';
 
@@ -633,19 +634,32 @@ export default function ProductPurchaseMatrix({
                     )}
                 </div>
 
-                {/* Optional filters: they only narrow the list, ordering never needs them. */}
+                {/* Optional filters: they only narrow the list, ordering never needs them. Two drop-downs, not a strip of chips. */}
                 {availableCategories.length > 1 && (
                     <div className="ppm-filters" role="group" aria-label={translate('order_search', 'filters_label')}>
-                        <button type="button" className={`ppm-filter${filterCategory === '' ? ' is-on' : ''}`} aria-pressed={filterCategory === ''}
-                            onClick={() => { setFilterCategory(''); setFilterSub(''); }}>
-                            {translate('order_search', 'filter_all')}
-                        </button>
-                        {availableCategories.map(category => (
-                            <button key={category} type="button" className={`ppm-filter${filterCategory === category ? ' is-on' : ''}`} aria-pressed={filterCategory === category}
-                                onClick={() => { setFilterCategory(category); setFilterSub(''); setListOpen(true); searchRef.current?.focus(); }}>
-                                {categoryWord(category)}
-                            </button>
-                        ))}
+                        <FilterDropdown
+                            label={translate('order_search', 'filters_label')}
+                            allLabel={translate('order_search', 'filter_all')}
+                            value={filterCategory}
+                            options={availableCategories.map(category => ({ value: category, label: categoryWord(category) }))}
+                            onChange={category => {
+                                setFilterCategory(category);
+                                setFilterSub('');
+                                if (category !== '') {
+                                    setListOpen(true);
+                                    searchRef.current?.focus();
+                                }
+                            }}
+                        />
+                        {filterCategory !== '' && filterOptions.subCategories.length > 1 && (
+                            <FilterDropdown
+                                label={translate('order_search', 'filter_sub_label')}
+                                allLabel={translate('order_search', 'filter_all')}
+                                value={filterSub}
+                                options={filterOptions.subCategories.map(sub => ({ value: sub, label: sub }))}
+                                onChange={sub => { setFilterSub(sub); setListOpen(true); searchRef.current?.focus(); }}
+                            />
+                        )}
                     </div>
                 )}
                 {searchQuery.trim() !== '' && filterCategory !== '' && (
@@ -654,17 +668,6 @@ export default function ProductPurchaseMatrix({
                         <button type="button" className="text-link" onClick={() => { setFilterCategory(''); setFilterSub(''); }}>{translate('partner_ux', 'search_all')}</button>
                     </p>
                 )}
-                {filterCategory !== '' && filterOptions.subCategories.length > 1 && (
-                    <div className="ppm-filters is-sub" role="group" aria-label={translate('order_search', 'filter_sub_label')}>
-                        {filterOptions.subCategories.map(sub => (
-                            <button key={sub} type="button" className={`ppm-filter${filterSub === sub ? ' is-on' : ''}`} aria-pressed={filterSub === sub}
-                                onClick={() => { setFilterSub(current => current === sub ? '' : sub); setListOpen(true); searchRef.current?.focus(); }}>
-                                {sub}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
                 {!pickedCard && <p className="ppm-pick-prompt">{translate('order_search', 'pick_prompt')}</p>}
 
                 {pickedCard && activeProduct && (
