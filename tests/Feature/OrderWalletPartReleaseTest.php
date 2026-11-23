@@ -185,7 +185,8 @@ class OrderWalletPartReleaseTest extends TestCase
         $this->travel(10)->days();
         $this->artisan('madina:release-unpaid-wallet-orders')->assertSuccessful();
 
-        $this->assertSame('submitted', $order->fresh()->status);
+        // The checked payment completed the price, so the order approved itself; the release command leaves it alone.
+        $this->assertSame('approved', $order->fresh()->status);
         $this->assertSame('200.00', (string) $order->fresh()->paid);
         $this->assertSame('350.00', $this->usable($dealer));
     }

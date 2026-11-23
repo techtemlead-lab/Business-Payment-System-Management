@@ -89,7 +89,10 @@ class PrepareDemo extends Command
                 $o = $service->create($dealer, ['items' => [['product_id' => $p->id, 'quantity' => 10]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'DEMO-COLLECTION-001', 'channel' => 'Bank', 'amount' => '1400.00', 'note' => 'Synthetic demo order, not a real sale.']);
                 $claim = DB::table('payment_claims')->where('order_id', $o->id)->value('id');
                 $service->verify($admin, $claim, true, 'Synthetic demo verification');
-                $service->decision($admin, $o->fresh(), 'approved', 'Synthetic demo order paid in full');
+                // The verified full payment approves the order by itself; only decide it by hand if that did not happen.
+                if (in_array($o->fresh()->status, ['submitted', 'held'], true)) {
+                    $service->decision($admin, $o->fresh(), 'approved', 'Synthetic demo order paid in full');
+                }
                 $line = $o->lines()->first();
                 $service->dispatch($admin, $o->fresh(), ['items' => [['line_id' => $line->id, 'quantity' => 4]], 'courier' => 'Demo courier', 'tracking' => 'DEMO-TRACK-001', 'idempotency_key' => (string) Str::uuid(), 'eta' => now()->addDays(3)->toDateString()]);
                 // Orders are paid in full when placed, so the demo sub-dealer order carries its payment too.
