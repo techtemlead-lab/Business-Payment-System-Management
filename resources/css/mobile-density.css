@@ -1,0 +1,476 @@
+/*
+ * Phone density (390 px): less air, more content on one screen, in every panel and on the public site.
+ * Phones only: the whole file is one phone media query, so tablet and desktop stay exactly as they were.
+ * Imported last in dashboard.css (panels) and in reference-home.css (public pages).
+ *
+ * The phone scale (CSS pixels). Taken from two compact business apps the owner also uses, whose phone
+ * layouts keep 12 px page gutters, 12 px card padding, 8 to 12 px gaps and 4 to 8 px under headings:
+ *   page gutter      12   (was 16 to 24)        card / panel padding  12  (was 16 to 20)
+ *   gap between cards 8   (was 16 to 20)        form field gap         8  (was 14 to 18)
+ *   label to field    4   (was 6 to 7)          heading to content     6  (was 12 to 22)
+ *   table / list row  6 vertical padding        modal padding         12
+ * Not touched on purpose: tap targets (44 px), form text (16 px), body text (14 px or more),
+ * Bangla line height (1.5 or more), bar heights, colours, safe-area insets, and the filter components.
+ *
+ * Spacing tokens: the shared --ds-s-* scale is shrunk once for phones, so the many rules that read
+ * it (office, money, commission, treasury, training and hub screens) follow without being edited.
+ * Selectors repeat .app-shell on purpose: dashboard.css writes its own rules after its imports,
+ * so a plain selector here would lose to it.
+ */
+@media (max-width: 767px) {
+  /* ---- 1. The phone scale ------------------------------------------------------------------------- */
+  html:root {
+    --ds-s-1: 4px;
+    --ds-s-2: 8px;
+    --ds-s-3: 8px;
+    --ds-s-4: 12px;
+    --ds-s-5: 12px;
+    --ds-s-6: 16px;
+    --ds-s-8: 20px;
+    --ds-s-10: 24px;
+
+    --md-gutter: 12px;
+    --md-card: 12px;
+    --md-gap: 8px;
+    --md-field: 8px;
+    --md-label: 4px;
+    --md-head: 6px;
+    --md-row: 6px;
+  }
+
+  /* ---- 2. Panels (partner, office, owner): page, headings, cards ------------------------------------ */
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .workspace-main {
+    padding-top: 8px;
+    padding-left: var(--md-gutter);
+    padding-right: var(--md-gutter);
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .page-heading {
+    margin: 0 0 var(--md-head);
+    gap: var(--md-gap);
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .page-heading h1 {
+    margin: 0 0 2px;
+  }
+  .app-shell.app-shell .page-heading p {
+    margin: 0;
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .panel:not(.table-panel) {
+    padding: var(--md-card);
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .table-panel {
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .panel-heading {
+    margin-bottom: var(--md-head);
+    gap: var(--md-gap);
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .table-panel > .panel-heading {
+    padding: 10px var(--md-card) 0;
+    margin-bottom: var(--md-head);
+  }
+  .app-shell.app-shell .panel-heading p {
+    margin-top: 2px;
+  }
+  .app-shell.app-shell .panel h2,
+  .app-shell.app-shell .panel h3 {
+    margin-top: 0;
+  }
+  .app-shell.app-shell .workspace-footer {
+    margin-top: var(--md-card);
+    padding: 8px 0 0;
+    gap: var(--md-gap);
+  }
+
+  /* ---- 3. Number tiles, notices, empty states --------------------------------------------------------- */
+  .app-shell.app-shell .metric-grid {
+    gap: var(--md-gap);
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .metric {
+    padding: 10px var(--md-card);
+  }
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) .metric strong {
+    margin: 4px 0 2px;
+  }
+  .app-shell.app-shell .notice {
+    padding: 10px var(--md-card);
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .section-note {
+    padding: 8px var(--md-card);
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .empty {
+    min-height: 0;
+    padding: 16px var(--md-card);
+  }
+  .app-shell.app-shell .table-empty-phone .empty {
+    min-height: 0;
+    padding: 16px var(--md-card);
+  }
+
+  /* ---- 4. Forms: fields close together, labels close to their field ---------------------------------- */
+  .app-shell.app-shell .action-form {
+    gap: 10px;
+  }
+  .app-shell.app-shell .form-grid {
+    gap: 10px;
+  }
+  .app-shell.app-shell :is(.action-form, .form-grid) label:not(:has(input[type="checkbox"], input[type="radio"])) {
+    gap: var(--md-label);
+  }
+  .app-shell.app-shell .hub-field {
+    margin-bottom: 10px;
+    gap: var(--md-label);
+  }
+  .app-shell.app-shell .inline-actions {
+    gap: var(--md-field);
+  }
+  .app-shell.app-shell .button-row {
+    gap: var(--md-field);
+    margin-top: var(--md-card);
+  }
+
+  /* ---- 5. Tabs ---------------------------------------------------------------------------------------- */
+  .app-shell.app-shell .order-status-tabs {
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+
+  /* ---- 6. Tables and the phone cards that replace them ---------------------------------------------- */
+  .app-shell.app-shell:is(.owner-shell, .company-shell, .dealer-shell, .subdealer-shell) :is(th, td) {
+    padding-top: var(--md-row);
+    padding-bottom: var(--md-row);
+  }
+  .app-shell.app-shell .mt-card {
+    gap: var(--md-field);
+    padding: 8px 10px;
+  }
+  .app-shell.app-shell .table-tools {
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .table-panel > .table-block > :is(.table-cards, .table-empty-phone) {
+    margin: 0 var(--md-gap) var(--md-gap);
+  }
+  .app-shell.app-shell .table-card .mt-card-lines {
+    margin-top: 0;
+  }
+  .app-shell.app-shell .table-card-more dl > div {
+    padding: 5px 0;
+  }
+  .app-shell.app-shell .table-card-more dl {
+    margin-top: 6px;
+  }
+
+  /* ---- 7. Partner home, income, hub, account pages ------------------------------------------------------ */
+  .app-shell.app-shell .pd-grid {
+    gap: var(--md-gap);
+    margin: var(--md-gap) 0;
+  }
+  .app-shell.app-shell .pd-card {
+    padding: var(--md-card);
+  }
+  .app-shell.app-shell .pd-photo {
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .ph-hero {
+    padding: var(--md-card);
+    gap: 10px;
+  }
+  .app-shell.app-shell .ph-hero-stats {
+    gap: var(--md-gap);
+    padding-top: 10px;
+  }
+  .app-shell.app-shell .ph-actions {
+    padding: 8px 6px;
+    gap: 6px 4px;
+  }
+  .app-shell.app-shell .ph-card {
+    padding: var(--md-card);
+  }
+  .app-shell.app-shell .ph-card-head {
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .ph-today-grid {
+    margin-top: var(--md-gap);
+    gap: var(--md-gap);
+  }
+  .app-shell.app-shell .ph-birthday {
+    padding: 10px var(--md-card);
+    gap: 10px;
+  }
+  .app-shell.app-shell .hub-tile {
+    padding: 10px var(--md-card);
+  }
+  .app-shell.app-shell .hub-ledger {
+    padding: 8px var(--md-card);
+  }
+  .app-shell.app-shell .hub-sub {
+    margin-bottom: 10px;
+  }
+  .app-shell.app-shell .admin-home-hero,
+  .app-shell.app-shell .partner-home-grid {
+    gap: var(--md-gap);
+  }
+  .app-shell.app-shell .account-profile-card {
+    padding: var(--md-card);
+    gap: 10px;
+  }
+  .app-shell.app-shell .account-profile-info {
+    gap: 8px;
+  }
+  .app-shell.app-shell .account-profile-stats {
+    gap: 8px 16px;
+  }
+  .app-shell.app-shell .account-actions {
+    gap: var(--md-gap);
+    margin-bottom: var(--md-gap);
+  }
+  .app-shell.app-shell .account-action-card {
+    padding: 10px;
+    min-height: 80px;
+  }
+  .app-shell.app-shell .account-actions.dense-actions .account-action-card {
+    padding: 8px 10px;
+    min-height: 56px;
+  }
+  .app-shell.app-shell .registry-heading {
+    margin: var(--md-card) 0;
+  }
+  .app-shell.app-shell .registry-layout {
+    gap: var(--md-card);
+  }
+
+  /* ---- 8. Dialogs and bottom sheets --------------------------------------------------------------------- */
+  :root dialog.portal-modal:not(.portal-modal-drawer) .modal-heading {
+    padding: 6px 10px 8px var(--md-card);
+  }
+  :root dialog.portal-modal:not(.portal-modal-drawer) .modal-body {
+    padding: 10px var(--md-card) var(--md-card);
+  }
+  :root dialog.portal-modal:not(.portal-modal-drawer) .modal-body:last-child {
+    padding-bottom: calc(var(--md-card) + env(safe-area-inset-bottom));
+  }
+  :root dialog.portal-modal:not(.portal-modal-drawer) .modal-footer {
+    padding: 8px var(--md-card) calc(8px + env(safe-area-inset-bottom));
+  }
+  .confirm-sheet .confirm-sheet-fields {
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .confirm-sheet .confirm-sheet-amount {
+    margin: 10px 0 4px;
+  }
+  .confirm-sheet .confirm-sheet-facts > div {
+    padding: 6px 0;
+  }
+
+  /* ---- 9. Staff and owner sign-in -------------------------------------------------------------------- */
+  .company-auth.company-auth .company-auth-main {
+    padding-top: 16px;
+  }
+  .company-auth.company-auth .company-auth-card {
+    padding: 16px;
+  }
+
+  /* ---- 10. Public site ---------------------------------------------------------------------------------- */
+  body.ref-home .ref-container {
+    padding-left: var(--md-gutter);
+    padding-right: var(--md-gutter);
+  }
+  body.ref-home .ref-main {
+    padding-top: 10px;
+    padding-bottom: 16px;
+  }
+  body.ref-home .ref-container.ref-inner-main {
+    padding-top: 10px;
+    padding-bottom: 20px;
+  }
+  body.ref-home .ref-page-plate {
+    padding: 12px 14px;
+    margin-bottom: var(--md-gap);
+  }
+  body.ref-home .ref-page-plate-lead {
+    margin-top: 4px;
+  }
+  body.ref-home .ref-page-plate-extra {
+    margin-top: var(--md-gap);
+  }
+  body.ref-home .ref-announcement {
+    margin-top: 10px;
+  }
+  body.ref-home .ref-promotions,
+  body.ref-home .ref-side-banners {
+    gap: var(--md-gap);
+  }
+  body.ref-home .ref-shortcuts {
+    gap: var(--md-gap);
+    margin: 10px 0 16px;
+  }
+  body.ref-home .ref-shortcuts > a {
+    padding: 10px;
+    min-height: 64px;
+  }
+  body.ref-home .ref-section-title {
+    margin-bottom: 10px;
+  }
+  body.ref-home .ref-category-grid {
+    gap: var(--md-gap);
+  }
+  body.ref-home .ref-category-grid > a {
+    min-height: 88px;
+    padding: 10px 6px;
+    gap: 8px;
+  }
+  body.ref-home .ref-featured-products {
+    margin-top: 16px;
+  }
+  body.ref-home .ref-product-grid,
+  body.ref-home .ref-featured-products .ref-product-grid,
+  body.ref-home .ref-product-grid.ref-catalog-grid {
+    gap: var(--md-gap);
+  }
+  body.ref-home .ref-product-info {
+    padding: 10px;
+  }
+  body.ref-home .ref-product-photo {
+    padding: 20px 10px 6px;
+  }
+  body.ref-home .ref-catalog-toolbar {
+    padding: 8px var(--md-card);
+  }
+  body.ref-home .ref-home-about {
+    margin-top: 16px;
+    padding: 14px;
+  }
+  body.ref-home .ref-home-about h1 {
+    margin-bottom: 8px;
+  }
+  body.ref-home .ref-md-message--home {
+    margin: 8px 0;
+    padding: 12px 14px;
+  }
+  body.ref-home .ref-company-intro {
+    gap: 12px;
+    padding: 14px;
+    margin-top: 4px;
+  }
+  body.ref-home .ref-company-paths > a {
+    padding: 12px;
+  }
+  body.ref-home .ref-public-catalog-note {
+    padding: 12px;
+    gap: 10px;
+  }
+  body.ref-home .ref-partner-information {
+    padding: 14px;
+  }
+  body.ref-home .ref-empty {
+    min-height: 0;
+    padding: 20px 16px;
+  }
+  body.ref-home .ref-share-bar {
+    padding: 8px 14px;
+    margin-bottom: 10px;
+  }
+  body.ref-home .ref-detail-card {
+    gap: 14px;
+    padding: 14px;
+  }
+  body.ref-home .ref-detail-image {
+    padding: 12px;
+  }
+  body.ref-home .ref-selected-price {
+    padding: 12px;
+    margin-top: 12px;
+  }
+  body.ref-home .ref-detail-purchase {
+    margin-top: 14px;
+    gap: 10px;
+  }
+  body.ref-home .ref-product-description,
+  body.ref-home .ref-product-video {
+    margin-top: 12px;
+    padding: 14px;
+  }
+  body.ref-home .ref-product-tabs {
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  body.ref-home .ref-content-card {
+    padding: 14px;
+  }
+  body.ref-home .ref-content-prose {
+    line-height: 1.75;
+    margin-bottom: 14px;
+  }
+  body.ref-home .ref-contact-topic {
+    gap: 12px;
+    margin: 12px 0;
+  }
+  body.ref-home .ref-directory-heading {
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  body.ref-home .ref-map-card {
+    margin-top: 14px;
+    padding: 14px;
+  }
+  body.ref-home .ref-about-hero {
+    margin-bottom: 12px;
+  }
+  body.ref-home .ref-about-network {
+    margin-bottom: 14px;
+  }
+  body.ref-home .ref-partner-apply-form .ref-field-group {
+    margin-bottom: 10px;
+  }
+  body.ref-home .ref-partner-apply-form .ref-field-group:last-of-type {
+    margin-bottom: 14px;
+  }
+  html.ref-fold-ready [data-mobile-fold] > [data-fold-body] {
+    padding: 0 var(--md-card) var(--md-card);
+  }
+
+  /* Public footer */
+  body.ref-home .ref-footer {
+    padding-top: 20px;
+  }
+  body.ref-home .ref-footer-grid {
+    gap: 14px;
+    padding-bottom: 14px;
+  }
+  body.ref-home .ref-footer-grid > section {
+    padding-bottom: 12px;
+  }
+  body.ref-home .ref-footer h2 {
+    margin-bottom: 10px;
+  }
+  body.ref-home .ref-footer-bottom {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+
+  /* Public sign-in and error pages */
+  body.am-auth:not(.company-auth) .ref-container.ref-auth-main {
+    padding-top: 12px;
+    padding-bottom: 16px;
+  }
+  body.am-auth:not(.company-auth) .ref-auth-card {
+    padding: 16px 14px;
+  }
+  body.am-auth:not(.company-auth) .ref-auth-subtitle {
+    margin-bottom: 14px;
+  }
+  body.am-auth:not(.company-auth) .ref-auth-bottom {
+    margin-top: 14px;
+    padding-top: 12px;
+  }
+  body.ref-error-page .ref-error-main {
+    padding: 16px var(--md-gutter);
+  }
+  body.ref-error-page .ref-error-card {
+    padding: 20px 14px;
+  }
+}
