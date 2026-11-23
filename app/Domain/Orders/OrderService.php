@@ -415,15 +415,17 @@ class OrderService
                     'number' => $order->number,
                     'outcome' => $outcome,
                 ], $approve ? 'payment.verified' : 'payment.rejected');
-                $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
-                    'number' => $order->number,
-                    'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
-                ]);
+                $autoApproved = $approve && $this->approveWhenFullyPaid($actor, $order);
+                // An automatic approval sends its own text, which already says the full payment was checked: one SMS, not two.
+                if (! $autoApproved) {
+                    $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
+                        'number' => $order->number,
+                        'outcome' => SmsText::make($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected'),
+                    ]);
+                }
                 if (! $approve) {
                     // A wallet-part order whose other payment was turned down: say what is due and by when.
                     app(WalletPartRelease::class)->remindAfterRejection($order);
-                } else {
-                    $this->approveWhenFullyPaid($actor, $order);
                 }
             }, 3);
         } catch (QueryException $exception) {
@@ -442,17 +444,19 @@ class OrderService
      * order whose upline needs a replacement picked by hand waits for that choice, and an order the
      * approval refuses (for example its price does not fund the commissions) waits for a person. In each
      * case an activity line says why, and the payment check itself still stands.
+     *
+     * @return bool whether the order was approved here
      */
-    private function approveWhenFullyPaid(User $actor, Order $order): void
+    private function approveWhenFullyPaid(User $actor, Order $order): bool
     {
         $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
         if ($locked->status !== 'submitted' || $locked->is_opening_balance || Money::cents($locked->outstanding()) > 0) {
-            return;
+            return false;
         }
         if (app(UplineReplacementOptions::class)->slotsFor($locked) !== []) {
             $this->event($locked, $actor, 'order.auto_approve_waiting', ['reason' => __('portal.auto_approve_waiting_replacement')]);
 
-            return;
+            return false;
         }
         $locale = User::find($locked->user_id)?->preferredLocale() ?? app()->getLocale();
         try {
@@ -460,10 +464,12 @@ class OrderService
         } catch (ValidationException $exception) {
             $this->event($locked, $actor, 'order.auto_approve_waiting', ['reason' => (string) collect($exception->errors())->flatten()->first()]);
 
-            return;
+            return false;
         }
         $replace = ['number' => $locked->number];
         Audit::notifyAdminsAndStaff(['orders', 'inventory'], __('portal.notice_admin_auto_approved_title', $replace), __('portal.notice_admin_auto_approved_body', $replace), $actor->id);
+
+        return true;
     }
 
     /**

@@ -46,6 +46,32 @@ class OrderAutoApprovalTest extends TestCase
         $this->assertSame('approval', $order->commission_policy_snapshot['capture_event']);
     }
 
+    public function test_the_partner_gets_one_sms_for_the_payment_check_and_the_approval(): void
+    {
+        $dealer = User::factory()->dealer()->create(['phone' => '01720000077']);
+        $finance = User::factory()->staff('finance')->create();
+        $order = $this->orderPaidByOffice($dealer);
+        config(['madina.sms.driver' => 'array', 'madina.sms.sent' => []]);
+
+        $this->verifyOfficeCash($finance, $order, '200.00');
+
+        $events = collect(config('madina.sms.sent'))->pluck('event')->all();
+        $this->assertSame(['order.approved'], $events);
+    }
+
+    public function test_a_payment_that_does_not_approve_the_order_still_sends_its_own_sms(): void
+    {
+        $dealer = User::factory()->dealer()->create(['phone' => '01720000077']);
+        $finance = User::factory()->staff('finance')->create();
+        $order = $this->orderPaidByOffice($dealer);
+        DB::table('payment_claims')->where('order_id', $order->id)->update(['amount' => '50.00']);
+        config(['madina.sms.driver' => 'array', 'madina.sms.sent' => []]);
+
+        $this->verifyOfficeCash($finance, $order, '50.00');
+
+        $this->assertSame(['payment.verified'], collect(config('madina.sms.sent'))->pluck('event')->all());
+    }
+
     public function test_the_activity_line_comes_after_the_payment_line(): void
     {
         $dealer = User::factory()->dealer()->create();
