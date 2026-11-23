@@ -569,6 +569,7 @@ return [
     'ops_download_reports' => 'রিপোর্ট ডাউনলোড',
     'ops_download_reports_hint' => 'সময় বেছে নিন। এক্সেল ফাইলে সব তথ্য থাকে; পিডিএফে সর্বোচ্চ ৫,০০০ লাইন। টাকার পরিমাণ ৳-এ। তারিখ বাংলাদেশ সময়ে।',
     'ops_report' => 'রিপোর্ট',
+    'ops_report_group' => 'রিপোর্টের বিভাগ',
     'ops_report_products' => 'ডেলিভারি হওয়া পণ্যের বিক্রি',
     'ops_report_refunds' => 'ফেরতের জন্য কমিশন ঠিক করা',
     'ops_export_heading' => ':name রিপোর্ট',
