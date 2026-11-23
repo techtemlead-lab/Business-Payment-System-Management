@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
@@ -56,8 +57,9 @@ class OrderAutoApprovalTest extends TestCase
         $this->verifyOfficeCash($finance, $order, '200.00');
 
         $this->assertSame($before + 1, DB::table('account_notices')->where('user_id', $dealer->id)->count());
-        $latest = DB::table('account_notices')->where('user_id', $dealer->id)->orderByDesc('id')->value('title');
-        $this->assertSame(__('portal.notice_order_decision_title', ['status' => __('portal.order_status_approved')]), $latest);
+        $latest = DB::table('account_notices')->where('user_id', $dealer->id)->orderByDesc('id')->first();
+        $this->assertSame(__('portal.notice_payment_reviewed_title'), $latest->title);
+        $this->assertSame(__('portal.notice_payment_reviewed_body', ['number' => $order->number, 'outcome' => __('portal.payment_outcome_verified_approved')]), $latest->body);
     }
 
     public function test_the_partner_gets_one_sms_for_the_payment_check_and_the_approval(): void
@@ -70,7 +72,8 @@ class OrderAutoApprovalTest extends TestCase
         $this->verifyOfficeCash($finance, $order, '200.00');
 
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
-        $this->assertSame(['order.approved'], $events);
+        $this->assertSame(['payment.verified'], $events);
+        $this->assertStringContainsString(SmsText::make('portal.payment_outcome_verified_approved'), (string) config('madina.sms.sent')[0]['message']);
     }
 
     public function test_a_payment_that_does_not_approve_the_order_still_sends_its_own_sms(): void

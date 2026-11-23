@@ -2982,6 +2982,7 @@ return [
     'order_status_held' => 'আটকে রাখা',
     'order_status_rejected' => 'নামঞ্জুর',
     'payment_outcome_verified' => 'যাচাই হয়েছে',
+    'payment_outcome_verified_approved' => 'যাচাই হয়েছে এবং অর্ডার অনুমোদন হয়েছে',
     'payment_outcome_rejected' => 'নামঞ্জুর',
     'err_settle_month_open' => 'বেতন বা র‍্যাঙ্ক বোনাস মেলানোর আগে মাসটি শেষ হতে দিন।',
     'err_settle_royalty_shares' => 'র‍্যাঙ্ক বোনাস ফান্ডে অন্তত একটি র‍্যাঙ্কের ভাগ শূন্যের বেশি হতে হবে।',
@@ -7031,9 +7032,7 @@ return [
     'proof_image_alt' => 'আপলোড করা ছবি',
     'payment_proof_col' => 'স্ক্রিনশট',
     'payment_proof_none' => 'নেই',
-    'auto_approved_reason' => 'পুরো পেমেন্ট যাচাই হয়েছে, তাই অর্ডারটি নিজে থেকেই অনুমোদন হয়েছে।',
+    'auto_approved_reason' => 'পুরো পেমেন্ট যাচাই হয়েছে।',
     'auto_approve_waiting_replacement' => 'নিষ্ক্রিয় রেফারারের বদলে একজনকে আগে বেছে নিতে হবে, তাই এই অর্ডারটি অনুমোদনের জন্য স্টাফের অপেক্ষায় আছে।',
-    'notice_admin_auto_approved_title' => 'অর্ডার নিজে থেকে অনুমোদন হয়েছে (#:number)',
-    'notice_admin_auto_approved_body' => '#:number অর্ডারের পুরো পেমেন্ট যাচাই হয়েছে এবং অর্ডারটি অনুমোদন হয়েছে। এখন পাঠানোর জন্য প্রস্তুত।',
     'pp_salary_dealer_no_amount' => 'এই বোনাস মাস শেষে সারা বাংলাদেশের সেই সব ডিলারের মধ্যে সমান ভাগ হয়, যাঁরা টার্গেট পূরণ করেছেন। কতজন পূরণ করবেন তা মাস শেষে জানা যায়, তাই মাস শেষ হওয়ার আগে টাকার অঙ্ক বলা যায় না।',
 ];

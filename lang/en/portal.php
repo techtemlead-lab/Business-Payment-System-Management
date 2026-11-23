@@ -2982,6 +2982,7 @@ return [
     'order_status_held' => 'on hold',
     'order_status_rejected' => 'rejected',
     'payment_outcome_verified' => 'verified',
+    'payment_outcome_verified_approved' => 'verified and the order is approved',
     'payment_outcome_rejected' => 'rejected',
     'err_settle_month_open' => 'Wait until the month is over before closing its salary or rank bonus.',
     'err_settle_royalty_shares' => 'The rank bonus fund needs at least one rank share above zero.',
@@ -7031,9 +7032,7 @@ return [
     'proof_image_alt' => 'Uploaded picture',
     'payment_proof_col' => 'Screenshot',
     'payment_proof_none' => 'None',
-    'auto_approved_reason' => 'The full payment was checked, so the order was approved automatically.',
+    'auto_approved_reason' => 'The full payment was verified.',
     'auto_approve_waiting_replacement' => 'A replacement for an inactive referrer must be chosen first, so this order waits for staff to approve it.',
-    'notice_admin_auto_approved_title' => 'Order approved automatically (#:number)',
-    'notice_admin_auto_approved_body' => 'The full payment for order #:number was checked and the order was approved. It is ready to be sent.',
     'pp_salary_dealer_no_amount' => 'This bonus is shared equally at month end among all dealers in Bangladesh who meet their target. How many do is known only at month end, so the amount cannot be told before the month ends.',
 ];

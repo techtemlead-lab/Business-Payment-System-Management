@@ -207,7 +207,7 @@ class PartnerEventSmsTest extends TestCase
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
         // The payment check approves the order in the same step, and the partner gets one text for both.
         $this->assertSame(
-            ['order.submitted', 'payment.claimed', 'order.approved', 'order.dispatched', 'shipment.delivered'],
+            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.dispatched', 'shipment.delivered'],
             $events,
         );
 
