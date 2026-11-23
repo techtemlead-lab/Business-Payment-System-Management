@@ -56,9 +56,16 @@ class OfficeOrganiseTest extends TestCase
         $this->assertStringContainsString('views.length > 3', $this->source('js/components/office/sections/staffSectionParts.tsx'), 'More than three views become a drop-down.');
     }
 
+    public function test_the_help_chapters_are_filtered_by_one_drop_down_not_a_wall_of_chips(): void
+    {
+        $help = $this->source('js/components/HelpSupportHub.tsx');
+
+        $this->assertStringContainsString('<FilterDropdown', $help);
+        $this->assertStringNotContainsString('className={`category-pill', $help);
+    }
+
     public function test_secondary_actions_sit_in_a_more_menu(): void
     {
-        $this->assertStringContainsString('<ActionMenu', $this->source('js/pages/OrderDetail.tsx'));
         $this->assertStringContainsString('<ActionMenu', $this->source('js/pages/PartnerProfile.tsx'));
         $this->assertStringContainsString('<ActionMenu', $this->source('js/components/office/sections/Inventory.tsx'));
     }
