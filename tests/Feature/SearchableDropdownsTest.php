@@ -42,7 +42,7 @@ class SearchableDropdownsTest extends TestCase
             'featured order: product' => ['components/website/FeaturedOrderList.tsx', 1],
             'featured products: product' => ['components/website/FeaturedProductsManager.tsx', 1],
             'area dealers: dealer and place' => ['components/AreaDealersHub.tsx', 1],
-            'team orders: team member' => ['pages/TeamOrders.tsx', 1],
+            // The team member list on the team orders page is a filter now: see test_the_team_member_filter_is_the_searchable_drop_down.
             'staff access: staff member' => ['components/StaffAccessEditor.tsx', 1],
             'branches: staff member' => ['components/BranchesHub.tsx', 1],
             'branch performance: branch' => ['components/BranchPerformanceHub.tsx', 1],
@@ -57,6 +57,13 @@ class SearchableDropdownsTest extends TestCase
     public function test_a_long_list_is_picked_from_the_searchable_drop_down(string $file, int $pickers): void
     {
         $this->assertGreaterThanOrEqual($pickers, substr_count($this->source($file), '<SearchSelect'), $file);
+    }
+
+    public function test_the_team_member_filter_is_the_searchable_drop_down(): void
+    {
+        $page = $this->source('pages/TeamOrders.tsx');
+
+        $this->assertMatchesRegularExpression("/<FilterPicker\s+search\s+label=\{translate\('portal', 'team_orders_member'\)\}/", $page);
     }
 
     /** @return array<string, array{0: string, 1: int}> */

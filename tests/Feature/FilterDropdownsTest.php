@@ -81,6 +81,37 @@ class FilterDropdownsTest extends TestCase
         $this->assertStringNotContainsString('sf-main-field', $this->source('js/components/MoneyTableFilters.tsx'));
     }
 
+    public function test_the_date_presets_are_one_drop_down_with_the_date_boxes_beside_it(): void
+    {
+        $table = $this->source('js/components/MoneyTable.tsx');
+
+        $this->assertStringContainsString("label={translate('portal', 'filter_label_dates')}", $table);
+        $this->assertStringContainsString('onChange={chooseView}', $table);
+        $this->assertStringContainsString("activeView === 'custom'", $table);
+        $this->assertStringContainsString('className="fd-date"', $table);
+        $this->assertStringNotContainsString('className="mt-view"', $table, 'The date presets are no longer a row of chips.');
+        $this->assertStringNotContainsString('className="mt-dates"', $table);
+
+        $top = $this->source('js/components/TopSellersBoard.tsx');
+        $this->assertStringContainsString('<FilterDropdown', $top);
+        $this->assertStringNotContainsString('className="mt-view"', $top);
+    }
+
+    public function test_the_toolbar_stays_on_one_row_from_1280_px_and_the_searchable_list_looks_the_same_as_the_plain_one(): void
+    {
+        $css = $this->source('css/screens-filter-dropdowns.css');
+
+        $this->assertStringContainsString('@media (min-width:1280px){', $css);
+        $this->assertStringContainsString('.mt-toolbar:not(.has-dates):not(:has(.sf-chips)){flex-wrap:nowrap}', $css);
+        $this->assertStringContainsString('form.filter-bar.order-filters:not(:has(.order-dates)){flex-wrap:nowrap}', $css);
+        $this->assertStringContainsString('max-width:190px', $css);
+        $this->assertStringContainsString(':root .fd .ss .ss-trigger', $css);
+
+        $filter = $this->source('js/components/FilterDropdown.tsx');
+        $this->assertStringContainsString("'fd', 'fd-search'", $filter);
+        $this->assertStringContainsString('emptyLabel={everything}', $filter);
+    }
+
     /** @return list<string> */
     private function callers(): array
     {

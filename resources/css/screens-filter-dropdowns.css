@@ -1,69 +1,92 @@
 /* =========================================================================
-   FilterDropdown: every filter is its own drop-down (a native select), with "All" first.
-   Choosing a value applies it at once. Built from the design-system tokens, so the dark
-   theme follows. The container (--fd-h) sets the height; the selectors start with :root
-   because the toolbars that hold the drop-downs style their own selects further down.
+   FilterDropdown: every filter is its own drop-down (a native select, or the searchable
+   drop-down for a long list), with "All" first. Choosing a value applies it at once. Built
+   from the design-system tokens, so the dark theme follows. The container sets the height
+   (--fd-h); the selectors start with :root because the toolbars that hold the drop-downs
+   style their own selects further down.
 
-   Computer (768 px and up): the filter name sits inside the box in front of the value, and the
-   drop-downs of a toolbar stay on one row at normal desktop widths.
-   Phone (under 768 px): the name sits above a 44 px box, two boxes per row.
+   Computer (768 px and up): the filter name sits inside the box in front of the value. From
+   1280 px the search box, every drop-down and the buttons of a toolbar stay on ONE row; the
+   drop-downs are 112 to 190 px wide and shrink before the row would wrap.
+   Phone (under 768 px): every box is the same, 44 px high with 16 px text and the name above
+   it, two boxes per row.
    ========================================================================= */
-.fd{display:inline-flex;align-items:center;flex:0 1 auto;gap:2px;min-width:0;max-width:100%;height:var(--fd-h,36px);margin:0;padding:0 0 0 10px;border:1px solid var(--ds-line-strong,#cbd5e1);border-radius:var(--ds-r-md,8px);background:var(--ds-surface,#fff);color:var(--ds-text-2,#334155);font-size:var(--ds-fs-sm,14px);font-weight:500;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
-.fd.fd-bare{padding-left:0}
+.fd{display:inline-flex;align-items:center;flex:0 1 auto;gap:2px;min-width:112px;max-width:190px;height:var(--fd-h,36px);margin:0;padding:0 0 0 10px;border:1px solid var(--ds-line-strong,#cbd5e1);border-radius:var(--ds-r-md,8px);background:var(--ds-surface,#fff);color:var(--ds-text-2,#334155);font-size:var(--ds-fs-sm,14px);font-weight:500;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.fd.fd-bare{min-width:90px;padding-left:0}
 .fd:hover{border-color:var(--ds-text-faint,#94a3b8)}
 .fd:focus-within{border-color:var(--ds-brand,#006a4e);box-shadow:var(--ds-focus-ring,0 0 0 3px rgba(0,106,78,.18))}
-:root .fd label.fd-label{display:block;flex:none;max-width:9em;margin:0;overflow:hidden;color:var(--ds-text-muted,#64748b);font-size:var(--ds-fs-xs,12px);font-weight:600;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
-:root .fd select.fd-select:not([multiple]){flex:1 1 auto;width:auto;min-width:72px;max-width:170px;height:calc(var(--fd-h,36px) - 2px);min-height:0;margin:0;padding:0 28px 0 4px;border:0;border-radius:0 var(--ds-r-md,8px) var(--ds-r-md,8px) 0;background-color:transparent;box-shadow:none;color:inherit;font-size:var(--ds-fs-sm,14px);font-weight:inherit;text-overflow:ellipsis;cursor:pointer}
+:root .fd label.fd-label{display:block;flex:none;max-width:7.5em;margin:0;overflow:hidden;color:var(--ds-text-muted,#64748b);font-size:var(--ds-fs-xs,12px);font-weight:600;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+:root .fd select.fd-select:not([multiple]){flex:1 1 auto;width:auto;min-width:0;max-width:none;height:calc(var(--fd-h,36px) - 2px);min-height:0;margin:0;padding:0 28px 0 4px;border:0;border-radius:0 var(--ds-r-md,8px) var(--ds-r-md,8px) 0;background-color:transparent;box-shadow:none;color:inherit;font-size:var(--ds-fs-sm,14px);font-weight:inherit;text-overflow:ellipsis;cursor:pointer}
 :root .fd.fd-bare select.fd-select:not([multiple]){padding-left:10px;border-radius:var(--ds-r-md,8px)}
 :root .fd select.fd-select:not([multiple]):focus{outline:none;border:0;box-shadow:none}
 .fd select.fd-select option{background-color:var(--ds-surface,#fff);color:var(--ds-text,#0f172a);font-weight:400}
 
+/* The searchable drop-down of a long list sits in the same frame and looks the same. */
+:root .fd .ss.ss-filter{flex:1 1 auto;display:block;width:auto;min-width:0;max-width:none}
+:root .fd .ss .ss-trigger{min-height:0;height:calc(var(--fd-h,36px) - 2px);padding:0 10px 0 4px;border:0;border-radius:0 var(--ds-r-md,8px) var(--ds-r-md,8px) 0;background:transparent;box-shadow:none;color:inherit;font-size:var(--ds-fs-sm,14px);font-weight:inherit}
+:root .fd.fd-bare .ss .ss-trigger{padding-left:10px;border-radius:var(--ds-r-md,8px)}
+:root .fd .ss .ss-trigger.is-blank .ss-value{color:inherit}
+:root .fd .ss .ss-trigger:focus-visible,:root .fd .ss .ss-trigger[aria-expanded="true"]{border:0;box-shadow:none}
+
 /* A filter that is switched on. */
 .fd.is-on{border-color:var(--ds-brand,#006a4e);background:var(--ds-brand-soft,#e6f4ef);color:var(--ds-brand-text,#00503b)}
 .fd.is-on label.fd-label{color:var(--ds-brand-text,#00503b)}
-:root .fd.is-on select.fd-select:not([multiple]){font-weight:600}
+:root .fd.is-on select.fd-select:not([multiple]),:root .fd.is-on .ss .ss-trigger{font-weight:600}
 
-/* The searchable drop-down for a long list (places, products, partners) takes the same look. */
-.ss.ss-fd{flex:0 1 190px;width:auto;min-width:150px;max-width:220px}
-.ss.ss-fd .ss-trigger{min-height:var(--fd-h,36px);height:var(--fd-h,36px);padding-block:0}
-.ss.ss-fd.ss-filter-on .ss-trigger{border-color:var(--ds-brand,#006a4e);background:var(--ds-brand-soft,#e6f4ef);color:var(--ds-brand-text,#00503b);font-weight:600}
+/* A date that goes with a "One date" or "Between dates" choice: it sits next to the drop-down. */
+.fd-date{display:inline-flex;flex:none;align-items:center;gap:6px;margin:0;color:var(--ds-text-muted,#64748b);font-size:var(--ds-fs-xs,12px);font-weight:600}
+:root .fd-date .date-input-wrapper{width:150px;height:var(--fd-h,36px);min-height:0;margin:0}
 
 /* Toolbars that hold drop-downs: the height the neighbouring search box and buttons have. */
 .mt-filters,.table-tools{--fd-h:34px}
 .cleanup-filters{--fd-h:44px}
 .mt-sheet-field{display:grid;gap:6px;min-width:0}
+.mt-filters{flex:0 1 auto;align-items:center}
+.mt-toolbar .mt-search{flex:1 1 220px;min-width:150px;max-width:320px}
+.mt-toolbar .mt-actions{flex:none}
 
-/* A little narrower on a laptop so a row of four or five still fits on one line. */
-@media (min-width:768px) and (max-width:1279px){
-  :root .fd select.fd-select:not([multiple]){max-width:150px}
-  .ss.ss-fd{min-width:140px;max-width:190px}
+/* From a normal desktop width the toolbar is a single row. It may wrap only when a date box has opened. */
+@media (min-width:1280px){
+  .mt-toolbar:not(.has-dates):not(:has(.sf-chips)){flex-wrap:nowrap}
+  .mt-toolbar:not(.has-dates):not(:has(.sf-chips)) .mt-filters{flex-wrap:nowrap;min-width:0}
+  :root .app-shell form.filter-bar.order-filters:not(:has(.order-dates)){flex-wrap:nowrap}
+  :root .app-shell form.filter-bar.order-filters:not(:has(.order-dates)) .order-search{flex:0 1 auto;min-width:0}
 }
 
-/* Phone: a compact two-column grid, name above the box, box 44 px high with 16 px text. */
+/* Phone: a compact grid. Every box the same: name above, 44 px high, 16 px text, two per row. */
 @media (max-width:767px){
-  .fd{display:grid;grid-template-columns:minmax(0,1fr);flex:1 1 calc(50% - 4px);gap:4px;width:100%;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
-  .fd:hover,.fd:focus-within{border:0;box-shadow:none}
-  .fd.is-on{border:0;background:none}
+  .fd{display:grid;grid-template-columns:minmax(0,1fr);flex:1 1 calc(50% - 4px);gap:4px;width:100%;min-width:0;max-width:none;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+  .fd.fd-bare{min-width:0}
+  .fd:hover,.fd:focus-within,.fd.is-on{border:0;background:none;box-shadow:none}
   :root .fd label.fd-label{max-width:none;font-size:13px}
   :root .fd select.fd-select:not([multiple]),
-  :root .fd.fd-bare select.fd-select:not([multiple]){width:100%;max-width:none;height:44px;padding:0 32px 0 12px;border:1px solid var(--ds-line-strong,#cbd5e1);border-radius:var(--ds-r-md,8px);background-color:var(--ds-surface,#fff);font-size:16px}
-  :root .fd.is-on select.fd-select:not([multiple]){border-color:var(--ds-brand,#006a4e);background-color:var(--ds-brand-soft,#e6f4ef);color:var(--ds-brand-text,#00503b);font-weight:600}
-  :root .fd select.fd-select:not([multiple]):focus{border-color:var(--ds-brand,#006a4e);box-shadow:var(--ds-focus-ring,0 0 0 3px rgba(0,106,78,.18))}
-  .ss.ss-fd{flex:1 1 calc(50% - 4px);width:100%;min-width:0;max-width:none}
-  .ss.ss-fd .ss-trigger{height:44px}
+  :root .fd.fd-bare select.fd-select:not([multiple]),
+  :root .fd .ss .ss-trigger,
+  :root .fd.fd-bare .ss .ss-trigger{width:100%;max-width:none;height:44px;min-height:44px;padding:0 32px 0 12px;border:1px solid var(--ds-line-strong,#cbd5e1);border-radius:var(--ds-r-md,8px);background-color:var(--ds-surface,#fff);font-size:16px;font-weight:400}
+  :root .fd .ss .ss-trigger{padding-right:12px}
+  :root .fd.is-on select.fd-select:not([multiple]),
+  :root .fd.is-on .ss .ss-trigger{border-color:var(--ds-brand,#006a4e);background-color:var(--ds-brand-soft,#e6f4ef);color:var(--ds-brand-text,#00503b);font-weight:600}
+  :root .fd select.fd-select:not([multiple]):focus,
+  :root .fd .ss .ss-trigger:focus-visible,:root .fd .ss .ss-trigger[aria-expanded="true"]{border:1px solid var(--ds-brand,#006a4e);box-shadow:var(--ds-focus-ring,0 0 0 3px rgba(0,106,78,.18))}
+  .fd-date{display:grid;flex:1 1 calc(50% - 4px);gap:4px;font-size:13px}
+  :root .fd-date .date-input-wrapper{width:100%;height:44px}
 
   /* A toolbar that is a grid: two drop-downs per row; the search box, dates and buttons take the full row. */
   :root .app-shell form.filter-bar.order-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end;gap:10px 8px}
-  :root .app-shell form.filter-bar.order-filters>:not(.fd,.ss-fd,:has(>.fd)){grid-column:1/-1}
+  :root .app-shell form.filter-bar.order-filters>:not(.fd,:has(>.fd)){grid-column:1/-1}
   :root .app-shell form.filter-bar.order-filters>.order-filter-actions{justify-content:flex-start}
   :root .app-shell .table-tools{align-items:end}
   :root .app-shell .cleanup-filters{align-items:end;gap:10px 8px}
   :root .app-shell .cleanup-filters>label{flex:1 1 100%;min-width:0}
   :root .app-shell .server-list-search{align-items:end;gap:10px 8px}
 
-  /* The drop-downs of the money table sit under the search box on a phone, no sheet needed. */
-  :root .app-shell .mt-toolbar>.mt-clear{order:3}
-  :root .app-shell .mt-filters.mt-filters-phone{display:flex;flex-wrap:wrap;flex:0 0 100%;order:2;gap:10px 8px}
+  /* The money table: search on top, then the drop-downs, then "clear", then Sort and the file buttons in one row. */
+  :root .app-shell .mt-toolbar{align-items:end;gap:10px 8px}
+  :root .app-shell .mt-toolbar>.mt-search{order:0;flex:0 0 100%;min-width:0;max-width:none}
+  :root .app-shell .mt-filters.mt-filters-phone{display:flex;flex-wrap:wrap;align-items:end;flex:0 0 100%;order:1;gap:10px 8px;min-width:0}
+  :root .app-shell .mt-toolbar>.mt-clear{order:2}
+  :root .app-shell .mt-toolbar>.mt-sheet-button{order:3;flex:0 0 auto}
+  :root .app-shell .mt-toolbar>.mt-actions{order:3;flex:0 0 auto;margin:0}
 }
 
 @media (prefers-reduced-motion:reduce){.fd{transition:none}}

@@ -2,12 +2,11 @@ import React from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Trophy } from 'lucide-react';
 import { DateInput, Table, money, type Row } from './UI';
-import { ReportFilterSheet } from './BranchPerformanceHub';
 import OfficePage from './office/OfficePage';
 import Figures from './office/Figures';
 import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
-import FilterPicker from './FilterDropdown';
+import FilterPicker, { FilterDropdown } from './FilterDropdown';
 import { businessMonth, localizeDigits } from '../business-date';
 
 /** One place on the board. Amount is null when the owner hides the taka figures. */
@@ -112,8 +111,8 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
     };
     const datePickers = (
         <>
-            <label>{translate('office_reports', 'top_sellers_from')}<DateInput value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
-            <label>{translate('office_reports', 'top_sellers_to')}<DateInput value={pickedTo} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
+            <label className="fd-date"><span>{translate('office_reports', 'top_sellers_from')}</span><DateInput value={pickedFrom} onChange={(event) => chooseDates(event.target.value, pickedTo)} /></label>
+            <label className="fd-date"><span>{translate('office_reports', 'top_sellers_to')}</span><DateInput value={pickedTo} disabled={!pickedFrom} onChange={(event) => chooseDates(pickedFrom, event.target.value)} /></label>
         </>
     );
     const topTenTotal = entries.reduce((sum, entry) => sum + Math.round(Number(entry.amount ?? 0) * 100), 0) / 100;
@@ -146,20 +145,21 @@ function OfficeTopSellers({ board }: { board: TopSellersPayload }) {
                         </div>
                     )}
                     <div className="mt-toolbar">
-                        <ReportFilterSheet><div className="mt-sheet-field">{divisionPicker}</div>{datePickers}</ReportFilterSheet>
-                        <div className="mt-views" role="group" aria-label={translate('portal', 'top_sellers_pick_month')}>
-                            {board.months.map((month, index) => (
-                                <button key={month} type="button" className="mt-view" aria-pressed={!period && month === board.month} onClick={() => visit({ month })}>
-                                    {index === 0 ? translate('portal', 'top_sellers_this_month') : businessMonth(month)}
-                                </button>
-                            ))}
-                            {(['last30', 'today', 'week', 'year'] as const).map((choice) => (
-                                <button key={choice} type="button" className="mt-view" aria-pressed={period === choice} onClick={() => visit({ period: choice })}>
-                                    {translate('portal', `orders_period_${choice}`)}
-                                </button>
-                            ))}
+                        <div className="mt-filters mt-filters-phone">
+                            <FilterDropdown
+                                label={translate('portal', 'filter_label_dates')}
+                                ariaLabel={translate('portal', 'top_sellers_pick_month')}
+                                showLabel
+                                value={period || board.month}
+                                onChange={(value) => (board.months.includes(value) ? visit({ month: value }) : visit({ period: value }))}
+                                options={[
+                                    ...board.months.map((month, index) => ({ value: month, label: index === 0 ? translate('portal', 'top_sellers_this_month') : businessMonth(month) })),
+                                    ...(['last30', 'today', 'week', 'year'] as const).map((choice) => ({ value: choice, label: translate('portal', `orders_period_${choice}`) })),
+                                ]}
+                            />
+                            {divisionPicker}
+                            {datePickers}
                         </div>
-                        <div className="mt-filters">{divisionPicker}{datePickers}</div>
                     </div>
                     <Table<Row>
                         rows={entries as unknown as Row[]}

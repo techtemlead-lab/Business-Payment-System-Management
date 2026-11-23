@@ -4,7 +4,6 @@ import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Badge, Row, Table, Pagination, money, dateTime, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
-import SearchSelect from '../components/SearchSelect';
 import FilterPicker, { FilterDropdown } from '../components/FilterDropdown';
 import { PartnerTypeCell } from '../components/office/portalShared';
 
@@ -79,12 +78,12 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                     <DateInput aria-label={translate('portal', 'stmt_from')} value={from} onChange={event => setFrom(event.target.value)} />
                     <DateInput aria-label={translate('portal', 'stmt_to')} value={to} onChange={event => setTo(event.target.value)} />
                 </div>
-                <SearchSelect
-                    className="ss-filter ss-fd"
-                    ariaLabel={translate('portal', 'team_orders_member')}
+                <FilterPicker
+                    search
+                    label={translate('portal', 'team_orders_member')}
+                    allLabel={translate('portal', 'team_orders_all_members')}
                     value={member}
                     onChange={value => { setMember(value); go({ member: value }); }}
-                    emptyLabel={translate('portal', 'team_orders_all_members')}
                     options={members.map(item => ({ value: String(item.id), label: `${item.name}${item.dealer_code ? ` (${item.dealer_code})` : ''}` }))}
                 />
                 <FilterPicker label={translate('portal', 'col_status')} allLabel={translate('portal', 'team_orders_all_statuses')} maxChips={Infinity} value={status} onChange={value => { setStatus(value); go({ status: value }); }} options={statuses.map(item => ({ value: item, label: translate('portal', `status_${item}`) }))} />
