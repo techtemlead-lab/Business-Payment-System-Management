@@ -7015,7 +7015,7 @@ return [
     'nav_bottom_network' => 'টিম',
     'nav_bottom_more' => 'আরও',
     'nav_bottom_dashboard' => 'ড্যাশবোর্ড',
-    'nav_bottom_products' => 'প্রোডাক্টস',
+    'nav_bottom_products' => 'পণ্য',
     'nav_bottom_orders' => 'অর্ডার',
     'nav_bottom_wallet' => 'ওয়ালেট',
     'bottom_payouts_hub' => 'টাকা তোলা',
