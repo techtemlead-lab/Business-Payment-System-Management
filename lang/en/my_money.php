@@ -61,6 +61,7 @@ return [
 
     // Pending money: what the partner gets only if the month's target is met, and the month-end salary.
     'pending_balance' => 'Pending balance',
+    'waiting_group_title' => 'Money that is waiting',
     'pending_balance_hint' => 'Money you will get if this month\'s target is met. It is not in your balance yet.',
     'pending_estimate_hint' => 'Your salary is worked out from your own purchases so far and can change until the month ends.',
     'pending_heading' => 'Pending money',

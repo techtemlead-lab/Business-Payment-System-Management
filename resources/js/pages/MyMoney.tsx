@@ -15,6 +15,8 @@ import WithdrawalRequests from '../components/mymoney/WithdrawalRequests';
 import WithdrawSheet from '../components/mymoney/WithdrawSheet';
 import type { CompanyBenefits, Certificates, HeldCommission, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, ReserveReceipt, SalaryNote, StatementTable, WithdrawalRequest, WithdrawInfo } from '../components/mymoney/types';
 import { useT } from '../shared/i18n/t';
+import { useIsPhone } from '../shared/useIsPhone';
+import { money } from '../components/UI';
 
 /** All of a partner's money on one page: what they can use, where it came from, every movement. */
 export default function MyMoney({ summary, cards, table, withdrawal_requests: withdrawalRequests, not_earned_area: notEarnedArea, held_commission: heldCommission, pending, salary_notes: salaryNotes, withdraw, certificates, reserve_receipts: reserveReceipts, benefits }: {
@@ -32,6 +34,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
     benefits?: CompanyBenefits | null;
 }) {
     const translate = useT();
+    const isPhone = useIsPhone();
     const { portalBase: base, financeActive } = usePage<any>().props;
     // ?withdraw=1 (dashboard button, menu search) opens the withdrawal sheet straight away.
     const [sheetOpen, setSheetOpen] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('withdraw') === '1');
@@ -40,6 +43,20 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
     const orderHref = financeActive && Number(summary.available) > 0
         ? `${base}/purchase?pay=account&budget=${summary.available}`
         : `${base}/purchase`;
+
+    const waitingTotal = Number(pending?.total ?? 0);
+    // Everything that is not in the balance yet sits in one folded block, so the page opens on the balance and the book.
+    const hasWaiting = waitingTotal > 0 || (pending?.lines ?? []).length > 0 || (pending?.paid ?? []).length > 0 || (pending?.rewards ?? []).length > 0 || (pending?.month_end ?? []).length > 0
+        || Number(heldCommission?.total ?? 0) > 0 || notEarnedArea.length > 0 || salaryNotes.length > 0 || (benefits?.lines ?? []).length > 0;
+    const waitingLists = (
+        <>
+            <PendingMoneyList pending={pending} />
+            <CompanyBenefitsList benefits={benefits} />
+            <HeldCommissionList held={heldCommission} />
+            <NotEarnedAreaList rows={notEarnedArea} />
+            <SalaryNotes notes={salaryNotes} />
+        </>
+    );
 
     return (
         <Shell section="my-money">
@@ -58,11 +75,15 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                     )}
                 />
                 <WithdrawalRequests requests={withdrawalRequests} />
-                <PendingMoneyList pending={pending} />
-                <CompanyBenefitsList benefits={benefits} />
-                <HeldCommissionList held={heldCommission} />
-                <NotEarnedAreaList rows={notEarnedArea} />
-                <SalaryNotes notes={salaryNotes} />
+                {hasWaiting && (
+                    <details key={isPhone ? 'phone' : 'wide'} className="mm-fold" open={!isPhone} data-testid="my-money-waiting">
+                        <summary>
+                            <span>{translate('my_money', 'waiting_group_title')}</span>
+                            {waitingTotal > 0 && <strong>{money(pending?.total)}</strong>}
+                        </summary>
+                        <div className="mm-fold-body">{waitingLists}</div>
+                    </details>
+                )}
                 <IncomeCards cards={cards} selected={selected} onChoose={chooseType} />
                 <Lifetime lifetime={summary.lifetime} />
                 <MoneyBook table={table} />
