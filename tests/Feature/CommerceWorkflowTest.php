@@ -114,10 +114,8 @@ class CommerceWorkflowTest extends TestCase
         ])->assertOk();
         $this->assertDatabaseCount('commission_batches', 0);
 
-        $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/decision', [
-            'status' => 'approved',
-            'reason' => 'Payment confirmed',
-        ])->assertOk();
+        // The verified full payment has already approved the order.
+        $this->assertDatabaseHas('orders', ['id' => $id, 'status' => 'approved']);
         $line = DB::table('order_lines')->where('order_id', $id)->value('id');
         $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/dispatch', [
             'courier' => 'Portal courier',

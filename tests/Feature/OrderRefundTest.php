@@ -208,7 +208,8 @@ class OrderRefundTest extends TestCase
         $admin = User::factory()->create(['role' => 'super_admin']);
         $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');
         $this->actingAs($admin)->postJson('/api/v1/claims/'.$claim.'/verify', ['approve' => true, 'reason' => 'Matched bank statement'])->assertOk();
-        $this->postJson('/api/v1/orders/'.$id.'/decision', ['status' => 'approved', 'reason' => 'Payment confirmed'])->assertOk();
+        // The verified full payment has already approved the order.
+        $this->assertDatabaseHas('orders', ['id' => $id, 'status' => 'approved']);
         $line = DB::table('order_lines')->where('order_id', $id)->value('id');
         $this->postJson('/api/v1/orders/'.$id.'/dispatch', ['courier' => 'Test courier', 'tracking' => 'TRACK-REFUND',
             'idempotency_key' => (string) Str::uuid(), 'items' => [['line_id' => $line, 'quantity' => 1]]])->assertOk();
