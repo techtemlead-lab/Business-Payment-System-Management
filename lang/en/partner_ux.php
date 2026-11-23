@@ -96,4 +96,5 @@ return [
     'call_me_sent' => 'The office has been told. They will call you.',
     'call_me_failed' => 'We could not send it. Please try again or call the office.',
     'totals_note' => '“You ordered” is the price of every running and delivered order. “Delivered” is only the goods that reached you. “Still to pay” is the money not yet paid on your orders.',
+    'totals_note_title' => 'What do these numbers mean?',
 ];

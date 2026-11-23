@@ -19,6 +19,7 @@ import OnboardingTour from './OnboardingTour';
 import { useNativeFieldMessages } from '../shared/useNativeFieldMessages';
 import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
+import ViewOptionsMenu from './ViewOptionsMenu';
 import TextSizeSwitch from './TextSizeSwitch';
 import { firstNameOf } from '../shared/personName';
 import { keywordKeyFor, matchesAny, shownActions, wordList, type SearchContext } from '../shared/menuSearch';
@@ -724,23 +725,11 @@ export default function Shell({ section, children, action }: { section: string; 
                             </a>
                         )}
                         {/* One text-size setting (shared/textSize): staff get normal/larger, partners the four A steps. */}
-                        {staff && <TextSizeToggle />}
-                        {staff && <ThemeToggle compact />}
                         {!staff && <TextSizeSwitch place="header" />}
-                        <LanguageSwitcher compact />
+                        {!staff && <LanguageSwitcher compact />}
                         {!staff && <PartnerSignOut variant="bar" />}
-                        {staff && (
-                            <button
-                                type="button"
-                                className="icon-button tour-guide-launcher"
-                                aria-label={translate('portal', 'tour_guide_launcher')}
-                                title={translate('portal', 'tour_guide_launcher')}
-                                data-tooltip={translate('portal', 'tour_guide_launcher')}
-                                onClick={() => setManualOpen(true)}
-                            >
-                                <Compass size={19} />
-                            </button>
-                        )}
+                        {/* Staff: language, text size, night mode and the guide share one button, so the bar stays one row. */}
+                        {staff && <ViewOptionsMenu onOpenGuide={() => setManualOpen(true)} />}
                         <NotificationBell base={base} unreadCount={unreadCount} />
                         <div className="profile-menu" ref={profileMenu}>
                             <button
@@ -793,8 +782,9 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <LifeBuoy size={16} />
                                         {translate('portal', 'help')}
                                     </Link>
-                                    {!staff && (
-                                        <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); setManualOpen(true); }}>
+                                    {/* Staff reach the guide from the top-bar view options on a computer; phones find it here. */}
+                                    {(
+                                        <button type="button" role="menuitem" className={staff ? 'profile-menu-phone-only' : undefined} onClick={() => { setProfileOpen(false); setManualOpen(true); }}>
                                             <Compass size={16} />
                                             {translate('portal', 'tour_guide_launcher')}
                                         </button>

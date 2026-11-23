@@ -8,5 +8,6 @@ test('the product filter form submits itself when a radio or checkbox changes', 
 
     assert.match(source, /\[data-filter-autosubmit\]/);
     assert.match(source, /target\.type==='radio'\|\|target\.type==='checkbox'/);
+    assert.match(source, /target\.tagName==='SELECT'/);
     assert.match(source, /form\.requestSubmit\(\)/);
 });

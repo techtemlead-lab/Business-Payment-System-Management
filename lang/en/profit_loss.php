@@ -58,6 +58,7 @@ return [
 
     'warn_missing_title' => 'Some products have no cost price',
     'warn_missing_body' => 'These products were delivered in this period but have no cost price, so the cost of goods shows too low and the profit too high. Add the cost price on the product page.',
+    'warn_show_list' => 'Show the list',
     'warn_margin_title' => 'Some products lose money once commission is paid',
     'warn_margin_body' => 'The plan pays :limit% of the dealer price into commission and funds. These products cost more than the part that is left, so each one sold loses money once all commission is paid.',
     'warn_unposted' => 'Commission is not worked out yet for :orders orders (sales :amount). It will be once all their goods arrive; until then the profit shows too high.',

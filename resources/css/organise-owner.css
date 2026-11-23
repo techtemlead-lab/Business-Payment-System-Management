@@ -1,0 +1,112 @@
+/*
+ * Owner panel: one tidy standard. Imported last in dashboard.css.
+ *  - Treasury funds: grouped under headings, each card is one compact line pair.
+ *  - Settings pages: every setting is its own titled card; two columns on a computer, a tap-to-open list on a phone.
+ *  - Long forms use two columns on a computer.
+ *  - A choice of 2 to 5 things is a segmented control, a longer choice is a drop-down.
+ */
+
+/* ---------- Treasury: funds ---------- */
+.app-shell .tsy-group-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px var(--ds-s-3);margin:var(--ds-s-6) 0 var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:700;letter-spacing:0;color:var(--ds-text)}
+.app-shell .tsy-group-title:first-child{margin-top:0}
+.app-shell .tsy-group-title small{font-size:var(--ds-fs-sm);font-weight:500;color:var(--ds-text-muted)}
+.app-shell [data-tour="treasury-panel"]>section+section .tsy-group-title{padding-top:var(--ds-s-2)}
+
+.app-shell .tsy-funds{gap:var(--ds-s-2)}
+.app-shell .tsy-funds>.tsy-fund{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name balance" "flow flow";align-items:center;column-gap:var(--ds-s-3);row-gap:2px;padding:var(--ds-s-3) var(--ds-s-4);box-shadow:none}
+.app-shell .tsy-funds>.tsy-fund:hover{border-color:var(--ds-brand);background:var(--ds-surface-2)}
+.app-shell .tsy-funds>.tsy-fund h2{grid-area:name;margin:0;font-size:var(--ds-fs-base);font-weight:650;line-height:1.35;overflow-wrap:anywhere}
+.app-shell .tsy-funds>.tsy-fund .tsy-fund-label{display:none}
+.app-shell .tsy-funds>.tsy-fund>strong{grid-area:balance;margin:0;font-size:var(--ds-fs-lg);line-height:1.2;text-align:right;white-space:nowrap}
+.app-shell .tsy-funds>.tsy-fund dl{grid-area:flow;display:flex;flex-wrap:wrap;gap:0 var(--ds-s-4);margin:2px 0 0;padding:0;border:0}
+.app-shell .tsy-funds>.tsy-fund dl>div{display:inline-flex;gap:6px;justify-content:flex-start}
+.app-shell .tsy-funds>.tsy-fund dt,.app-shell .tsy-funds>.tsy-fund dd{font-size:var(--ds-fs-xs);font-weight:500;color:var(--ds-text-muted)}
+.app-shell .tsy-funds>.tsy-fund dd{font-weight:600}
+/* The partner-money link card (no list inside) keeps its three stacked lines. */
+.app-shell .tsy-funds>a.tsy-fund:not(:has(dl)){display:flex}
+.app-shell .tsy-funds>a.tsy-fund:not(:has(dl)) .tsy-fund-label{display:block}
+.app-shell .tsy-waiting{margin-bottom:var(--ds-s-2);padding:var(--ds-s-3) var(--ds-s-4)}
+.app-shell .tsy-waiting h2{margin:0 0 2px}
+.app-shell .tsy-spend-choice{margin-bottom:var(--ds-s-3)}
+
+@media (max-width:1024px){
+  .app-shell .tsy-funds{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .app-shell .tsy-funds{grid-template-columns:minmax(0,1fr)}
+  .app-shell .tsy-funds>.tsy-fund{padding:var(--ds-s-2) var(--ds-s-3)}
+  .app-shell .tsy-group-title{margin-top:var(--ds-s-4)}
+}
+
+/* ---------- Settings pages: every setting is its own card ---------- */
+@media (min-width:900px){
+  .app-shell .set-sheet:has(>.set-block+.set-block){max-width:none;padding:0;background:transparent;border:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-4);align-items:start}
+  .app-shell .set-sheet:has(>.set-block+.set-block)>.set-block{margin:0;padding:var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+  .app-shell .set-sheet:has(>.set-block+.set-block)>.set-block+.set-block{margin:0;padding-top:var(--ds-s-5);border-top:1px solid var(--ds-line)}
+}
+@media (min-width:900px){
+  .app-shell .set-sheet:has(>.set-block+.set-block)>:not(.set-block){grid-column:1/-1}
+}
+@media (min-width:1500px){
+  .app-shell .set-sheet:has(>.set-block+.set-block+.set-block+.set-block+.set-block){grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* A sheet with one form: use the width with two columns of fields. */
+@media (min-width:1100px){
+  .app-shell .set-sheet.is-wide .action-form:has(>label:nth-of-type(4)),
+  .app-shell .set-sheet:not(:has(>.set-block+.set-block)) .action-form:has(>label:nth-of-type(4)){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:var(--ds-s-5);row-gap:var(--ds-s-3);align-items:start}
+  .app-shell .set-sheet .action-form:has(>label:nth-of-type(4))>:is(button,.error,[role="alert"],.form-errors,progress,label:has(textarea)){grid-column:1/-1}
+  .app-shell .set-sheet:not(:has(>.set-block+.set-block)):has(.action-form>label:nth-of-type(4)){max-width:920px}
+}
+
+/* Profit and loss: a warning's long list waits behind one line. */
+.app-shell .tsy-details{margin-top:var(--ds-s-2)}
+.app-shell .tsy-details>summary{cursor:pointer;font-size:var(--ds-fs-sm);font-weight:650;color:var(--ds-brand-text,var(--ds-brand));min-height:32px;display:flex;align-items:center}
+.app-shell .tsy-details[open]>summary{margin-bottom:var(--ds-s-2)}
+
+/* ---------- Owner home: the quick buttons are one even row; only "new dealer" is the strong one ---------- */
+.app-shell .office-shortcuts .office-add-buttons{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:var(--ds-s-2)}
+.app-shell .office-shortcuts .office-add-buttons .button{justify-content:center;min-height:44px;width:100%;margin:0}
+.app-shell .office-shortcuts .office-add-buttons .button.dark:not(.office-new-account){background:var(--ds-surface);color:var(--ds-text);border-color:var(--ds-line)}
+.app-shell .office-shortcuts .office-add-buttons .button.dark:not(.office-new-account):hover{border-color:var(--ds-brand);background:var(--ds-surface-2)}
+@media (max-width:600px){
+  .app-shell .office-shortcuts .office-add-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .app-shell .office-shortcuts .office-add-buttons :is(.office-new-account,.office-new-sub-dealer){flex:none}
+  .app-shell .office-shortcuts .office-add-buttons .office-new-account{grid-column:1/-1}
+}
+
+/* ---------- Report download: two columns of fields on a computer ---------- */
+.app-shell .rep-panel>.fd{align-self:flex-start;margin:0 0 var(--ds-s-3)}
+@media (min-width:1100px){
+  .app-shell .rep-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:var(--ds-s-5);row-gap:var(--ds-s-3);align-items:start;max-width:1000px}
+  .app-shell .rep-form>:is(button,.error,[role="alert"]){grid-column:1/-1;justify-self:start}
+}
+
+/* ---------- Security: separate cards sit side by side ---------- */
+@media (min-width:1100px){
+  .app-shell :is(div,main,section):has(>.narrow-panel~.narrow-panel){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-4);align-items:start}
+  .app-shell :is(div,main,section):has(>.narrow-panel~.narrow-panel)>.narrow-panel{max-width:none;margin:0}
+  .app-shell :is(div,main,section):has(>.narrow-panel~.narrow-panel)>:not(.narrow-panel){grid-column:1/-1}
+}
+
+/* ---------- Search and filter row of a settings list (errors, clean-up) ---------- */
+.app-shell .cleanup-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--ds-s-2);margin:0}
+.app-shell .cleanup-filters>label{flex:1 1 220px;max-width:420px}
+.app-shell .cleanup-filters .button{min-height:44px}
+
+/* ---------- Payouts hub: a thin notice strip and one row of five numbers ---------- */
+.app-shell .pay-intro{padding:var(--ds-s-3) var(--ds-s-4)}
+.app-shell .pay-intro .pay-intro-title{display:none}
+.app-shell .pay-intro .hub-kicker{margin-bottom:var(--ds-s-1)}
+.app-shell .pay-intro .hub-sub{margin:0;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+@media (min-width:1100px){
+  .app-shell .hub-grid.pay-kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--ds-s-3)}
+}
+@media (max-width:640px){
+  .app-shell .hub-grid.pay-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-2)}
+  .app-shell .hub-grid.pay-kpis>.metric:first-child{grid-column:1/-1}
+}
+
+/* Commission table: a "kind" cell that only repeats the name stays empty and hidden on a phone. */
+@media (max-width:760px){
+  .app-shell .cp-page td.cp-kind:empty{display:none}
+}

@@ -422,7 +422,7 @@ final class TourGuide
             ...$this->topBarSteps(),
             // The switcher is drawn only when the person has a branch; the tour skips it otherwise.
             $this->overviewStep('.branch-workspace-select', 'tour_branch', 'tour_cat_controls', 'manual'),
-            $this->overviewStep('.tour-guide-launcher, .profile-menu-trigger', $prefix.'_help', 'tour_cat_help'),
+            $this->overviewStep('.view-options-trigger, .profile-menu-trigger', $prefix.'_help', 'tour_cat_help'),
         ];
     }
 

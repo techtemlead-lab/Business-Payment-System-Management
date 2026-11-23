@@ -191,6 +191,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     const wallet = home.wallet ?? {};
     const waitingAmounts: Row[] = wallet.commission_waiting?.amounts ?? [];
     const sections: string[] = usePage<any>().props.portalCatalog?.sections ?? [];
+    const [showNotes, setShowNotes] = useState(false);
 
     return (
         <div className="partner-home ph">
@@ -220,7 +221,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                                     <b>{target.key === 'tour_fund' ? <Plane size={14} /> : <Wallet size={14} />}{target.label}</b>
                                     <span>{money(target.value)}</span>
                                 </div>
-                                <small>{localizeDigits(target.hint)}</small>
+                                {showNotes && <small>{localizeDigits(target.hint)}</small>}
                             </article>
                         ) : target.kind === 'status' ? (
                             <article key={target.key} className="partner-home-target-amount">
@@ -228,7 +229,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                                     <b><Wallet size={14} />{target.label}</b>
                                     <span>{target.value}</span>
                                 </div>
-                                <small>{localizeDigits(target.hint)}</small>
+                                {showNotes && <small>{localizeDigits(target.hint)}</small>}
                             </article>
                         ) : (
                             <article key={target.key}>
@@ -252,10 +253,14 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                                         <span>{translate('portal', 'target_left')} {money(target.remaining)}</span>
                                     </div>
                                 )}
-                                <small>{localizeDigits(target.hint)}</small>
+                                {showNotes && <small>{localizeDigits(target.hint)}</small>}
                             </article>
                         ))}
-                    </div>                </section>
+                    </div>
+                    <button type="button" className="ph-notes-toggle" aria-expanded={showNotes} onClick={() => setShowNotes((open) => !open)}>
+                        {translate('portal', showNotes ? 'targets_notes_hide' : 'targets_notes_show')}
+                    </button>
+                </section>
             ) : null} />
 
             {/* The big easy-way buttons sit under the money and targets, above the long report. */}

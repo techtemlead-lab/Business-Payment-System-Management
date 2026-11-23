@@ -10,6 +10,7 @@ import type { OfficeHub } from './OfficeHubTabs';
 import { useT } from '../shared/i18n/t';
 import { businessTodayIso } from '../business-date';
 import SearchSelect from './SearchSelect';
+import { FilterDropdown } from './FilterDropdown';
 
 interface PeriodState {
     period: string;
@@ -137,13 +138,15 @@ export function ReportViewChips({ active, from, to, extraChoices = [], allowAll 
 
     return (
         <>
-            <div className="mt-views" role="group" aria-label={translate('portal', 'mt_view_label')}>
-                {choices.map((choice) => (
-                    <button key={choice.value || 'all'} type="button" className="mt-view" aria-pressed={shown === choice.value} onClick={() => choose(choice.value)}>
-                        {translate('portal', choice.word)}
-                    </button>
-                ))}
-            </div>
+            <FilterDropdown
+                label={translate('portal', 'filter_label_dates')}
+                ariaLabel={translate('portal', 'mt_view_label')}
+                showLabel
+                highlight={false}
+                value={shown}
+                onChange={choose}
+                options={choices.map((choice) => ({ value: choice.value, label: translate('portal', choice.word) }))}
+            />
             {shown === 'day' && (
                 <div className="mt-dates">
                     <label>{translate('portal', 'mt_view_day')}<DateInput value={dayFrom} onChange={(event) => changeFrom(event.target.value)} /></label>

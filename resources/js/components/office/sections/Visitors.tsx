@@ -8,6 +8,7 @@ import { ActionForm, DateInput, Table, dateTime, number, type Row } from '../../
 import PartnerActivityList, { type PartnerActivityReport } from './PartnerActivityList';
 import { useT } from '../../../shared/i18n/t';
 import { businessDate, businessMonth, localizeDigits } from '../../../business-date';
+import { FilterDropdown } from '../../FilterDropdown';
 
 type Bucket = 'hour' | 'day' | 'month';
 type TrendBar = { key: string; views: number; visitors: number };
@@ -140,13 +141,15 @@ export default function Visitors({ report, hub }: { report: VisitorsReport; hub?
             <div className="money-table">
                 <div className="mt-toolbar">
                     <ReportFilterSheet>{datePickers}</ReportFilterSheet>
-                    <div className="mt-views" role="group" aria-label={translate('office_visitors', 'pick_period')}>
-                        {PERIODS.map((choice) => (
-                            <button key={choice} type="button" className="mt-view" aria-pressed={period.key === choice} onClick={() => visit({ period: choice })}>
-                                {translate('office_visitors', `period_${choice}`)}
-                            </button>
-                        ))}
-                    </div>
+                    <FilterDropdown
+                        label={translate('portal', 'filter_label_dates')}
+                        ariaLabel={translate('office_visitors', 'pick_period')}
+                        showLabel
+                        highlight={false}
+                        value={period.key}
+                        onChange={(choice) => visit({ period: choice })}
+                        options={PERIODS.map((choice) => ({ value: choice, label: translate('office_visitors', `period_${choice}`) }))}
+                    />
                     <div className="mt-filters vis-dates">{datePickers}</div>
                 </div>
             </div>

@@ -1,0 +1,98 @@
+/* =========================================================================
+   Public website, final organising pass. Loaded last, so it wins over the earlier layers.
+   - Product filter: one card with drop-downs (one row on a computer, two to a row on a phone),
+     the same pattern as the portals' FilterDropdown; choosing a value applies it at once.
+   - Missing pictures show a tidy leaf placeholder (set by reference-home.ts), never a broken icon.
+   - Small clean-ups: the closed menu drawer's shadow, the contact form width on a phone,
+     the chat bubble over forms, tighter form fields, even spacing between page sections.
+   Colours come from the --ds-* tokens, so the night theme follows.
+   ========================================================================= */
+
+/* ---------- Product filter bar ---------- */
+body.ref-home .pf-layout{display:block}
+body.ref-home .pf-bar{display:flex;flex-direction:column;gap:10px;margin:0 0 14px;padding:14px 16px;border:1px solid var(--ds-line,#e7e4d6);border-radius:14px;background:var(--ds-surface,#fff);box-shadow:0 1px 2px rgba(12,59,42,.04)}
+body.ref-home .pf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 8px;align-items:end}
+body.ref-home .pf-field{display:grid;gap:4px;min-width:0;margin:0}
+body.ref-home .pf-label{overflow:hidden;color:var(--ds-text-muted,#5d6b63);font-size:13px;font-weight:600;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+body.ref-home .pf-select,body.ref-home .pf-input{width:100%;min-width:0;height:44px;margin:0;padding:0 12px;border:1px solid var(--ds-line-strong,#cfcab8);border-radius:8px;background-color:var(--ds-surface,#fff);color:var(--ds-text,#12281e);font:inherit;font-size:16px;line-height:1.2;box-shadow:none;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease}
+body.ref-home .pf-select{appearance:none;-webkit-appearance:none;padding-right:34px;text-overflow:ellipsis;cursor:pointer;background-repeat:no-repeat;background-position:right 12px center;background-size:12px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%235d6b63' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+html[data-theme="dark"] body.ref-home .pf-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a8b5aa' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+body.ref-home .pf-select:hover,body.ref-home .pf-input:hover{border-color:var(--ds-text-muted,#5d6b63)}
+body.ref-home .pf-select:focus-visible,body.ref-home .pf-input:focus-visible{outline:none;border-color:var(--ds-brand,#14633f);box-shadow:0 0 0 3px rgba(20,99,63,.18)}
+body.ref-home .pf-select.is-on{border-color:var(--ds-brand,#14633f);background-color:var(--ds-brand-soft,#e3f1eb);color:var(--ds-brand-text,#14633f);font-weight:600}
+body.ref-home .pf-select option{background:var(--ds-surface,#fff);color:var(--ds-text,#12281e);font-weight:400}
+body.ref-home .pf-price{grid-column:1/-1}
+body.ref-home .pf-field:nth-last-child(2):nth-child(odd){grid-column:1/-1}
+body.ref-home .pf-price-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:6px}
+body.ref-home .pf-dash{color:var(--ds-text-muted,#5d6b63)}
+body.ref-home .pf-apply{min-height:44px;padding:0 16px;border:1px solid var(--ds-brand,#14633f);border-radius:8px;background:var(--ds-brand,#14633f);color:#fff;font:inherit;font-size:15px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background-color .15s ease}
+body.ref-home .pf-apply:hover{background:var(--ds-brand-hover,#0f4f32)}
+body.ref-home .pf-clear{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:36px;color:var(--ds-brand-text,#14633f);font-size:14px;font-weight:600;text-decoration:none}
+body.ref-home .pf-clear:hover{text-decoration:underline}
+body.ref-home .pf-count{margin:0 0 12px;color:var(--ds-text-muted,#5d6b63);font-size:14px}
+
+@media (min-width:768px){
+  body.ref-home .pf-bar{flex-direction:row;align-items:flex-end;gap:14px}
+  body.ref-home .pf-grid{flex:1 1 auto;display:flex;flex-wrap:wrap;gap:10px 10px}
+  body.ref-home .pf-field{flex:1 1 150px}
+  body.ref-home .pf-price{flex:1.7 1 300px;grid-column:auto}
+  body.ref-home .pf-field:nth-last-child(2):nth-child(odd){grid-column:auto}
+  body.ref-home .pf-select,body.ref-home .pf-input{height:42px;font-size:15px}
+  body.ref-home .pf-apply{min-height:42px}
+  body.ref-home .pf-clear{flex:none;align-self:flex-end;min-height:42px}
+}
+@media (min-width:1180px){
+  body.ref-home .pf-grid{flex-wrap:nowrap}
+}
+@media (prefers-reduced-motion:reduce){body.ref-home .pf-select,body.ref-home .pf-input,body.ref-home .pf-apply{transition:none}}
+
+/* ---------- Missing pictures ---------- */
+body.ref-home img.is-img-broken{width:100%;height:100%;object-fit:cover}
+body.ref-home .ref-card-picture img.is-img-broken{object-fit:cover;border-radius:10px;background:#f4f1e6}
+body.ref-home .ref-detail-image img.is-img-broken{max-width:420px;margin-inline:auto}
+body.ref-home .ref-article-picture.is-img-broken{aspect-ratio:16/9;height:auto}
+
+/* ---------- The closed menu drawer must not cast its shadow onto the page ---------- */
+body.ref-home .ref-mobile-drawer[aria-hidden="true"]{box-shadow:none}
+
+/* ---------- Chat bubble: out of the way of forms, sign-in cards and the product call bar ---------- */
+@media (max-width:1023px){
+  body.ref-home:has(.ref-auth-main,.ref-partner-apply-form,form[action="/enquiries"],.ref-product-sticky,.ref-partner-login-card) .ref-floating-tools{display:none!important}
+}
+
+/* ---------- Contact and other two-card pages: the form card is as wide as the page on a phone ---------- */
+@media (max-width:767px){
+  body.ref-home .ref-contact-grid>*{width:100%;align-self:stretch;min-width:0}
+}
+
+/* ---------- Forms: one field height, tight spacing ---------- */
+body.ref-home .ref-form input:not([type="checkbox"],[type="radio"],[type="file"]),body.ref-home .ref-form select{min-height:46px}
+body.ref-home .ref-form textarea{min-height:110px}
+
+/* ---------- Even spacing between page sections ---------- */
+body.ref-home .ref-eligible{margin-top:28px}
+body.ref-home .ref-about-sections-grid+.ref-eligible, body.ref-home .ref-about-sections-grid+.ref-content-card{margin-top:28px}
+
+/* ---------- The product grid uses the full width now that the filter is a bar, not a side column ---------- */
+@media (min-width:900px){
+  body.ref-home .ref-product-grid.ref-catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+}
+@media (min-width:1101px){
+  body.ref-home .ref-product-grid.ref-catalog-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+
+/* ---------- Home: the category tabs become one drop-down on a phone ---------- */
+body.ref-home .pf-featured-select{display:none}
+@media (max-width:767px){
+  body.ref-home .ref-featured-tabs{display:none}
+  body.ref-home .pf-featured-select{display:block;margin:0 0 14px}
+}
+
+/* ---------- Phone: no tall empty gap above the footer on short pages; quieter banner captions ---------- */
+@media (max-width:767px){
+  body.ref-home .ref-container.ref-inner-main{min-height:0}
+  body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption{bottom:24px;padding:3px 10px;border-radius:8px}
+  body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption b{font-size:13px;line-height:1.3}
+  body.ref-home .ref-side-carousel .ref-slide-caption{left:6px;right:6px;bottom:20px;padding:3px 8px;border-radius:8px}
+  body.ref-home .ref-side-carousel .ref-slide-caption b{font-size:12px;line-height:1.3}
+}
