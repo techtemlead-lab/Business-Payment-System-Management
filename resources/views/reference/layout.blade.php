@@ -12,8 +12,8 @@
 <link rel="apple-touch-icon" href="{{ \App\Support\SiteCustomization::faviconUrl() }}">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" as="image" href="{{ \App\Support\SiteCustomization::logoUrl() }}" fetchpriority="high">
-<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-<link rel="stylesheet" href="https://fonts.bunny.net/css?family=marcellus:400|figtree:400,500,600,700|tiro-bangla:400|anek-bangla:400,500,600,700|amiri:400&display=swap">
+@include('partials.fonts')
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=marcellus:400|tiro-bangla:400|amiri:400&display=swap">
 {{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}
 <link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>

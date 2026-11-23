@@ -119,12 +119,12 @@
         display: none;
     }
     body.ref-home .ref-page-plate h1 {
-        font-size: 24px;
+        font-size: var(--mt-title, 20px);
         line-height: 1.4;
     }
     body.ref-home .ref-page-plate-lead {
         margin-top: 6px;
-        font-size: 15px;
+        font-size: var(--mt-body, 14px);
         line-height: 1.6;
         display: -webkit-box;
         -webkit-box-orient: vertical;
@@ -214,7 +214,7 @@
         padding: 6px 10px;
     }
     body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption b {
-        font-size: 15px;
+        font-size: var(--mt-body, 14px);
         line-height: 1.35;
     }
     body.ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide-caption span {
@@ -408,7 +408,7 @@
     body.ref-home .locale-bn .ref-product-card .ref-card-title {
         min-height: 0;
         margin: 0;
-        font-size: 15px;
+        font-size: var(--mt-body, 14px);
         line-height: 1.45;
         display: -webkit-box;
         -webkit-box-orient: vertical;
@@ -440,7 +440,7 @@
         align-items: center;
     }
     body.ref-home .ref-product-card .ref-card-price strong {
-        font-size: 17px;
+        font-size: var(--mt-card-title, 16px);
     }
     body.ref-home .ref-product-card .ref-card-cta {
         margin-top: auto;

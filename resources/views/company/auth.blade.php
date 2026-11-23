@@ -25,9 +25,7 @@
     <meta name="theme-color" content="#011627">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $heading }} · {{ __('portal.brand_company_bar') }}</title>
-    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
+    @include('partials.fonts')
     @vite(['resources/css/app.css','resources/css/dashboard.css','resources/js/theme-boot.ts','resources/css/auth-motion.css','resources/js/auth-motion.ts'])
 </head>
 <body class="company-auth locale-{{ app()->getLocale() }} am-auth">

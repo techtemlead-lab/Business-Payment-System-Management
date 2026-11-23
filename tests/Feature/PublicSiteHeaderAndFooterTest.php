@@ -126,7 +126,7 @@ class PublicSiteHeaderAndFooterTest extends TestCase
     public function test_english_and_bangla_premium_fonts_are_loaded(): void
     {
         $this->get('/')->assertOk()
-            ->assertSee('family=marcellus:400|figtree:', false)
-            ->assertSee('tiro-bangla:400|anek-bangla:', false);
+            ->assertSee('family=inter:400,500,600,700|noto-sans-bengali:', false)
+            ->assertSee('family=marcellus:400|tiro-bangla:400', false);
     }
 }
