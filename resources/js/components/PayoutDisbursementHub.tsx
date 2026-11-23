@@ -509,7 +509,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     return (
         <div className="hub">
             {/* Top Operational Notice */}
-            <div className="panel hub-row is-between">
+            <div className="panel hub-row is-between pay-intro">
                 <div>
                     <div className="hub-kicker">
                         <span className="hub-pill tone-ok">
@@ -519,7 +519,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                             {translate('portal', 'pay_withholding', { rate: tdsRate.toFixed(2) })}
                         </span>
                     </div>
-                    <h2 className="hub-title is-lg">
+                    <h2 className="hub-title is-lg pay-intro-title">
                         {translate('portal', 'pay_heading')}
                     </h2>
                     <p className="hub-sub">
@@ -529,7 +529,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
             </div>
 
             {/* Metrics Overview Cards */}
-            <div className="hub-grid">
+            <div className="hub-grid pay-kpis">
                 <div className="metric tone-warn">
                     <span>{translate('portal', 'pay_kpi_pending')}</span>
                     <strong>
