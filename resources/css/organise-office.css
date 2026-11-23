@@ -1,0 +1,162 @@
+/*
+ * Organise round, office (manage.) panel. One consistent, quiet standard for the staff pages:
+ *  - top bar: one tidy row (search, website, view options, bell, account) on a computer;
+ *  - "More" menus hold the secondary actions of a header or a toolbar;
+ *  - tab strips, status tabs and view switches become a segmented control, a row with "More", or a drop-down;
+ *  - cards, tables and forms share the same radius, shadow and spacing.
+ * Loaded last in dashboard.css, so it settles every tie with the older files.
+ */
+
+/* ---------- Top bar ---------- */
+.app-shell:is(.owner-shell,.company-shell) .workspace-header .header-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-width:0}
+.app-shell:is(.owner-shell,.company-shell) .workspace-header .breadcrumb{min-width:0;flex:1 1 auto;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger{max-width:260px}
+.app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger .user-caption{min-width:0;max-width:160px}
+.app-shell:is(.owner-shell,.company-shell) .workspace-header .profile-menu-trigger .user-caption :is(b,span){display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.view-options{position:relative;display:inline-flex}
+.view-options-panel{position:absolute;z-index:60;top:calc(100% + 8px);right:0;width:min(320px,calc(100vw - 24px));display:grid;gap:2px;padding:8px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);box-shadow:var(--ds-shadow-lg)}
+.view-options-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:4px 8px;border-radius:var(--ds-r-md)}
+.view-options-name{font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-muted)}
+.app-shell .view-options-panel .language-switcher .language-full{display:inline}
+.app-shell .view-options-panel .language-switcher .language-short{display:none}
+.view-options-panel .text-size-toggle{white-space:nowrap}
+.view-options-panel .text-size-toggle .text-size-label{display:inline}
+.app-shell .view-options-panel .theme-toggle{width:auto;height:36px;min-height:36px;padding:0 12px;gap:8px;border-radius:var(--ds-r-pill);white-space:nowrap}
+.app-shell .view-options-panel .theme-toggle .theme-toggle-label{display:inline;white-space:nowrap}
+.view-options-row.is-single .theme-toggle{width:100%;justify-content:flex-start}
+.view-options-guide{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;margin-top:4px;padding:8px 10px;border:0;border-top:1px solid var(--ds-line);border-radius:0 0 var(--ds-r-md) var(--ds-r-md);background:transparent;color:var(--ds-brand-text);font:inherit;font-size:var(--ds-fs-sm);font-weight:600;text-align:left;cursor:pointer}
+.view-options-guide:hover{background:var(--ds-brand-soft)}
+/* Phones keep these choices in the account menu; a computer keeps the guide here. */
+@media (max-width:760px){.view-options{display:none}}
+@media (min-width:761px){.app-shell .profile-menu-panel .profile-menu-phone-only{display:none}}
+
+/* ---------- "More" menu ---------- */
+.action-menu{position:relative;display:inline-flex}
+.action-menu-trigger{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 12px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text);font:inherit;font-size:var(--ds-fs-sm);font-weight:600;cursor:pointer;white-space:nowrap}
+.action-menu-trigger:hover,.action-menu-trigger.is-open{background:var(--ds-surface-2)}
+.action-menu-trigger:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+.action-menu-trigger.is-icon{width:36px;padding:0;justify-content:center}
+.action-menu-panel{position:absolute;z-index:60;top:calc(100% + 6px);min-width:200px;max-width:min(320px,calc(100vw - 24px));display:grid;padding:6px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);box-shadow:var(--ds-shadow-lg)}
+.action-menu-panel.is-end{right:0}
+.action-menu-panel.is-start{left:0}
+.action-menu-item{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:var(--ds-r-sm);background:transparent;color:var(--ds-text);font:inherit;font-size:var(--ds-fs-sm);font-weight:500;text-align:left;text-decoration:none;cursor:pointer}
+.action-menu-item:hover,.action-menu-item:focus-visible{background:var(--ds-surface-2);outline:0}
+.action-menu-item.is-danger{color:var(--ds-danger-fg)}
+.action-menu-item:disabled{opacity:.5;cursor:not-allowed}
+.action-menu-item.is-active{background:var(--ds-brand-soft);color:var(--ds-brand-text);font-weight:600}
+.action-menu-meta{margin-inline-start:auto;min-width:20px;padding:0 6px;border-radius:var(--ds-r-pill);background:var(--ds-surface-3);color:var(--ds-text);font-size:var(--ds-fs-2xs);font-weight:600;line-height:18px;text-align:center}
+
+/* ---------- Tabs, status tabs: a row with "More" on a computer, one drop-down on a phone ---------- */
+.app-shell .adaptive-tabs{position:relative;min-width:0}
+.app-shell .adaptive-tabs-select{display:none}
+.app-shell .adaptive-tabs>.office-tabs{margin-bottom:var(--ds-s-4)}
+.app-shell .office-page>.adaptive-tabs>.office-tabs{margin-top:0;margin-bottom:0}
+.app-shell .office-page>.adaptive-tabs.is-underline{margin-top:calc(var(--ds-s-2) * -1)}
+.app-shell .panel.table-panel>.adaptive-tabs>.order-status-tabs{margin:0;padding:10px 16px}
+.app-shell .panel.table-panel>.panel-heading+.adaptive-tabs>.order-status-tabs,.app-shell .panel.table-panel>h2+.adaptive-tabs>.order-status-tabs{padding-top:0}
+@media (min-width:761px){
+  .app-shell .adaptive-tabs>.adaptive-tabs-row{overflow:visible;flex-wrap:nowrap;align-items:center}
+  .app-shell .adaptive-tabs>.office-tabs.adaptive-tabs-row{align-items:stretch}
+  .app-shell .adaptive-tabs-more{align-self:center;flex:0 0 auto}
+  .app-shell .adaptive-tabs.is-underline .adaptive-tabs-more{align-self:stretch;display:flex}
+  .app-shell .adaptive-tabs-more .action-menu-trigger.office-tab{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;box-shadow:none;margin-bottom:-1px;color:var(--ds-text-muted);padding:0 var(--ds-s-3)}
+  .app-shell .adaptive-tabs-more .action-menu-trigger.office-tab:hover{color:var(--ds-text)}
+  .app-shell .adaptive-tabs-more .action-menu-trigger.office-tab.is-active{color:var(--ds-brand-text);border-bottom-color:var(--ds-brand)}
+  .app-shell .adaptive-tabs-more .action-menu-trigger.order-status-tab{border:1px solid transparent;border-radius:var(--ds-r-pill);background:transparent;color:var(--ds-text-muted);padding:6px 12px;min-height:0}
+  .app-shell .adaptive-tabs-more .action-menu-trigger.order-status-tab:hover{background:var(--ds-surface-2);color:var(--ds-text)}
+  .app-shell .adaptive-tabs-more .action-menu-trigger.order-status-tab.is-active{background:var(--ds-brand);color:#fff;border-color:var(--ds-brand)}
+}
+@media (max-width:760px){
+  .app-shell .adaptive-tabs.has-select>.adaptive-tabs-row{display:none}
+  .app-shell .adaptive-tabs.has-select>.adaptive-tabs-select{display:grid;margin:0 0 var(--md-gap,8px)}
+  .app-shell .office-page>.adaptive-tabs.is-underline{margin-top:0}
+  .app-shell .panel.table-panel>.adaptive-tabs>.adaptive-tabs-select{margin:0;padding:var(--md-gap,8px) var(--md-gutter,12px)}
+}
+
+/* ---------- Segmented control: one quiet pill with the open choice raised ---------- */
+.app-shell .office-switch{max-width:100%;overflow:visible;flex-wrap:nowrap}
+.app-shell .office-switch a{min-height:34px;padding:0 var(--ds-s-4)}
+
+/* ---------- Area badge in tables and headers: a quiet two-line label, not a green block ---------- */
+.app-shell:is(.owner-shell,.company-shell) .appt-pill{align-items:flex-start;gap:1px;padding:0;border-radius:0;background:transparent;text-align:left}
+.app-shell:is(.owner-shell,.company-shell) .appt-pill .appt-title{font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-brand-text)}
+.app-shell:is(.owner-shell,.company-shell) .appt-pill .appt-place{font-size:var(--ds-fs-xs);font-weight:400;color:var(--ds-text-muted)}
+
+/* ---------- Tables: detail columns step aside below 1680 px so the rest breathes ---------- */
+@media (min-width:1024px) and (max-width:1679px){
+  .money-table .mt-table .mt-col-detail{display:none}
+}
+.money-table .mt-table th{white-space:nowrap}
+.money-table .mt-table thead th{background:var(--ds-surface-2);font-size:var(--ds-fs-xs);font-weight:600;letter-spacing:.01em;color:var(--ds-text-muted)}
+
+/* ---------- Toolbars with many drop-downs wrap into two even rows instead of running off the edge ---------- */
+@media (min-width:768px){
+  :root .money-table .mt-toolbar:has(.mt-filters>.fd:nth-child(6)){flex-wrap:wrap}
+  :root .money-table .mt-toolbar:has(.mt-filters>.fd:nth-child(6)) .mt-filters{flex-wrap:wrap}
+}
+
+/* ---------- Detail pages draw their own title; the shell's generic one steps aside ---------- */
+.app-shell .workspace-main:has(:is(.partner-profile,.order-title,.registry-layout,.acf-page,.registry-heading))>.page-heading{display:none}
+.app-shell .partner-profile>header.panel{display:grid;gap:var(--ds-s-3)}
+.app-shell .partner-profile>header.panel h1{margin:0}
+
+/* ---------- Figure cards: label and number, no empty room ---------- */
+@media (min-width:761px){
+  .app-shell .office-figures{gap:var(--ds-s-3)}
+  .app-shell .office-figure{gap:2px;padding:12px 16px;border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-xs)}
+  .app-shell .office-figure span{font-size:var(--ds-fs-xs);line-height:1.3}
+  .app-shell .office-figure strong{font-size:var(--ds-fs-xl);line-height:1.25}
+  .app-shell .office-figure strong.is-headline{font-size:var(--ds-fs-2xl)}
+}
+
+/* ---------- Feature boxes (Settings, More): tighter, no empty lower half ---------- */
+@media (min-width:761px){
+  .app-shell .feature-boxes{gap:var(--ds-s-5)}
+  .app-shell .feature-boxes ul{gap:var(--ds-s-3);grid-auto-rows:auto}
+  .app-shell .feature-box{min-height:0;padding:var(--ds-s-3) var(--ds-s-4);gap:2px;border-radius:var(--ds-r-md)}
+  .app-shell .feature-boxes h2{margin-bottom:var(--ds-s-2);font-size:var(--ds-fs-md)}
+}
+
+/* Payment totals: three compact cards, the channel line tucked under them */
+@media (min-width:761px){
+  .app-shell .pay-totals{margin-bottom:var(--ds-s-3)}
+  .app-shell .pay-totals .metric{display:grid;gap:2px;padding:12px 16px;border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-xs)}
+  .app-shell .pay-totals .metric span{font-size:var(--ds-fs-xs)}
+  .app-shell .pay-totals .metric strong{font-size:var(--ds-fs-xl);line-height:1.25}
+  .app-shell .pay-totals .metric small{font-size:var(--ds-fs-xs)}
+  .app-shell .pay-total-channels{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
+}
+
+/* ---------- Metric and fund cards: the content sets the height ---------- */
+@media (min-width:761px){
+  .app-shell .metric-grid{gap:var(--ds-s-3)}
+  .app-shell .metric-grid .metric{padding:12px 16px;gap:2px}
+  .app-shell .metric-grid .metric strong{font-size:var(--ds-fs-xl);line-height:1.25}
+}
+@media (min-width:761px){
+  .app-shell .tsy-fund{padding:12px 16px;border-radius:var(--ds-r-md);box-shadow:var(--ds-shadow-xs)}
+  .app-shell .tsy-fund h2{margin-bottom:var(--ds-s-2);font-size:var(--ds-fs-base)}
+  .app-shell .tsy-fund>strong{font-size:var(--ds-fs-xl)}
+  .app-shell .tsy-fund dl{margin-top:var(--ds-s-2);padding-top:var(--ds-s-2);gap:2px}
+}
+
+/* ---------- Phone: the same compact cards and a title that fits ---------- */
+@media (max-width:760px){
+  .app-shell .partner-profile>header.panel h1{font-size:var(--mt-title,20px);line-height:1.25;overflow-wrap:anywhere}
+  .app-shell .pay-totals .metric-grid{display:grid;grid-template-columns:1fr;gap:var(--md-gap,8px)}
+  .app-shell .pay-totals .metric{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;padding:10px 12px}
+  .app-shell .pay-totals .metric span{flex:1 1 100%;font-size:var(--mt-label,12px)}
+  .app-shell .pay-totals .metric strong{font-size:var(--mt-number,20px)}
+  .app-shell .pay-totals .metric small{font-size:var(--mt-label,12px)}
+  .app-shell .tsy-fund{padding:var(--md-card,12px)}
+}
+
+/* ---------- Date boxes beside a drop-down: name in front, same height as the drop-downs ---------- */
+.app-shell label.fd-date{display:inline-flex;flex-direction:row;align-items:center;gap:6px;margin:0;font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-text-muted)}
+.app-shell .fd-date .date-input-wrapper{width:150px;height:var(--fd-h,34px);min-height:0;margin:0}
+.app-shell .fd-date .date-input-wrapper input{height:100%;min-height:0;padding-block:0}
+@media (max-width:767px){
+  .app-shell label.fd-date{display:grid;gap:4px;width:100%}
+  .app-shell .fd-date .date-input-wrapper{width:100%;height:44px}
+}

@@ -25,6 +25,7 @@ import OfficePage from './office/OfficePage';
 import { PartnerTypeCell, partnerTypeText } from './office/portalShared';
 import Figures, { type FigureItem } from './office/Figures';
 import PrerequisiteHelper from './PrerequisiteHelper';
+import { FilterDropdown } from './FilterDropdown';
 import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
 import FilePicker from './FilePicker';
@@ -175,23 +176,13 @@ export default function HelpSupportHub({ data }: { data: Row }) {
 
                     {allBadges.length > 0 && (
                         <div className="help-manual-category-pills">
-                            <button
-                                type="button"
-                                className={`category-pill ${selectedCategory === 'all' ? 'active' : ''}`}
-                                onClick={() => setSelectedCategory('all')}
-                            >
-                                {translate('portal', 'all')} ({sections.length})
-                            </button>
-                            {allBadges.map((badgeName) => (
-                                <button
-                                    key={badgeName}
-                                    type="button"
-                                    className={`category-pill ${selectedCategory === badgeName ? 'active' : ''}`}
-                                    onClick={() => setSelectedCategory(badgeName)}
-                                >
-                                    {badgeName}
-                                </button>
-                            ))}
+                            <FilterDropdown
+                                label={translate('portal', 'help_manual_filter_all')}
+                                highlight={selectedCategory !== 'all'}
+                                value={selectedCategory}
+                                onChange={setSelectedCategory}
+                                options={[{ value: 'all', label: `${translate('portal', 'all')} (${sections.length})` }, ...allBadges.map((badgeName) => ({ value: badgeName, label: badgeName }))]}
+                            />
                         </div>
                     )}
                 </div>

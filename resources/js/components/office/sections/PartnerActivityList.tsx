@@ -3,6 +3,7 @@ import { Laptop, Smartphone, Tablet } from 'lucide-react';
 import { Table, dateTime, number, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
 import { localizeDigits } from '../../../business-date';
+import { FilterDropdown } from '../../FilterDropdown';
 
 export interface PartnerActivityRow {
     id: number;
@@ -69,11 +70,13 @@ export default function PartnerActivityList({ report }: { report: PartnerActivit
             <p className="vis-note"><strong>{t('online_line', { dealers: number(report.counts.dealers), sub_dealers: number(report.counts.sub_dealers) })}</strong></p>
             <p className="vis-note">{t('online_note')}</p>
             <div className="mt-toolbar">
-                <div className="mt-views" role="group" aria-label={t('filter_label')}>
-                    {FILTERS.map((choice) => (
-                        <button key={choice} type="button" className="mt-view" aria-pressed={report.filter === choice} onClick={() => go({ status: choice, page: 1 })}>{t(`filter_${choice}`)}</button>
-                    ))}
-                </div>
+                <FilterDropdown
+                    label={t('filter_label')}
+                    showLabel
+                    value={report.filter}
+                    onChange={(choice) => go({ status: choice, page: 1 })}
+                    options={FILTERS.map((choice) => ({ value: choice, label: t(`filter_${choice}`) }))}
+                />
                 <form className="mt-filters" role="search" onSubmit={(event) => { event.preventDefault(); go({ q: String(new FormData(event.currentTarget).get('q') ?? '').trim(), page: 1 }); }}>
                     <input type="search" name="q" key={report.q} defaultValue={report.q} maxLength={100} placeholder={t('search')} aria-label={t('search')} />
                 </form>

@@ -3,7 +3,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Search, SlidersHorizontal } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { DateInput, FormErrors, Modal, Pagination, money, number, useTableOverflow } from './UI';
-import { MoreFilterControls, filterKeys, isToolbarFilter, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
+import { MoreFilterControls, filterKeys, isToolbarFilter, limitToolbarFilters, optionText, type MoneyFilter, type SortOption } from './MoneyTableFilters';
 import { BulkBar, type BulkKind } from './OfficeListTools';
 import FilterPicker, { FilterDropdown, wantsSearch } from './FilterDropdown';
 
@@ -20,6 +20,8 @@ export type MoneyColumn<T> = {
     totalNote?: string;
     /** Where the column goes when a row becomes a card on a phone. */
     phone?: 'title' | 'sub' | 'amount' | 'hide';
+    /** Extra detail: on a computer under 1680 px wide the column steps aside (the whole record is one click away), so the table stays readable. */
+    detail?: boolean;
     /** Name the value on a phone card, for a bare number that would mean nothing alone. */
     phoneLabel?: boolean;
     render?: (row: T) => React.ReactNode;
@@ -110,7 +112,8 @@ export default function MoneyTable<T>(props: MoneyTableProps<T>) {
 function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, rowArrow = true, onRowOpen, extraSorts = [], bulk, segments, actions, hideViewChips = false, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
     const translate = useT();
     const { url, props: pageProps } = usePage<{ errors?: Record<string, string> }>();
-    const { state, totals, filters, sortable } = data;
+    const { state, totals, sortable } = data;
+    const filters = limitToolbarFilters(data.filters);
     const rows = data.rows.data;
 
     const [text, setText] = useState(state.q);
@@ -331,7 +334,7 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
     const statusCandidate = columns[columns.length - (pinnedActionKey ? 2 : 1)];
     const pinnedStatusKey = statusCandidate && STATUS_COLUMN_KEYS.includes(statusCandidate.key) ? statusCandidate.key : null;
     const pinClass = (column: MoneyColumn<T>): string => (column.key === pinnedActionKey ? 'table-pin-action' : column.key === pinnedStatusKey ? 'table-pin-status' : '');
-    const cellClass = (column: MoneyColumn<T>, isHeading = false): string | undefined => [isRightAligned(column) ? 'is-right' : '', !isHeading && column.money ? 'is-money' : '', pinClass(column)].filter(Boolean).join(' ') || undefined;
+    const cellClass = (column: MoneyColumn<T>, isHeading = false): string | undefined => [isRightAligned(column) ? 'is-right' : '', !isHeading && column.money ? 'is-money' : '', column.detail ? 'mt-col-detail' : '', pinClass(column)].filter(Boolean).join(' ') || undefined;
     const phoneTitle = columns.find((column) => column.phone === 'title') ?? columns.find((column) => !column.money && column.phone !== 'hide') ?? columns[0];
     const phoneAmount = columns.find((column) => column.phone === 'amount') ?? columns.find((column) => column.money && column.phone === undefined);
     const phoneLines = columns.filter((column) => column !== phoneTitle && column !== phoneAmount && column.phone !== 'hide' && column.phone !== 'title' && column.phone !== 'amount');

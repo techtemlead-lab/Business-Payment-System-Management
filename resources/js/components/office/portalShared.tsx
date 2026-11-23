@@ -4,6 +4,7 @@ import {Search,ShieldCheck} from 'lucide-react';
 import {Row,Field,Badge,money,number,label,DateInput} from '../UI';
 import {useT} from '../../shared/i18n/t';
 import FilterPicker,{wantsSearch} from '../FilterDropdown';
+import AdaptiveTabs from '../AdaptiveTabs';
 /** Placeholder shown for the moment an office screen is being fetched. */
 export function SectionLoading(){const translate=useT();return <div className="section-loading" role="status" aria-live="polite"><span className="section-loading-bar"/><span className="section-loading-bar short"/><span className="section-loading-block"/><span className="sr-only">{translate('portal','loading')}</span></div>;}
 export type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
@@ -85,14 +86,12 @@ export function StatusTabs({counts,filters,section,statuses}:{counts:Record<stri
   const query=Object.fromEntries(Object.entries({...filters,status}).filter(([key,value])=>value!==''&&value!=null&&key!=='page'));
   router.get(`${base}/${section}`,query,{preserveState:true,preserveScroll:true});
  };
- const listRef=React.useRef<HTMLDivElement>(null);
- // Phones scroll the tabs sideways: keep the selected one in view after a reload.
- useEffect(()=>{listRef.current?.querySelector<HTMLElement>('.is-active')?.scrollIntoView({block:'nearest',inline:'nearest'});},[active]);
- return <div ref={listRef} className="order-status-tabs" role="tablist" aria-label={translate('portal','orders_filter_status')}>
-  {tabs.map(tab=><button key={tab.value||'all'} type="button" role="tab" aria-selected={active===tab.value} className={`order-status-tab${active===tab.value?' is-active':''}${tab.count===0&&tab.value!==''?' is-empty':''}`} onClick={()=>go(tab.value)}>
-   <span>{tab.label}</span><b>{number(tab.count)}</b>
-  </button>)}
- </div>;
+ return <AdaptiveTabs
+  kind="pill"
+  showZeroCount
+  ariaLabel={translate('portal','orders_filter_status')}
+  tabs={tabs.map(tab=>({key:tab.value||'all',label:tab.label,count:tab.count,active:active===tab.value,empty:tab.count===0&&tab.value!=='',onSelect:()=>go(tab.value)}))}
+ />;
 }
 /** Totals above a list (orders, deliveries): read-only figures in the dashboard's figure style. */
 export function SummaryFigures({items}:{items:{key:string,label:string,value:string,tone?:string}[]}){
