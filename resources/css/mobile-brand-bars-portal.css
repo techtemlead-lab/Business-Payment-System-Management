@@ -1,0 +1,120 @@
+/* =========================================================================
+   Phone bars of the dealer, sub-dealer, office and owner panels in the company's logo green.
+   Colours, borders, shadows and the logo ring only: no sizes, spacing or behaviour (those live in mobile-chrome.css).
+   Variables: mobile-brand-bars.css. Imported last in dashboard.css; phones only (up to 767px).
+
+   The header background needs !important: dashboard.css paints it with !important on the element itself.
+   ========================================================================= */
+@media (max-width: 767px) {
+  /* The drawer and the bottom bar read --ds-side-* everywhere (rows, hover, lines, scroll fade). */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) {
+    --ds-side-bg: var(--bar-bg-deep);
+    --ds-side-text: var(--bar-fg-muted);
+    --ds-side-strong: var(--bar-fg);
+    --ds-side-muted: var(--bar-fg-muted);
+    --ds-side-hover: var(--bar-hover);
+    --ds-side-active: var(--bar-pill);
+    --ds-side-line: var(--bar-line);
+    --ds-side-focus: var(--bar-focus);
+  }
+
+  /* ---- Top bar ------------------------------------------------------------------------------ */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header {
+    background: var(--bar-bg) !important;
+    border-bottom: 1px solid var(--bar-line);
+    box-shadow: var(--bar-shadow);
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header::before {
+    background: var(--bar-bg);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* Company logo at the left of the top bar: round, in a white ring with the gold edge. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-header-logo img {
+    border-radius: 50%;
+    background: var(--bar-ring);
+    box-shadow: 0 0 0 2px var(--bar-ring), 0 0 0 4px var(--bar-accent);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header :is(.workspace-phone-title, .breadcrumb, .breadcrumb > b) {
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header :is(.workspace-menu-button, .icon-button, .global-search-trigger, .pcart-icon, .notice-bell) {
+    background: transparent;
+    border-color: transparent;
+    color: var(--bar-fg);
+    box-shadow: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header :is(.workspace-menu-button, .icon-button, .global-search-trigger, .pcart-icon, .notice-bell):is(:hover, :active) {
+    background: var(--bar-hover);
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header :is(a, button, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--bar-focus);
+    outline-offset: 3px;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .profile-menu-trigger {
+    background: var(--bar-pill);
+    border-color: var(--bar-line);
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .profile-menu-trigger .avatar {
+    background: var(--bar-ring);
+    color: var(--bar-bg);
+    box-shadow: 0 0 0 2px var(--bar-accent);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .notice-bell-count {
+    background: var(--bar-accent);
+    color: var(--bar-on-accent);
+    box-shadow: 0 0 0 2px var(--bar-bg);
+  }
+
+  /* ---- Menu drawer: the logo sits in a white ring, the header row keeps the bar's green ---------------- */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar {
+    background: var(--bar-bg-deep);
+    border-right: 1px solid var(--bar-line);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-logo img {
+    border-radius: 50%;
+    background: var(--bar-ring);
+    box-shadow: 0 0 0 2px var(--bar-ring), 0 0 0 4px var(--bar-accent);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar > .icon-button {
+    background: var(--bar-pill);
+    border-color: var(--bar-line);
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar :is(a, button, input, summary):focus-visible {
+    outline: 2px solid var(--bar-focus);
+    outline-offset: 2px;
+  }
+
+  /* ---- Bottom bar: the active item has a gold line on top and a light pill ----------------------------- */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav {
+    background: var(--bar-bg);
+    border-top: 1px solid var(--bar-line);
+    box-shadow: var(--bar-shadow-up);
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a, button) {
+    color: var(--bar-fg-muted);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a, button):is(:hover, :active) {
+    background: var(--bar-hover);
+    color: var(--bar-fg);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a, button):is(.is-active, [aria-current="page"]) {
+    background: var(--bar-pill);
+    color: var(--bar-active);
+    box-shadow: inset 0 3px 0 var(--bar-accent);
+  }
+  /* Picture-only partner bar: the active icon is drawn heavier and softly filled. */
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .portal-bottom-nav--icons > :is(a, button):is(.is-active, [aria-current="page"]) > svg {
+    stroke-width: 2.5;
+    fill: var(--bar-pill);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a, button):focus-visible {
+    outline: 2px solid var(--bar-focus);
+    outline-offset: -3px;
+  }
+}

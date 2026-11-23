@@ -6,7 +6,7 @@ import OfficePage from './office/OfficePage';
 import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
 import { useConfirm } from './ConfirmSheet';
-import FilterPicker from './FilterChips';
+import FilterPicker from './FilterDropdown';
 
 type CleanupRow = { ref: string; kind: string; label: string; detail: string | null; happened_at: string };
 

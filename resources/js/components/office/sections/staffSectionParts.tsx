@@ -5,7 +5,7 @@ import { randomUuid } from '../../../shared/randomUuid';
 import { useT } from '../../../shared/i18n/t';
 import { usePlacedFields, type ReasonPlace } from '../../../shared/reasonFields';
 import { AutoSelect } from '../../SearchSelect';
-import FilterPicker from '../../FilterChips';
+import FilterPicker from '../../FilterDropdown';
 
 export type StaffFieldOption = { value: string; label: string; channel?: string };
 export type StaffField = { name: string; label: string; type?: string; options?: StaffFieldOption[]; search?: boolean; required?: boolean; value?: string; place?: ReasonPlace };

@@ -6,7 +6,7 @@ import { actionAllowed } from './action-permissions';
 import { t, useT } from '../shared/i18n/t';
 import SearchSelect from './SearchSelect';
 import { useConfirm } from './ConfirmSheet';
-import { FilterChips } from './FilterChips';
+import { FilterDropdown } from './FilterDropdown';
 
 interface AreaAssignment {
     id: number | string;
@@ -301,7 +301,7 @@ export default function AreaDealersHub({ assignments: page, summary, areaFilters
 
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
-                        <FilterChips
+                        <FilterDropdown
                             label={translate('portal', 'area_all_tiers')}
                             value={selectedLevel}
                             onChange={setSelectedLevel}

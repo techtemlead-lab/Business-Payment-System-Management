@@ -34,7 +34,7 @@
   /* ---- Save button that stays in reach, above the bottom tab bar ---------------------------------------------- */
   .app-shell .msec-savebar{position:fixed;left:0;right:0;bottom:calc(var(--chrome-bottom-h, 56px) + env(safe-area-inset-bottom, 0px));z-index:44;display:flex;align-items:center;gap:var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-4);background:var(--ds-surface);border-top:1px solid var(--ds-line);box-shadow:0 -6px 18px rgba(11,31,51,.1)}
   .app-shell .msec-savebar>span{flex:1 1 auto;min-width:0;font-size:var(--ds-fs-sm);line-height:1.4;color:var(--ds-text-muted)}
-  .app-shell .msec-savebar .button{flex:1 1 180px;justify-content:center;min-height:48px;font-size:16px}
+  .app-shell .msec-savebar .button{flex:1 1 180px;justify-content:center;min-height:48px;font-size:var(--mt-cta,15px)}
   .app-shell .workspace-main:has(.msec-savebar),
   .app-shell .workspace-main:has(.od-now-bar){padding-bottom:calc(var(--chrome-bottom-h, 56px) + 96px)}
   /* The Enter hint means nothing on a phone. */
@@ -55,13 +55,13 @@
   .app-shell .od-now b{font-size:var(--ds-fs-lg);line-height:1.4;color:var(--ds-text)}
   .app-shell .od-now-bar{position:fixed;left:0;right:0;bottom:calc(var(--chrome-bottom-h, 56px) + env(safe-area-inset-bottom, 0px));z-index:44;display:flex;align-items:center;gap:var(--ds-s-3);padding:var(--ds-s-2) var(--ds-s-4);background:var(--ds-surface);border-top:1px solid var(--ds-line);box-shadow:0 -6px 18px rgba(11,31,51,.1)}
   .app-shell .od-now-bar>span{flex:0 1 auto;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
-  .app-shell .od-now-bar .button{flex:1 1 auto;justify-content:center;min-height:48px;font-size:16px}
+  .app-shell .od-now-bar .button{flex:1 1 auto;justify-content:center;min-height:48px;font-size:var(--mt-cta,15px)}
 
   /* The three money tiles: total on its own line, then paid and still to pay side by side. */
   .app-shell .od-flow>.metric-grid.three{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-2);margin-bottom:var(--ds-s-3)}
   .app-shell .od-flow>.metric-grid.three .metric:first-child{grid-column:1/-1}
   .app-shell .od-flow>.metric-grid.three .metric{padding:var(--ds-s-3) var(--ds-s-4)}
-  .app-shell .od-flow>.metric-grid.three .metric strong{margin:4px 0 2px;font-size:22px}
+  .app-shell .od-flow>.metric-grid.three .metric strong{margin:4px 0 2px;font-size:var(--mt-number,20px)}
   .app-shell .od-flow>.metric-grid.three .metric span{font-size:var(--ds-fs-sm)}
 
   /* Invoice buttons: two across instead of three loose rows. */
@@ -115,7 +115,7 @@
   .app-shell .tsy-block-tools.tsy-month{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ds-s-3);align-items:end;width:100%}
   .app-shell .tsy-block-tools.tsy-month>label:first-child,
   .app-shell .tsy-block-tools.tsy-month>.button{grid-column:1/-1}
-  .app-shell .tsy-block-tools.tsy-month>.button{min-height:48px;justify-content:center;font-size:16px}
+  .app-shell .tsy-block-tools.tsy-month>.button{min-height:48px;justify-content:center;font-size:var(--mt-cta,15px)}
   .app-shell .tsy-month input{width:100%;min-height:44px;font-size:16px}
   .app-shell .tsy-month .date-input-wrapper{width:100%;margin:0}
 
@@ -127,7 +127,7 @@
   .app-shell .workspace-main .office-figure strong,
   .app-shell .workspace-main .office-figure strong.is-headline{font-size:var(--ds-fs-xl);text-align:left}
   .app-shell .workspace-main .office-figure:has(>strong.is-headline){grid-column:1/-1;order:-1;padding:var(--ds-s-4)}
-  .app-shell .workspace-main .office-figure strong.is-headline{font-size:28px}
+  .app-shell .workspace-main .office-figure strong.is-headline{font-size:var(--mt-number-lg,24px)}
 
   /* ---- Office home: numbers, work waiting, company money, then the shortcuts ---------------------------------- */
   .app-shell .office-home>*{order:6}

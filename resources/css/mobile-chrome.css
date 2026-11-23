@@ -15,7 +15,9 @@
 .app-shell .workspace-phone-title,
 .app-shell .sidebar-user,
 .app-shell .sidebar-branch,
-.app-shell .profile-menu-phone-tools { display: none; }
+.app-shell .profile-menu-phone-tools,
+.app-shell .workspace-header-logo,
+.app-shell .sidebar-footer .psignout-drawer { display: none; }
 
 @media (max-width: 767px) {
   /* Partner screens are zoomed (screens-text-size.css: 1.15 normal, 1 / 1.3 / 1.5 by the A buttons). The bars and
@@ -50,11 +52,25 @@
     width: auto;
     gap: 4px;
   }
+  /* The company logo takes the menu button's place at the left; the menu opens from the first item of the bottom bar. */
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-menu-button {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-header-logo {
+    display: inline-flex;
     flex: none;
+    align-items: center;
+    justify-content: center;
     width: var(--t44);
     height: var(--t44);
     min-height: var(--t44);
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-header-logo img {
+    display: block;
+    width: calc(40 * var(--px));
+    height: calc(40 * var(--px));
+    max-width: none;
+    object-fit: cover;
   }
   /* One title only: the old crumb pieces give way to the full title, on one line. */
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .breadcrumb > span,
@@ -174,11 +190,12 @@
     white-space: nowrap;
   }
 
-  /* ---- Menu drawer: slim header, one scrolling list, compact footer ------------------------ */
+  /* ---- Menu drawer: slim header, then ONE scroll area from top to bottom (nothing is pinned) ---- */
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar {
     display: grid;
     grid-template-columns: var(--t44) minmax(0, 1fr) auto auto;
-    grid-template-rows: var(--chrome-top-h) auto auto minmax(0, 1fr) auto;
+    grid-template-rows: var(--chrome-top-h) auto auto auto auto;
+    align-content: start;
     grid-template-areas:
       "logo user out close"
       "branch branch branch branch"
@@ -188,8 +205,10 @@
     width: calc(min(86vw, 320px) / var(--m-zoom));
     height: calc(100dvh / var(--m-zoom));
     max-height: calc(100dvh / var(--m-zoom));
-    padding: 0 8px calc(env(safe-area-inset-bottom, 0px) / var(--m-zoom)) 8px;
-    overflow: hidden;
+    padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px) / var(--m-zoom)) 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar > .icon-button {
     grid-area: close;
@@ -243,7 +262,8 @@
     color: var(--ds-side-muted);
   }
   /* Partner sign-out: small, in the header row (it still asks before leaving). */
-  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .psignout-drawer {
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar > .psignout-drawer {
+    display: none;
     grid-area: out;
     width: auto;
     min-height: var(--t44);
@@ -258,7 +278,7 @@
     color: var(--ds-side-text);
     align-self: center;
   }
-  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .psignout-drawer:hover {
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar > .psignout-drawer:hover {
     background: var(--ds-side-hover);
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .psignout-drawer svg {
@@ -306,20 +326,14 @@
     display: none;
   }
 
-  /* The list: all the remaining height, one scroll area, a light fade at the edge that has more. */
+  /* The list is part of the drawer's one scroll: no inner scroll box, no pinned edge, no fade. */
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-nav-container {
     grid-area: nav;
     min-height: 0;
     margin: 0;
-    padding: 0 0 12px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: auto;
-    background:
-      linear-gradient(var(--ds-side-bg) 30%, transparent) 0 0 / 100% 28px no-repeat local,
-      linear-gradient(transparent, var(--ds-side-bg) 70%) 0 100% / 100% 28px no-repeat local,
-      linear-gradient(rgba(255, 255, 255, .16), transparent) 0 0 / 100% 18px no-repeat scroll,
-      linear-gradient(transparent, rgba(255, 255, 255, .16)) 0 100% / 100% 18px no-repeat scroll;
+    padding: 0;
+    overflow: visible;
+    background: none;
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar :is(.nav-group a,.nav-mother-body > a,.nav-section-body > a) {
     min-height: var(--t48);
@@ -338,17 +352,19 @@
     font-size: 15px;
   }
 
-  /* Footer: compact rows, pinned under the list. */
+  /* End of the list (it scrolls with the menu, it is not pinned): office phone, user manual, sign-out. Nothing else. */
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer {
     grid-area: foot;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    position: static;
+    display: flex;
+    flex-direction: column;
     gap: 6px;
     margin: 0;
-    padding: 8px 0;
+    padding: 8px 0 0;
+    border-top: 1px solid var(--ds-side-line);
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .sidebar-guide-button {
-    grid-column: 1 / -1;
+    order: 2;
     min-height: var(--t48);
     font-size: 15px;
   }
@@ -359,11 +375,14 @@
     display: none;
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .help-card > a {
+    display: none;
+  }
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .help-card > a[href^="tel:"] {
+    order: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    grid-column: 1 / -1;
     min-height: var(--t48);
     padding: 0 10px;
     border: 1px solid var(--ds-side-line);
@@ -371,6 +390,21 @@
     font-size: 14px;
     font-weight: 600;
     text-align: center;
+  }
+  /* Partner sign-out: the header copy gives way to the one at the end of the list. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-footer .psignout-drawer {
+    order: 3;
+    display: inline-flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0;
+    min-height: var(--t48);
+    border: 1px solid var(--ds-side-line);
+    border-radius: var(--ds-r-md);
+    background: transparent;
+    color: var(--ds-side-text);
+    font-size: 14px;
+    font-weight: 600;
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .sidebar .sidebar-office-footer :is(.sidebar-help-link,.sidebar-sign-out) {
     min-height: var(--t48);
@@ -399,6 +433,16 @@
     flex: none;
     width: 22px;
     height: 22px;
+  }
+
+  /* Partner bar (dealer, sub-dealer): pictures only, 26px outlined icons, the whole 56px bar height is the tap area. */
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .portal-bottom-nav.portal-bottom-nav--icons > :is(a,button) {
+    min-height: var(--t44);
+    padding: 0 2px;
+  }
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .portal-bottom-nav.portal-bottom-nav--icons > :is(a,button) > svg {
+    width: calc(26 * var(--px));
+    height: calc(26 * var(--px));
   }
 
   /* A page with its own sticky save bar does not get a third bar: the tab bar steps aside there. */

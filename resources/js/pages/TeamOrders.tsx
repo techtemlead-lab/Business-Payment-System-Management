@@ -4,8 +4,7 @@ import { Download } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Badge, Row, Table, Pagination, money, dateTime, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
-import SearchSelect from '../components/SearchSelect';
-import FilterPicker, { FilterChips } from '../components/FilterChips';
+import FilterPicker, { FilterDropdown } from '../components/FilterDropdown';
 import { PartnerTypeCell } from '../components/office/portalShared';
 
 type Filters = { from: string; to: string; member: number | null; status: string | null };
@@ -74,17 +73,17 @@ export default function TeamOrders({ partner, filters, statuses, orders, totals,
                 </div>
             </div>
             <form className="filter-bar order-filters" onSubmit={event => { event.preventDefault(); if (from && to) go(); }}>
-                <FilterChips label={translate('portal', 'stmt_quick_range')} showLabel value="" onChange={value => { if (value) go(presetRange(value)); }} options={['month', 'last_month', 'year'].map(value => ({ value, label: translate('portal', `orders_period_${value}`) }))} />
+                <FilterDropdown label={translate('portal', 'stmt_quick_range')} showLabel value="" onChange={value => { if (value) go(presetRange(value)); }} options={['month', 'last_month', 'year'].map(value => ({ value, label: translate('portal', `orders_period_${value}`) }))} />
                 <div className="order-dates">
                     <DateInput aria-label={translate('portal', 'stmt_from')} value={from} onChange={event => setFrom(event.target.value)} />
                     <DateInput aria-label={translate('portal', 'stmt_to')} value={to} onChange={event => setTo(event.target.value)} />
                 </div>
-                <SearchSelect
-                    className="ss-filter"
-                    ariaLabel={translate('portal', 'team_orders_member')}
+                <FilterPicker
+                    search
+                    label={translate('portal', 'team_orders_member')}
+                    allLabel={translate('portal', 'team_orders_all_members')}
                     value={member}
                     onChange={value => { setMember(value); go({ member: value }); }}
-                    emptyLabel={translate('portal', 'team_orders_all_members')}
                     options={members.map(item => ({ value: String(item.id), label: `${item.name}${item.dealer_code ? ` (${item.dealer_code})` : ''}` }))}
                 />
                 <FilterPicker label={translate('portal', 'col_status')} allLabel={translate('portal', 'team_orders_all_statuses')} maxChips={Infinity} value={status} onChange={value => { setStatus(value); go({ status: value }); }} options={statuses.map(item => ({ value: item, label: translate('portal', `status_${item}`) }))} />

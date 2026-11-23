@@ -10,7 +10,7 @@ import {randomUuid} from '../../shared/randomUuid';
 import {payoutMethods} from '../../shared/payoutMethods';
 import {AutoSelect} from '../SearchSelect';
 import {ProofLink} from '../ProofViewer';
-import FilterPicker from '../FilterChips';
+import FilterPicker from '../FilterDropdown';
 
 export type TranslateFn = (group:string,key:string,replace?:Record<string,string>)=>string;
 export type Option = {value:string;label:string};

@@ -42,7 +42,7 @@ class SearchableDropdownsTest extends TestCase
             'featured order: product' => ['components/website/FeaturedOrderList.tsx', 1],
             'featured products: product' => ['components/website/FeaturedProductsManager.tsx', 1],
             'area dealers: dealer and place' => ['components/AreaDealersHub.tsx', 1],
-            'team orders: team member' => ['pages/TeamOrders.tsx', 1],
+            // The team member list on the team orders page is a filter now: see test_the_team_member_filter_is_the_searchable_drop_down.
             'staff access: staff member' => ['components/StaffAccessEditor.tsx', 1],
             'branches: staff member' => ['components/BranchesHub.tsx', 1],
             'branch performance: branch' => ['components/BranchPerformanceHub.tsx', 1],
@@ -57,6 +57,13 @@ class SearchableDropdownsTest extends TestCase
     public function test_a_long_list_is_picked_from_the_searchable_drop_down(string $file, int $pickers): void
     {
         $this->assertGreaterThanOrEqual($pickers, substr_count($this->source($file), '<SearchSelect'), $file);
+    }
+
+    public function test_the_team_member_filter_is_the_searchable_drop_down(): void
+    {
+        $page = $this->source('pages/TeamOrders.tsx');
+
+        $this->assertMatchesRegularExpression("/<FilterPicker\s+search\s+label=\{translate\('portal', 'team_orders_member'\)\}/", $page);
     }
 
     /** @return array<string, array{0: string, 1: int}> */
@@ -77,18 +84,18 @@ class SearchableDropdownsTest extends TestCase
     #[DataProvider('sharedFormHelpers')]
     public function test_a_shared_form_helper_switches_to_the_searchable_drop_down_by_list_size(string $file, int $pickers): void
     {
-        // A filter row may draw a short list as chips (FilterPicker), which still switches to the searchable drop-down for a long list.
+        // A filter row draws a short list as a plain drop-down (FilterPicker), which still switches to the searchable drop-down for a long list.
         $source = $this->source($file);
         $this->assertGreaterThanOrEqual($pickers, substr_count($source, '<AutoSelect') + substr_count($source, '<FilterPicker'), $file);
     }
 
-    public function test_the_chip_filter_falls_back_to_the_searchable_drop_down_for_long_lists(): void
+    public function test_the_filter_drop_down_falls_back_to_the_searchable_drop_down_for_long_lists(): void
     {
-        $chips = $this->source('components/FilterChips.tsx');
+        $filter = $this->source('components/FilterDropdown.tsx');
 
-        $this->assertStringContainsString('if (search || options.length > maxChips) {', $chips);
-        $this->assertStringContainsString('<AutoSelect', $chips);
-        $this->assertStringContainsString('product|dealer|account|branch', $chips);
+        $this->assertStringContainsString('if (search || options.length > maxChips) {', $filter);
+        $this->assertStringContainsString('<AutoSelect', $filter);
+        $this->assertStringContainsString('product|dealer|account|branch', $filter);
     }
 
     public function test_a_list_gets_the_search_box_from_nine_rows_and_stays_a_plain_drop_down_below_that(): void
