@@ -11,7 +11,8 @@ import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
-import CourierTrackingPanel from '../components/CourierTrackingPanel';
+import CourierTrackingPanel, { courierPanelShown } from '../components/CourierTrackingPanel';
+import FoldCard from '../components/FoldCard';
 import StockShortageNotice from '../components/StockShortageNotice';
 import PartlyDeliveredCommission from '../components/PartlyDeliveredCommission';
 import OrderMoneyBreakdown, { type OrderMoneyBreakdownData } from '../components/OrderMoneyBreakdown';
@@ -101,12 +102,11 @@ function SupplyDateForm({ order }: { order: Row }) {
     const translate = useT();
     const form = useForm({ supply_eta: order.supply_eta ?? '', supply_note: order.supply_note ?? '' });
     const supplyNote = useReasonField('order.supply_note');
-    return <div className="panel"><form className="action-form" onSubmit={event => {
+    return <FoldCard testId="supply-date" title={translate('portal', 'supply_eta_form_title')}><form className="action-form" onSubmit={event => {
         event.preventDefault();
         form.transform(data => ({ supply_eta: data.supply_eta || null, supply_note: supplyNote.shown ? data.supply_note || null : null }));
         form.post(`/commands/orders/${order.id}/supply-date`, { preserveScroll: true });
     }}>
-        <h3>{translate('portal', 'supply_eta_form_title')}</h3>
         <p className="muted">{translate('portal', 'supply_eta_form_hint')}</p>
         <div className="form-grid">
             <label>{translate('portal', 'supply_eta_label')}<DateInput value={form.data.supply_eta} onChange={event => form.setData('supply_eta', event.target.value)} /></label>
@@ -114,7 +114,7 @@ function SupplyDateForm({ order }: { order: Row }) {
         </div>
         <FormErrors errors={form.errors}/>
         <button className="button" disabled={form.processing}>{translate('portal', 'supply_eta_save')}</button>
-    </form></div>;
+    </form></FoldCard>;
 }
 
 /** Pay what is due on this order without typing anything: cash at the office, or the partner's own account. */
@@ -194,6 +194,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         return null;
     })();
     const act = (id: string) => nextStep?.targetId === id;
+    const courierShown = courierPanelShown(order, shipments, events);
     const [shareOpen, setShareOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const printUrl = `/orders/${order.id}/invoice/print`;
@@ -258,16 +259,13 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <OrderNextStep step={nextStep} />
         {handledBy.length > 0 && <p className="notice" role="status" data-testid="handled-by">{translate('orders_stock', 'handled_by', { names: handledBy.join(', ') })}</p>}
         <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
-        <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
-            canManage={(capabilities.includes('inventory') || capabilities.includes('order_review')) && auth.user.id !== order.user_id} />
-        {canChangeDelivery && <section className="panel narrow-panel" data-testid="delivery-change">
-            <h2>{translate('order_delivery', 'change_title')}</h2>
+        {canChangeDelivery && <FoldCard testId="delivery-change" title={translate('order_delivery', 'change_title')}>
             <p className="muted">{translate('order_delivery', 'change_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/delivery-method`} fields={[
                 { name: 'delivery_method', label: translate('order_delivery', 'change_label'), required: true, options: (['courier', 'office'] as const).filter(method => method !== (pickup ? 'office' : 'courier')).map(method => ({ value: method, label: translate('order_delivery', `method_${method}_staff`) })) },
                 { name: 'note', label: translate('order_delivery', 'change_note'), type: 'textarea', place: 'order.courier_change' },
             ]} defaults={{ delivery_method: pickup ? 'courier' : 'office' }} submit={translate('order_delivery', 'change_submit')} />
-        </section>}
+        </FoldCard>}
 
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
@@ -276,7 +274,6 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ? <div className="metric"><span>{translate('order_payment', officeCashWaiting ? 'office_waiting_metric' : 'waiting_metric')}</span><strong>{money(paymentPrompt.waiting_amount)}</strong>{owner && !officeCashWaiting && <small>{translate('order_payment', 'waiting_metric_hint')}</small>}</div>
                 : <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong>{paymentPrompt.ask_for_payment && <small>{translate('portal', 'remaining_payment_hint')}</small>}</div>}
         </div>
-        <OrderMoneyBreakdown data={moneyBreakdown} />
         {owner && paymentPrompt.waiting_for_check && <div className="notice" role="status"><b>{translate('order_payment', officeCashWaiting ? 'office_waiting_title' : 'waiting_title')}</b><p>{translate('order_payment', officeCashWaiting ? 'office_waiting_body' : 'waiting_body', { amount: money(paymentPrompt.waiting_amount) })}</p></div>}
         {staffOnOrder && itemsLeft && open && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && <StockShortageNotice order={order} stockByBranch={stockByBranch} unsentOf={unsentOf} />}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
@@ -309,8 +306,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <OwedItemsPanel order={order} owedItems={owedItems} owner={owner} canSendGoods={canSendGoods} canRefund={staffOnOrder && capabilities.includes('finance')} unsentOf={unsentOf} />
             {itemsLeft && capabilities.includes('inventory') && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && auth.user.id !== order.user_id && <SupplyDateForm key={`${order.supply_eta ?? ''}|${order.supply_note ?? ''}`} order={order} />}
         </section>
-        {/* Sent payments, delivery steps and (for an order collected at the office) how the goods are received: three side by side. */}
-        <div id="od-claims" className={`two-column${pickup ? ' is-three' : ''}${act('od-claims') ? ' od-act' : ''}`}>
+        {/* Sent payments, delivery steps and the courier (or, for an order collected at the office, how the goods are received): three side by side. */}
+        <div id="od-claims" className={`two-column${pickup || courierShown ? ' is-three' : ''}${act('od-claims') ? ' od-act' : ''}`}>
             <section className="panel"><h2>{translate('portal', 'payment_claims')}</h2>
                 <Table rows={claims} columns={[
                     { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method'), render: (r: Row) => { const raw = String(r.channel ?? ''); const key = `pay_channel_${raw.toLowerCase()}`; const text = translate('portal', key); return raw === '' ? '—' : (text !== key ? text : raw); } }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
@@ -355,7 +352,10 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     ? 'detail_office_done'
                     : ['approved', 'partially_dispatched'].includes(order.status) ? 'detail_office_ready' : 'detail_office_waiting')}</p>
             </section>}
+            <CourierTrackingPanel order={order} shipments={shipments} events={events} courierChoices={courierChoices}
+                canManage={(capabilities.includes('inventory') || capabilities.includes('order_review')) && auth.user.id !== order.user_id} />
         </div>
+        <OrderMoneyBreakdown data={moneyBreakdown} />
         {order.note && <div className="notice"><b>{translate('portal', 'order_note')}</b><p>{order.note}</p></div>}
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
         <PartlyDeliveredCommission />
@@ -391,7 +391,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && !pickup && ['approved', 'partially_dispatched'].includes(order.status) && <section id="od-dispatch" className={`panel${nextStep?.key === 'courier' ? ' od-act' : ''}`}><h2>{translate('portal', 'dispatch_available_items')}</h2>
             <p><Link className="button dark" data-testid="choose-courier-link" href={`/orders/${order.id}/courier`}>{translate('courier', 'pick_open_link')}</Link></p><DispatchForm key={`${order.id}-${shipments.length}`} order={order} courierChoices={courierChoices} stockByBranch={stockByBranch} /></section>}
         {canSendGoods && itemsLeft && ['approved', 'partially_dispatched'].includes(order.status) && !parcelOnRoad && <OfficeHandoverForm key={`${order.id}-${shipments.length}`} order={order} stockByBranch={stockByBranch} act={act('od-handover')} />}
-        <section className="panel"><h2>{translate('portal', 'order_activity')}</h2>
+        <FoldCard testId="order-activity" title={translate('portal', 'order_activity')} hint={events.length > 0 ? number(events.length) : undefined}>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
                 const eventKey = `event_${event.action.replaceAll('.', '_')}`;
@@ -410,7 +410,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     : metadata?.reason;
                 return <div className="timeline-item" key={event.id}><i /><div><b>{title}</b><p>{dateTime(event.created_at)}{event.actor_name ? ` · ${event.actor_name}` : ''}{detail ? ` · ${detail}` : ''}</p></div></div>;
             }) : <p className="muted">{translate('portal', 'order_activity_empty')}</p>}
-        </section>
+        </FoldCard>
         </div>
     </Shell>;
 }

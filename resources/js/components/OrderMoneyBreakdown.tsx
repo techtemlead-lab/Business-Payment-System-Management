@@ -1,4 +1,5 @@
 import { money } from './UI';
+import FoldCard from './FoldCard';
 import { joined, percentText } from './treasury/format';
 import { useT } from '../shared/i18n/t';
 
@@ -59,16 +60,14 @@ export default function OrderMoneyBreakdown({ data }: { data: OrderMoneyBreakdow
 
     if (data.mode === 'none') {
         return (
-            <section className="panel" data-testid="order-money" aria-labelledby="order-money-title">
-                <h2 id="order-money-title">{title}</h2>
+            <FoldCard testId="order-money" title={title}>
                 <p className="muted">{translate('order_money', `none_${data.reason ?? 'not_available'}`)}</p>
-            </section>
+            </FoldCard>
         );
     }
 
     return (
-        <section className="panel table-panel" data-testid="order-money" data-mode={data.mode} aria-labelledby="order-money-title">
-            <div className="panel-heading"><h2 id="order-money-title">{title}</h2></div>
+        <FoldCard testId="order-money" className="table-panel" title={title}>
             {preview
                 ? <div className="notice" role="status" data-testid="order-money-preview"><b>{translate('order_money', 'preview_notice')}</b><p>{translate('order_money', 'preview_hint')}{data.reason ? ` ${translate('order_money', `reason_${data.reason}`)}` : ''}</p></div>
                 : <p className="muted" style={{ padding: '0 24px' }}>{translate('order_money', 'posted_note')}</p>}
@@ -109,6 +108,6 @@ export default function OrderMoneyBreakdown({ data }: { data: OrderMoneyBreakdow
                 </table>
             </div>
             {!data.adds_up && <p className="error" role="alert" style={{ margin: 16 }}>{translate('order_money', 'not_adding_up')}</p>}
-        </section>
+        </FoldCard>
     );
 }

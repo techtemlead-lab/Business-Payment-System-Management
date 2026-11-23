@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
 import { ActionForm, money } from './UI';
+import FoldCard from './FoldCard';
 import { useT } from '../shared/i18n/t';
 
 type Outcome = {
@@ -22,8 +23,7 @@ export default function PartlyDeliveredCommission() {
     }
     const figure = (key: string, value: string) => <div className="metric"><span>{translate('courier_more', key)}</span><strong>{money(value)}</strong></div>;
 
-    return <section className="panel" data-testid="partly-delivered-commission">
-        <h2>{translate('courier_more', 'part_title')}</h2>
+    return <FoldCard testId="partly-delivered-commission" title={translate('courier_more', 'part_title')} open={outcome.can_choose_no_commission}>
         <div className="metric-grid four">
             {figure('part_value', outcome.delivered_value)}
             {figure('part_order_total', outcome.order_total)}
@@ -39,5 +39,5 @@ export default function PartlyDeliveredCommission() {
                 { name: 'reason', label: translate('courier_more', 'decision_reason_label'), type: 'textarea', required: true, place: 'order.commission_decision' },
             ]} submit={translate('courier_more', 'part_action')} />
         </>}
-    </section>;
+    </FoldCard>;
 }
