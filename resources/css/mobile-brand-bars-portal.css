@@ -30,6 +30,12 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+  /* Company logo at the left of the top bar: round, in a white ring with the gold edge. */
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .workspace-header-logo img {
+    border-radius: 50%;
+    background: var(--bar-ring);
+    box-shadow: 0 0 0 2px var(--bar-ring), 0 0 0 4px var(--bar-accent);
+  }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header :is(.workspace-phone-title, .breadcrumb, .breadcrumb > b) {
     color: var(--bar-fg);
   }
@@ -45,7 +51,7 @@
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header :is(a, button, summary, [tabindex]):focus-visible {
     outline: 2px solid var(--bar-focus);
-    outline-offset: 2px;
+    outline-offset: 3px;
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .profile-menu-trigger {
     background: var(--bar-pill);
@@ -101,6 +107,11 @@
     background: var(--bar-pill);
     color: var(--bar-active);
     box-shadow: inset 0 3px 0 var(--bar-accent);
+  }
+  /* Picture-only partner bar: the active icon is drawn heavier and softly filled. */
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .portal-bottom-nav--icons > :is(a, button):is(.is-active, [aria-current="page"]) > svg {
+    stroke-width: 2.5;
+    fill: var(--bar-pill);
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .portal-bottom-nav > :is(a, button):focus-visible {
     outline: 2px solid var(--bar-focus);
