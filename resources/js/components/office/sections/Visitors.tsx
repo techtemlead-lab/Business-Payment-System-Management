@@ -3,6 +3,7 @@ import { router } from '@inertiajs/react';
 import { Download } from 'lucide-react';
 import OfficePage from '../OfficePage';
 import { ReportFilterSheet } from '../../BranchPerformanceHub';
+import { FilterDropdown } from '../../FilterDropdown';
 import type { OfficeHub } from '../../OfficeHubTabs';
 import { ActionForm, DateInput, Table, dateTime, number, type Row } from '../../UI';
 import PartnerActivityList, { type PartnerActivityReport } from './PartnerActivityList';
@@ -140,13 +141,14 @@ export default function Visitors({ report, hub }: { report: VisitorsReport; hub?
             <div className="money-table">
                 <div className="mt-toolbar">
                     <ReportFilterSheet>{datePickers}</ReportFilterSheet>
-                    <div className="mt-views" role="group" aria-label={translate('office_visitors', 'pick_period')}>
-                        {PERIODS.map((choice) => (
-                            <button key={choice} type="button" className="mt-view" aria-pressed={period.key === choice} onClick={() => visit({ period: choice })}>
-                                {translate('office_visitors', `period_${choice}`)}
-                            </button>
-                        ))}
-                    </div>
+                    <FilterDropdown
+                        label={translate('office_visitors', 'pick_period')}
+                        showLabel
+                        value={period.key}
+                        onChange={(choice) => visit({ period: choice })}
+                        highlight={false}
+                        options={PERIODS.map((choice) => ({ value: choice, label: translate('office_visitors', `period_${choice}`) }))}
+                    />
                     <div className="mt-filters vis-dates">{datePickers}</div>
                 </div>
             </div>

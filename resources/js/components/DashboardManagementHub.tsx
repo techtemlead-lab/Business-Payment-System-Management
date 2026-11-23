@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { router, useForm, Link } from '@inertiajs/react';
 import { RotateCcw, UserCheck } from 'lucide-react';
 import { Badge, number, type Row } from './UI';
 import OfficePage from './office/OfficePage';
 import { settingsBack } from './office/sections/SettingsForm';
 import { useT } from '../shared/i18n/t';
+import { useMobileSections } from '../shared/useMobileSections';
 
 export interface DashboardManagementHubProps {
     settings: Record<string, any>;
@@ -26,6 +27,9 @@ type TabKey = 'dealers' | 'subdealers' | 'employees' | 'company';
 export default function DashboardManagementHub({ settings, defaults, stats, recent_employees = [] }: DashboardManagementHubProps) {
     const translate = useT();
     const [activeTab, setActiveTab] = useState<TabKey>('dealers');
+    const sheetRef = useRef<HTMLFormElement>(null);
+    // Phone: each switch group is a heading that opens on tap.
+    useMobileSections(sheetRef, { selector: ':scope > .set-block', open: 1, watch: activeTab });
 
     const form = useForm({
         settings: {
@@ -121,7 +125,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                     </button>
                 ))}
             </div>
-            <form onSubmit={submitSave} className="action-form set-sheet">
+            <form onSubmit={submitSave} className="action-form set-sheet" ref={sheetRef}>
                 {activeTab === 'dealers' && (
                     <>
                         <section className="set-block">

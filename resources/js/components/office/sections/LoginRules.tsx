@@ -1,6 +1,8 @@
+import { useRef } from 'react';
 import OfficePage from '../OfficePage';
 import { ActionForm, type Row } from '../../UI';
 import { useT } from '../../../shared/i18n/t';
+import { useMobileSections } from '../../../shared/useMobileSections';
 import { settingsBack } from './SettingsForm';
 import { OwnerConfirmationNote, ownerConfirmFields, type OwnerConfirmationControl } from '../OwnerConfirmation';
 
@@ -11,6 +13,9 @@ const LEADERSHIP_AREAS = ['accounts', 'treasury', 'owner_tools'] as const;
 
 export default function LoginRules({ otp, passwordResetNotice, oneAccountPerIdentity, ownerConfirmation, teamPhones, leadershipAccess }: { otp: Row; passwordResetNotice?: Row | null; oneAccountPerIdentity?: Row | null; ownerConfirmation?: OwnerConfirmationControl | null; teamPhones?: Row | null; leadershipAccess?: LeadershipAccessControl | null }) {
     const translate = useT();
+    const sheetRef = useRef<HTMLDivElement>(null);
+    // Phone: each rule is a heading that opens on tap, instead of one long scroll.
+    useMobileSections(sheetRef, { selector: ':scope > .set-block', open: 1 });
     const confirmFields = ownerConfirmFields(ownerConfirmation, translate);
     const smsDown = ownerConfirmation ? !ownerConfirmation.sms_works : true;
     const noticeEnabled = (passwordResetNotice?.enabled ?? true) ? '1' : '0';
@@ -31,7 +36,7 @@ export default function LoginRules({ otp, passwordResetNotice, oneAccountPerIden
 
     return (
         <OfficePage title={translate('portal', 'login_rules')} back={settingsBack(translate)}>
-            <div className="set-sheet">
+            <div className="set-sheet" ref={sheetRef}>
                 <section className="set-block" data-tour="owner-confirmation">
                     <h2>{translate('owner_security', 'confirm_title')}</h2>
                     <p className="set-line">{translate('owner_security', 'confirm_intro')}</p>
