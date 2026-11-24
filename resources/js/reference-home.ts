@@ -9,7 +9,6 @@ bindLocaleSwitchForms();
 
 let toastTimer:ReturnType<typeof setTimeout>;
 type SiteUi = {
-    in_stock: string;
     out_of_stock: string;
     low_stock: string;
     product_link_copied: string;
@@ -25,7 +24,6 @@ const siteUi: SiteUi = (() => {
     const node = document.getElementById('ref-site-ui');
     if (!node?.textContent) {
         return {
-            in_stock: 'In Stock',
             out_of_stock: 'Out of stock',
             low_stock: 'Low Stock',
             product_link_copied: 'Product link copied.',
@@ -42,7 +40,6 @@ const siteUi: SiteUi = (() => {
         return JSON.parse(node.textContent) as SiteUi;
     } catch {
         return {
-            in_stock: 'In Stock',
             out_of_stock: 'Out of stock',
             low_stock: 'Low Stock',
             product_link_copied: 'Product link copied.',
