@@ -550,7 +550,8 @@ class AuthController extends Controller
     public function reset(Request $r): Response
     {
         $data = $r->validate(['token' => 'required|string', 'email' => 'required|email', 'password' => ['required', 'confirmed', PasswordRule::min(8)]]);
-        $status = Password::reset($data, function (User $u, string $password) {
+        $resetUser = null;
+        $status = Password::reset($data, function (User $u, string $password) use (&$resetUser) {
             // Refused inside the callback, after the link is checked, so the link stays usable for a better try.
             $this->refuseTooEasyPassword($password, $u);
             $u->forceFill([
@@ -561,12 +562,13 @@ class AuthController extends Controller
             ])->save();
             DB::table('sessions')->where('user_id', $u->id)->delete();
             Audit::record($u->id, 'password.reset', 'account');
+            $resetUser = $u;
         });
         if ($status !== Password::PasswordReset) {
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
-        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', __('portal.flash_password_set'));
+        return redirect($resetUser?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', __('portal.flash_password_set'));
     }
 
     public function ownerContact(Request $request, OwnerConfirmation $confirmation): Response

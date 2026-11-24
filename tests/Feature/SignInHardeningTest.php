@@ -171,6 +171,51 @@ class SignInHardeningTest extends TestCase
         $this->assertTrue(Hash::check('40719352', (string) $dealer->fresh()->password));
     }
 
+    public function test_password_reset_for_a_shared_email_changes_nobody(): void
+    {
+        $older = User::factory()->dealer()->create([
+            'email' => 'shared@example.test',
+            'password' => self::Password,
+        ]);
+        $newer = User::factory()->dealer()->create([
+            'email' => 'Shared@example.test',
+            'password' => self::Password,
+        ]);
+        $token = Password::createToken($older);
+
+        $this->onPortal('dealer')->from('/forgot-password')
+            ->post('/forgot-password', ['email' => 'shared@example.test'])
+            ->assertSessionHas('success');
+        $this->onPortal('dealer')->post('/reset-password', [
+            'token' => $token,
+            'email' => 'shared@example.test',
+            'password' => '40719352',
+            'password_confirmation' => '40719352',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertTrue(Hash::check(self::Password, (string) $older->fresh()->password));
+        $this->assertTrue(Hash::check(self::Password, (string) $newer->fresh()->password));
+        $this->assertSame(Password::INVALID_USER, Password::sendResetLink(['email' => 'shared@example.test']));
+    }
+
+    public function test_password_reset_matches_the_one_account_when_the_email_case_differs(): void
+    {
+        $dealer = User::factory()->dealer()->create([
+            'email' => 'Partner@example.test',
+            'password' => self::Password,
+        ]);
+        $token = Password::createToken($dealer);
+
+        $this->onPortal('dealer')->post('/reset-password', [
+            'token' => $token,
+            'email' => 'partner@example.test',
+            'password' => '40719352',
+            'password_confirmation' => '40719352',
+        ])->assertRedirect();
+
+        $this->assertTrue(Hash::check('40719352', (string) $dealer->fresh()->password));
+    }
+
     public function test_a_password_change_cancels_reset_links_still_waiting(): void
     {
         $dealer = $this->dealer();
