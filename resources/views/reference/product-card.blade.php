@@ -6,11 +6,10 @@
     $imageSrc = $hasCustomImage ? \App\Domain\Catalog\ProductPhotoThumbnail::address($item['image_path']) : $stockImage['url'];
     $stockStatus = $item['stock_status'] ?? 'out_of_stock';
     $inStock = $stockStatus !== 'out_of_stock';
+    // A product that is in stock shows no badge at all; only "low stock" and "out of stock" are worth a word.
     $stockWords = fn (string $status): string => $status === 'out_of_stock'
         ? \App\Support\SiteChrome::text('out_of_stock', $siteCustomization['product_out_of_stock_label'] ?? null)
-        : ($status === 'low_stock'
-            ? __('site.low_stock')
-            : \App\Support\SiteChrome::text('in_stock', $siteCustomization['product_in_stock_label'] ?? null));
+        : ($status === 'low_stock' ? __('site.low_stock') : '');
     $stockLabel = $stockWords($stockStatus);
     $priceWords = function (mixed $amount): string {
         $value = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($amount ?? '0')));
@@ -90,7 +89,7 @@
                 <strong>৳ {{ $displayMrp }}</strong>
                 <small>{{ __('site.mrp') }} ({{ __('site.retail_price') }})</small>
             </div>
-            <span class="ref-card-stock {{ $inStock ? 'is-in' : 'is-out' }}">{{ $stockLabel }}</span>
+            <span class="ref-card-stock {{ $inStock ? 'is-in' : 'is-out' }}" @if($stockLabel === '') hidden @endif>{{ $stockLabel }}</span>
         </div>
 
         <a class="ref-card-cta" href="{{ $item['url'] }}">{{ __('site.view_product_details') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>

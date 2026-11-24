@@ -209,7 +209,6 @@
 </button><div class="ref-toast" role="status" aria-live="polite"></div>
 @php
     $refSiteUi = [
-        'in_stock' => __('site.in_stock'),
         'out_of_stock' => __('site.out_of_stock'),
         'low_stock' => __('site.low_stock'),
         'product_link_copied' => __('site.product_link_copied'),

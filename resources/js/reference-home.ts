@@ -9,7 +9,6 @@ bindLocaleSwitchForms();
 
 let toastTimer:ReturnType<typeof setTimeout>;
 type SiteUi = {
-    in_stock: string;
     out_of_stock: string;
     low_stock: string;
     product_link_copied: string;
@@ -25,7 +24,6 @@ const siteUi: SiteUi = (() => {
     const node = document.getElementById('ref-site-ui');
     if (!node?.textContent) {
         return {
-            in_stock: 'In Stock',
             out_of_stock: 'Out of stock',
             low_stock: 'Low Stock',
             product_link_copied: 'Product link copied.',
@@ -42,7 +40,6 @@ const siteUi: SiteUi = (() => {
         return JSON.parse(node.textContent) as SiteUi;
     } catch {
         return {
-            in_stock: 'In Stock',
             out_of_stock: 'Out of stock',
             low_stock: 'Low Stock',
             product_link_copied: 'Product link copied.',
@@ -180,6 +177,7 @@ document.addEventListener('click', event => {
     if (stock) {
         const inStock = facts.stockStatus !== 'out_of_stock';
         stock.textContent = facts.stockLabel ?? '';
+        (stock as HTMLElement).hidden = !facts.stockLabel;
         stock.classList.toggle('is-in', inStock);
         stock.classList.toggle('is-out', !inStock);
     }
@@ -202,7 +200,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-quick-view]').forEach(button
             const status = card.dataset.stockStatus || '';
             availability.textContent = status === 'out_of_stock'
                 ? siteUi.out_of_stock
-                : (status === 'low_stock' ? siteUi.low_stock : siteUi.in_stock);
+                : (status === 'low_stock' ? siteUi.low_stock : '');
         }
         const details = document.getElementById('qvViewDetails') as HTMLAnchorElement | null;
         if (details) details.href = card.dataset.url || '/products';
