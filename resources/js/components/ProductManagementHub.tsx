@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { Camera, Download, Eye, Plus, Save } from 'lucide-react';
+import { Camera, Download, Eye, LayoutGrid, List, Plus, Save } from 'lucide-react';
+import OfficeProductCard from './OfficeProductCard';
 import { FeaturedProductsManager } from './website/FeaturedProductsManager';
 import { type FeaturedOrderProduct } from './website/FeaturedOrderList';
 import { HomePageOrderPanel } from './website/HomePageOrderPanel';
@@ -79,6 +80,22 @@ export default function ProductManagementHub({
     const visit = useAddressVisit(null);
     const [drawerProductId, setDrawerProductId] = useState<number | string | null>(null);
     const [pickedForPublish, setPickedForPublish] = useState<number[]>([]);
+    // Cards are the first view, like the website and the partner pages; the choice is remembered on this device.
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+        try {
+            return window.localStorage.getItem('office-products-view') === 'table' ? 'table' : 'grid';
+        } catch {
+            return 'grid';
+        }
+    });
+    const chooseViewMode = (mode: 'grid' | 'table') => {
+        setViewMode(mode);
+        try {
+            window.localStorage.setItem('office-products-view', mode);
+        } catch {
+            // A device that blocks storage simply forgets the choice.
+        }
+    };
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
     const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
     const canEditMarketing=canEditCatalog||(auth.capabilities.includes('content')&&(staffActions?.content?.edit??true));
@@ -338,6 +355,23 @@ export default function ProductManagementHub({
                         data={productTable}
                         prop="data"
                         columns={columns}
+                        actions={(
+                            <div className="hub-seg" role="group" aria-label={`${translate('portal', 'catalog_view_grid')} / ${translate('portal', 'catalog_view_table')}`}>
+                                <button type="button" aria-pressed={viewMode === 'grid'} className={viewMode === 'grid' ? 'is-active' : undefined} onClick={() => chooseViewMode('grid')}>
+                                    <LayoutGrid size={14} aria-hidden="true" /> {translate('portal', 'catalog_view_grid')}
+                                </button>
+                                <button type="button" aria-pressed={viewMode === 'table'} className={viewMode === 'table' ? 'is-active' : undefined} onClick={() => chooseViewMode('table')}>
+                                    <List size={14} aria-hidden="true" /> {translate('portal', 'catalog_view_table')}
+                                </button>
+                            </div>
+                        )}
+                        cardView={viewMode === 'grid' && !canPublishDrafts ? (product) => (
+                            <OfficeProductCard
+                                product={product}
+                                openUrl={canOpenProduct ? `/products/${product.id}` : null}
+                                onMore={() => setDrawerProductId(product.id)}
+                            />
+                        ) : undefined}
                         searchPlaceholder={translate('portal', 'search_products_catalog')}
                         rowHref={canOpenProduct ? (product) => `/products/${product.id}` : undefined}
                         empty={emptyLine}

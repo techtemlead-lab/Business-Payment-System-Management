@@ -57,6 +57,8 @@ type MoneyTableProps<T> = {
     actions?: React.ReactNode;
     /** The page has its own date view: no chips here, and clearing the table leaves that view alone. */
     hideViewChips?: boolean;
+    /** When given, the rows show as this card in a grid instead of the table; search, filters and pages stay the same. */
+    cardView?: (row: T) => React.ReactNode;
     empty: string;
 };
 
@@ -109,7 +111,7 @@ export default function MoneyTable<T>(props: MoneyTableProps<T>) {
     return <LoadedMoneyTable {...props} data={props.data} />;
 }
 
-function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, rowArrow = true, onRowOpen, extraSorts = [], bulk, segments, actions, hideViewChips = false, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
+function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, rowArrow = true, onRowOpen, extraSorts = [], bulk, segments, actions, hideViewChips = false, cardView, empty }: MoneyTableProps<T> & { data: MoneyTableData<T> }) {
     const translate = useT();
     const { url, props: pageProps } = usePage<{ errors?: Record<string, string> }>();
     const { state, totals, sortable } = data;
@@ -409,7 +411,14 @@ function LoadedMoneyTable<T>({ data, prop, columns, searchPlaceholder, rowHref, 
             {selecting && bulk && rows.length > 0 && <BulkBar kind={bulk.kind} pageIds={rows.map(rowId)} picked={picked} onPick={setPicked} />}
 
             {/* With no rows the column names still show, with the "nothing here" line under them. */}
-            {(
+            {cardView ? (
+                <>
+                    {rows.length === 0
+                        ? <p className="mt-empty-cell">{empty}</p>
+                        : <div className="pcart-grid">{rows.map((row, index) => <React.Fragment key={index}>{cardView(row)}</React.Fragment>)}</div>}
+                    {rows.length > 0 && <Pagination page={data.rows} />}
+                </>
+            ) : (
                 <>
                     <div ref={scrollBox} className={`mt-table-wrap${isOverflowing ? ' is-overflowing' : ''}${rows.length === 0 ? ' is-empty' : ''}`}>
                         <table className="mt-table">
