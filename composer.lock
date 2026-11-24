@@ -7818,16 +7818,16 @@
         },
         {
             "name": "web-token/jwt-library",
-            "version": "4.2.5",
+            "version": "4.2.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/web-token/jwt-library.git",
-                "reference": "2ff6e4bac74e8921e07bd1336ebae82a1c5478c6"
+                "reference": "83adc6e8750d7c4a670adf71af49b45d2224f056"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/web-token/jwt-library/zipball/2ff6e4bac74e8921e07bd1336ebae82a1c5478c6",
-                "reference": "2ff6e4bac74e8921e07bd1336ebae82a1c5478c6",
+                "url": "https://api.github.com/repos/web-token/jwt-library/zipball/83adc6e8750d7c4a670adf71af49b45d2224f056",
+                "reference": "83adc6e8750d7c4a670adf71af49b45d2224f056",
                 "shasum": ""
             },
             "require": {
@@ -7891,7 +7891,7 @@
                 "symfony"
             ],
             "support": {
-                "source": "https://github.com/web-token/jwt-library/tree/4.2.5"
+                "source": "https://github.com/web-token/jwt-library/tree/4.2.6"
             },
             "funding": [
                 {
@@ -7903,7 +7903,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2026-11-05T19:58:51+00:00",
+            "time": "2026-11-08T11:34:13+00:00",
             "published-time": "2026-11-05T20:03:13+00:00"
         }
     ],
