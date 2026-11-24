@@ -140,7 +140,7 @@ class RegisterCampSmsGatewayTest extends TestCase
             'provider' => 'registercamp',
             'version' => 0,
             'enabled' => true,
-            'base_url' => 'https://attacker.example/send-sms.php',
+            'base_url' => 'https://attacker.example.com/send-sms.php',
             'balance_url' => self::BalanceUrl,
             'api_key' => self::Token,
             'sender_id' => self::SenderId,
