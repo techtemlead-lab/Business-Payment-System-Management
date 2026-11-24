@@ -92,6 +92,11 @@ final class IntegrationCatalog
                         'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://api.sms.net.bd/sendsms', 'api_key' => '', 'sender_id' => '', 'balance_url' => 'https://api.sms.net.bd/user/balance/'],
                     ],
+                    'registercamp' => [
+                        'label' => __('portal.si_provider_registercamp'),
+                        'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://sms.registercamp.com/api/v1/send-sms.php', 'api_key' => '', 'sender_id' => '', 'balance_url' => 'https://sms.registercamp.com/api/v1/check-balance.php'],
+                    ],
                 ],
             ],
             'mail' => [
