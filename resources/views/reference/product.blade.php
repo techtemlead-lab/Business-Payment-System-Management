@@ -8,7 +8,7 @@
             ? $chrome('out_of_stock', $siteCustomization['product_out_of_stock_label'] ?? null)
             : (($item['stock_status'] ?? '') === 'low_stock'
                 ? __('site.low_stock')
-                : $chrome('in_stock', $siteCustomization['product_in_stock_label'] ?? null)));
+                : ''));
 @endphp
 @extends('reference.layout')
 @section('title',$item['name'].' · '.\App\Support\SiteCustomization::brandName())
@@ -67,7 +67,9 @@
 
         <div class="ref-detail-price">
             <span class="ref-detail-mrp"><small>{{ __('site.mrp') }}</small> <b>৳ {{ \App\Support\LocalDigits::money($item['mrp']) }}</b></span>
-            <span class="ref-detail-stock {{ $inStock ? 'is-in' : 'is-out' }}"><span class="ref-sr-only">{{ __('site.availability') }}:</span> {{ $stockLabel }}</span>
+            @if($stockLabel !== '')
+                <span class="ref-detail-stock {{ $inStock ? 'is-in' : 'is-out' }}"><span class="ref-sr-only">{{ __('site.availability') }}:</span> {{ $stockLabel }}</span>
+            @endif
         </div>
 
         @if(! empty($sizes))

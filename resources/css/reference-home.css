@@ -484,6 +484,9 @@ html[data-theme="dark"] .ref-mobile-home-icon img{background:#0a1712;box-shadow:
 .ref-card-stock.is-out {
     color: #b42318;
 }
+.ref-card-stock[hidden] {
+    display: none;
+}
 .ref-card-cta {
     display: inline-flex;
     align-items: center;

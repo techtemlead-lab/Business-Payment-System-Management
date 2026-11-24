@@ -272,8 +272,21 @@ class RemainingHardeningTest extends TestCase
 
         $this->get('/products/'.$product->id)
             ->assertOk()
-            ->assertSee('In Stock')
+            ->assertDontSee('In Stock')
             ->assertDontSee('31415');
+    }
+
+    public function test_public_product_cards_show_no_in_stock_badge_but_still_warn_when_out_of_stock(): void
+    {
+        Product::factory()->create(['active' => true, 'stock' => 500, 'name' => 'Plenty Tonic', 'mrp' => '250.00']);
+        Product::factory()->create(['active' => true, 'stock' => 0, 'name' => 'Empty Syrup', 'mrp' => '120.00']);
+
+        $this->get('/products')
+            ->assertOk()
+            ->assertSee('Plenty Tonic')
+            ->assertSee('Empty Syrup')
+            ->assertDontSee('In Stock')
+            ->assertSee(\App\Support\SiteChrome::text('out_of_stock', null));
     }
 
     public function test_inventory_staff_can_update_locale_preference(): void
