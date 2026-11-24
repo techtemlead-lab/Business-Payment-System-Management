@@ -13,6 +13,7 @@ use App\Models\DealerRank;
 use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\SiteChrome;
 use App\Support\SiteCustomization;
 use App\Support\SpreadsheetCell;
 use Database\Seeders\CommissionRuleSeeder;
@@ -286,7 +287,7 @@ class RemainingHardeningTest extends TestCase
             ->assertSee('Plenty Tonic')
             ->assertSee('Empty Syrup')
             ->assertDontSee('In Stock')
-            ->assertSee(\App\Support\SiteChrome::text('out_of_stock', null));
+            ->assertSee(SiteChrome::text('out_of_stock', null));
     }
 
     public function test_inventory_staff_can_update_locale_preference(): void
