@@ -41,6 +41,7 @@ final class SmsGatewayClient
                     'greenweb' => $this->sendGreenweb($config, $phone, $message),
                     'ssl_wireless' => $this->sendSslWireless($config, $phone, $message),
                     'bulk_sms_bd' => $this->sendBulkSmsBd($config, $phone, $message),
+                    'registercamp' => $this->sendRegisterCamp($config, $phone, $message),
                     default => $this->sendCustom($config, $phone, $message),
                 };
                 if ($ok) {
@@ -134,6 +135,7 @@ final class SmsGatewayClient
                     'greenweb' => $this->balanceGreenweb($config),
                     'ssl_wireless' => $this->balanceSslWireless($config),
                     'bulk_sms_bd' => $this->balanceBulkSmsBd($config),
+                    'registercamp' => $this->balanceRegisterCamp($config),
                     default => $this->balanceCustom($config),
                 };
                 if ($balance !== null) {
@@ -398,7 +400,7 @@ final class SmsGatewayClient
         return is_numeric($json['error'] ?? null) && (int) $json['error'] === 0;
     }
 
-    /** MIM and Alpha both take the number as 8801XXXXXXXXX. */
+    /** MIM, Alpha and RegisterCamp all take the number as 8801XXXXXXXXX. */
     private function internationalPhone(string $phone): string
     {
         $digits = preg_replace('/\D+/', '', $phone) ?? '';
@@ -414,6 +416,64 @@ final class SmsGatewayClient
     private function loggableReply(string $reply, array $hidden): string
     {
         return RedactedError::text(mb_strimwidth(str_replace($hidden, '[hidden]', trim($reply)), 0, 120));
+    }
+
+    /**
+     * RegisterCamp (Host Server BD) transactional send: one form POST with the token, the approved
+     * sender ID, the number as 8801XXXXXXXXX and the text. Only a JSON reply whose status is
+     * "success" counts as accepted. The token goes in the form body, never in the URL.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function sendRegisterCamp(array $config, string $phone, string $message): bool
+    {
+        $base = rtrim((string) $config['base_url'], '/');
+        $token = (string) $config['api_key'];
+        $senderId = (string) ($config['sender_id'] ?? '');
+        if ($base === '' || $token === '' || $senderId === '') {
+            return false;
+        }
+        $number = $this->internationalPhone($phone);
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(15)->acceptJson()->asForm()->post($base, [
+            'token' => $token,
+            'sender_id' => $senderId,
+            'recipient' => $number,
+            'message' => $message,
+            'transtype' => 'T',
+        ]);
+        $json = $response->json();
+        if ($response->successful() && is_array($json) && strcasecmp((string) ($json['status'] ?? ''), 'success') === 0) {
+            return true;
+        }
+        Log::warning('sms.registercamp_rejected', [
+            'status' => $response->status(),
+            'reply' => $this->loggableReply($response->body(), [$token, $message, $number, $phone]),
+        ]);
+
+        return false;
+    }
+
+    /**
+     * RegisterCamp balance: a GET with the token; the amount is data.balance in taka.
+     * Any failure is logged through RedactedError, which removes query strings.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    private function balanceRegisterCamp(array $config): ?string
+    {
+        $url = trim((string) ($config['balance_url'] ?? ''));
+        $token = (string) ($config['api_key'] ?? '');
+        if ($url === '' || $token === '') {
+            return null;
+        }
+        $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(12)->acceptJson()->get($url, ['token' => $token]);
+        $json = $response->json();
+        if (! $response->successful() || ! is_array($json) || strcasecmp((string) ($json['status'] ?? ''), 'success') !== 0) {
+            return null;
+        }
+        $value = $json['data']['balance'] ?? null;
+
+        return $value === null ? null : mb_strimwidth((string) $value, 0, 60);
     }
 
     /** @param  array<string, mixed>  $config */

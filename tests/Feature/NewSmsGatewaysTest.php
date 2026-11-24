@@ -120,7 +120,7 @@ class NewSmsGatewaysTest extends TestCase
     {
         $providers = IntegrationCatalog::groups()['sms']['providers'];
 
-        $this->assertSame(['mim_sms', 'greenweb', 'ssl_wireless', 'bulk_sms_bd', 'custom', 'alpha_sms'], array_keys($providers));
+        $this->assertSame(['mim_sms', 'greenweb', 'ssl_wireless', 'bulk_sms_bd', 'custom', 'alpha_sms', 'registercamp'], array_keys($providers));
         foreach ($providers as $provider) {
             $this->assertFalse($provider['defaults']['enabled']);
         }
