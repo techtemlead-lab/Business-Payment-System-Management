@@ -21,6 +21,7 @@ import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
 import CallMeCard from './CallMeCard';
 import { DashboardGrid, IncomeReport } from './PartnerDashboard';
+import { usePartnerHomeSlots } from './PartnerHomeSlots';
 
 /** A progress bar row, or a plain line with no target: kind "amount" (a figure, such as a sub-dealer's salary) or kind "status" (words, such as a dealer's salary state). */
 type TargetRow = {
@@ -192,9 +193,12 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
     const waitingAmounts: Row[] = wallet.commission_waiting?.amounts ?? [];
     const sections: string[] = usePage<any>().props.portalCatalog?.sections ?? [];
     const [showNotes, setShowNotes] = useState(false);
+    const slots = usePartnerHomeSlots();
 
     return (
         <div className="partner-home ph">
+            {/* The owner's notice: above everything on a computer, under the person's card and the menu tiles on a phone. */}
+            {slots?.notice}
             {home.is_birthday === true && (
                 <section className="ph-birthday" role="status" data-tour="home-birthday">
                     <span className="ph-birthday-icon" aria-hidden="true">🎂</span>
@@ -262,6 +266,9 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                     </button>
                 </section>
             ) : null} />
+
+            {/* Phone only: every menu row as a big tile, under the person's card and money (client, 2026-11-25). */}
+            {slots?.tiles}
 
             {/* The big easy-way buttons sit under the money and targets, above the long report. */}
             <CallMeCard />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Building2, CalendarDays, Hash, Landmark, Mail, MapPin, ShoppingBag, Users } from 'lucide-react';
+import { Award, Building2, CalendarDays, Hash, Landmark, Mail, MapPin, Phone, ShoppingBag, Users } from 'lucide-react';
 import MoneyTable, { type MoneyColumn, type MoneyTableData } from './MoneyTable';
 import { ProfilePhoto } from './ProfilePhoto';
 import { date, money, number, type Row } from './UI';
@@ -12,9 +12,9 @@ import AppointmentPill from './AppointmentPill';
 import PartnerViewSelect from './PartnerViewSelect';
 
 /** One line of the profile card: a small icon, a word and the value. */
-function CardLine({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+function CardLine({ icon, label, children, className }: { icon: React.ReactNode; label: string; children: React.ReactNode; className?: string }) {
     return (
-        <div className="pd-line">
+        <div className={className ? `pd-line ${className}` : 'pd-line'}>
             <span className="pd-line-icon" aria-hidden="true">{icon}</span>
             <dt>{label}</dt>
             <dd>{children}</dd>
@@ -34,22 +34,26 @@ function ProfileCard({ card }: { card: Row }) {
             <div className="pd-photo"><ProfilePhoto src={card.photo_url} initial={card.initial || '?'} variant="cover" /></div>
             <h2 className="pd-name">{card.name}</h2>
             <p className="pd-type"><AppointmentPill appointment={card.appointment} fallback={translate('cr_partner', type)} testId="home-appointment" /></p>
-            {isPhone && <button type="button" className="button small pd-more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>
-                {translate('cr_partner', moreOpen ? 'card_less' : 'card_more')}
-            </button>}
+            {/* Phone: the rank sits under the name, beside the position (client, 2026-11-25). A computer shows it in the identity boxes. */}
+            {card.rank && <p className="pd-rank" data-testid="home-rank"><Award size={15} aria-hidden="true" /><span>{translate('cr21_identity', 'label_rank')}:</span> <b>{translate('portal', `net_rank_${card.rank}`)}</b></p>}
             <dl className="pd-lines">
+                {/* Phone: mobile, code, area and address stay open; e-mail and join date wait behind "More". A computer shows the mobile in the identity boxes. */}
+                {card.phone && <CardLine className="pd-line-phone" icon={<Phone size={16} />} label={translate('cr21_identity', 'label_mobile')}>{card.phone}</CardLine>}
                 {card.code && <CardLine icon={<Hash size={16} />} label={translate('cr21_identity', card.type === 'sub_dealer' ? 'label_code_sub_dealer' : 'label_code_dealer')}>{card.code}</CardLine>}
                 {card.type === 'sub_dealer' && <CardLine icon={<Building2 size={16} />} label={translate('cr21_identity', 'label_chamber')}>{card.shop_name || translate('cr21_identity', 'not_given')}</CardLine>}
-                {card.appointment?.area && <CardLine icon={<Landmark size={16} />} label={translate('cr21_identity', 'label_area')}>{card.appointment.area}</CardLine>}
-                {card.area && <CardLine icon={<MapPin size={16} />} label={translate('cr21_identity', 'label_address')}>{card.area}</CardLine>}
-                {card.email && <CardLine icon={<Mail size={16} />} label={translate('cr_partner', 'card_email')}>{card.email}</CardLine>}
-                {card.joined_on && <CardLine icon={<CalendarDays size={16} />} label={translate('cr_partner', 'card_joined')}>{date(card.joined_on.split('/').reverse().join('-'))}</CardLine>}
+                {card.appointment?.area && <CardLine className="pd-line-wide" icon={<Landmark size={16} />} label={translate('cr21_identity', 'label_area')}>{card.appointment.area}</CardLine>}
+                {card.area && <CardLine className="pd-line-wide" icon={<MapPin size={16} />} label={translate('cr21_identity', 'label_address')}>{card.area}</CardLine>}
+                {card.email && <CardLine className="is-extra" icon={<Mail size={16} />} label={translate('cr_partner', 'card_email')}>{card.email}</CardLine>}
+                {card.joined_on && <CardLine className="is-extra" icon={<CalendarDays size={16} />} label={translate('cr_partner', 'card_joined')}>{date(card.joined_on.split('/').reverse().join('-'))}</CardLine>}
             </dl>
             <dl className="pd-counts">
                 <div><dt><Users size={15} aria-hidden="true" /> {translate('cr_partner', 'card_direct')}</dt><dd>{number(card.direct ?? 0)}</dd></div>
                 <div><dt>{translate('cr_partner', 'card_gen1')}</dt><dd>{number(card.gen1 ?? 0)}</dd></div>
                 <div><dt>{translate('cr_partner', 'card_gen2')}</dt><dd>{number(card.gen2 ?? 0)}</dd></div>
             </dl>
+            {isPhone && <button type="button" className="button small pd-more-toggle" aria-expanded={moreOpen} onClick={() => setMoreOpen(open => !open)}>
+                {translate('cr_partner', moreOpen ? 'card_less' : 'card_more')}
+            </button>}
         </aside>
     );
 }
@@ -62,18 +66,19 @@ function IdentityBoxes({ card }: { card: Row }) {
     const targetLeft = card.target_left === null || card.target_left === undefined
         ? null
         : Number(card.target_left) > 0 ? money(card.target_left) : c('target_done');
-    const boxes: [string, React.ReactNode][] = [
-        [c('label_mobile'), card.phone],
-        [c(isSub ? 'label_code_sub_dealer' : 'label_code_dealer'), card.code],
-        ...(card.rank ? [[c('label_rank'), translate('portal', `net_rank_${card.rank}`)] as [string, React.ReactNode]] : []),
+    // The contact and rank boxes are hidden on a phone: the person's card at the top already shows them.
+    const boxes: [string, React.ReactNode, string?][] = [
+        [c('label_mobile'), card.phone, 'is-contact'],
+        [c(isSub ? 'label_code_sub_dealer' : 'label_code_dealer'), card.code, 'is-contact'],
+        ...(card.rank ? [[c('label_rank'), translate('portal', `net_rank_${card.rank}`), 'is-rank'] as [string, React.ReactNode, string]] : []),
         [c('label_month_purchase'), money(card.month_purchase ?? 0)],
         ...(targetLeft !== null ? [[c('label_target_left'), targetLeft] as [string, React.ReactNode]] : []),
     ];
 
     return (
         <dl className="pd-card pd-idboxes" data-testid="home-idboxes">
-            {boxes.filter(([, value]) => value !== null && value !== undefined && value !== '').map(([label, value], index) => (
-                <div key={label} className={index < 2 ? 'is-contact' : undefined}><dt>{label}</dt><dd>{value}</dd></div>
+            {boxes.filter(([, value]) => value !== null && value !== undefined && value !== '').map(([label, value, kind]) => (
+                <div key={label} className={kind}><dt>{label}</dt><dd>{value}</dd></div>
             ))}
         </dl>
     );

@@ -21,6 +21,7 @@ import TextSizeToggle from './TextSizeToggle';
 import ThemeToggle from './ThemeToggle';
 import ViewOptionsMenu from './ViewOptionsMenu';
 import TextSizeSwitch from './TextSizeSwitch';
+import { PartnerHomeSlotsContext, type PartnerHomeSlots } from './PartnerHomeSlots';
 import { firstNameOf } from '../shared/personName';
 import { keywordKeyFor, matchesAny, shownActions, wordList, type SearchContext } from '../shared/menuSearch';
 import { OPEN_MANUAL_EVENT } from '../shared/openManual';
@@ -505,6 +506,46 @@ export default function Shell({ section, children, action }: { section: string; 
         );
     });
 
+    const noticeShown = Boolean(dashboardNotice && dashboardNotice.text && (dashboardNotice.every_page || section === 'overview' || section === ''));
+    const noticeNode = noticeShown ? (
+        <div className={`portal-notice portal-notice-${dashboardNotice.type || 'info'}`} data-testid="dashboard-notice">
+            <Bell size={18} />
+            <div>{dashboardNotice.text}</div>
+        </div>
+    ) : null;
+
+    /** The dealer and sub-dealer home page draws the notice and the menu tiles itself, under the person's card (same test as DashboardOverview). */
+    const partnerHomeHere = (section === 'overview' || section === '')
+        && Boolean(page.props.data?.partner_home)
+        && (user.role === 'dealer' || user.role === 'sub_dealer');
+
+    const partnerTileTones = ['green', 'blue', 'amber', 'rose'];
+    const partnerTiles = partnerHomeHere && !staff ? (
+        <nav className="ph-actions ph-menu-tiles" aria-label={translate('portal', 'ph_quick_actions')} data-testid="home-menu-tiles">
+            {navMothers.filter((entry) => entry.id !== 'home' && entry.items.length > 0).map((entry, index) => {
+                const item = entry.items[0];
+                const spec = resolveNavLink(item);
+                const Icon = icons[spec.iconKey] || icons[item] || icons[entry.id] || LayoutDashboard;
+                const badge = itemBadge(item);
+
+                return (
+                    <Link key={entry.id} href={sectionHref(base, item)} className="ph-action" data-nav-item={item}>
+                        <span className={`ph-action-icon tone-${partnerTileTones[index % partnerTileTones.length]}`} aria-hidden="true">
+                            <Icon size={22} />
+                        </span>
+                        <span className="ph-action-label">{sectionLabel(item)}</span>
+                        {badge > 0 && (
+                            <span className="nav-attention-badge ph-action-badge" aria-label={translate('portal', 'nav_attention_count', { count: String(badge) })}>
+                                {formatBadge(badge)}
+                            </span>
+                        )}
+                    </Link>
+                );
+            })}
+        </nav>
+    ) : null;
+    const partnerHomeSlots: PartnerHomeSlots | null = partnerHomeHere ? { tiles: partnerTiles, notice: noticeNode } : null;
+
     const headingItem = (() => {
         if (section === 'catalog' && staff) {
             return tabOfSearch(locationSearch) === 'taxonomy' ? 'catalog-taxonomy' : 'catalog-products';
@@ -831,12 +872,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         {action}
                     </div>
 
-                    {dashboardNotice && dashboardNotice.text && (dashboardNotice.every_page || section === 'overview' || section === '') && (
-                        <div className={`portal-notice portal-notice-${dashboardNotice.type || 'info'}`}>
-                            <Bell size={18} />
-                            <div>{dashboardNotice.text}</div>
-                        </div>
-                    )}
+                    {!partnerHomeHere && noticeNode}
 
                     {dashboardNotice?.maintenance && !staff && (
                         <div className="portal-notice portal-notice-danger">
@@ -849,7 +885,9 @@ export default function Shell({ section, children, action }: { section: string; 
                     )}
 
                     <Flash />
-                    <div id="domain-panel" role="tabpanel" aria-live="polite" className="portal-workspace-body portal-fade-in-delayed">{children}</div>
+                    <div id="domain-panel" role="tabpanel" aria-live="polite" className="portal-workspace-body portal-fade-in-delayed">
+                        <PartnerHomeSlotsContext.Provider value={partnerHomeSlots}>{children}</PartnerHomeSlotsContext.Provider>
+                    </div>
                     {demoMode && (
                         <div className="demo-banner">
                             {translate('portal', 'demo_banner')}
