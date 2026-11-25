@@ -5,7 +5,6 @@ namespace App\Domain\Accounts;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\DealerKinds;
-use App\Domain\Commissions\MonthlyTargets;
 use App\Domain\Finance\FundCatalog;
 use App\Models\User;
 use App\Support\Money;
