@@ -150,8 +150,8 @@ class PartnerBenefitControlsTest extends TestCase
         // Downline purchase in each union tests area quota hold against custom targets
         $lowBuyer = User::factory()->inPlace($unionLow)->create(['role' => 'sub_dealer', 'status' => 'active']);
         $highBuyer = User::factory()->inPlace($unionHigh)->create(['role' => 'sub_dealer', 'status' => 'active']);
-        $this->deliverPurchase($lowBuyer, '1000.00', '2000.00');
-        $this->deliverPurchase($highBuyer, '1000.00', '2000.00');
+        $this->deliverPurchase($lowBuyer, '1000.00', '1500.00');
+        $this->deliverPurchase($highBuyer, '1000.00', '1500.00');
 
         $lowAreaRow = CommissionAllocation::where('user_id', $lowDealer->id)
             ->where('category', 'area_union')
