@@ -203,7 +203,7 @@ class PartnerBenefitControlsTest extends TestCase
         ]);
 
         // Sub-dealer buys 6,000: qualifies for custom tier1 (5k @ 0.50% = 30.00), below default tier1 (10k)
-        $subOrder = $this->deliverPurchase($subDealer, '6000.00', '10000.00');
+        $subOrder = $this->deliverPurchase($subDealer, '6000.00', '9000.00');
         // Dealer buys 120,000: below default MO (500k) -> reaches MO under custom 100k AND achieves custom bike 50k
         $dealerOrder = $this->deliverPurchase($dealer, '120000.00', '240000.00');
         // Control dealer with no custom override stays maturing under global cooling_off_days=5
