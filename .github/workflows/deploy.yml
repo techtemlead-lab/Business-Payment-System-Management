@@ -1,0 +1,89 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: ["Application quality"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Optional green main commit SHA to deploy (defaults to latest main)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_TARGET: ${{ secrets.DEPLOY_SSH_TARGET }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_KNOWN_HOSTS: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [ -n "$DEPLOY_SSH_TARGET" ] || { echo "Missing secret: DEPLOY_SSH_TARGET" >&2; exit 1; }
+          [ -n "$DEPLOY_SSH_KEY" ] || { echo "Missing secret: DEPLOY_SSH_KEY" >&2; exit 1; }
+          [ -n "$DEPLOY_SSH_KNOWN_HOSTS" ] || { echo "Missing secret: DEPLOY_SSH_KNOWN_HOSTS" >&2; exit 1; }
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ControlMaster auto
+            ControlPath ~/.ssh/cm-%C
+            ControlPersist 10m
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy green commit from main
+        env:
+          MADINA_DEPLOY_SSH: ${{ secrets.DEPLOY_SSH_TARGET }}
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            target_sha="$WORKFLOW_SHA"
+          elif [ -n "${INPUT_SHA:-}" ]; then
+            target_sha="$INPUT_SHA"
+          else
+            target_sha="$(git rev-parse origin/main)"
+          fi
+          echo "Deploying commit: $target_sha"
+          MADINA_DEPLOY_KEY="$HOME/.ssh/deploy_key" bash infra/deploy/deploy.sh "$target_sha"
+
+      - name: Clean up SSH key
+        if: always()
+        run: |
+          for sock in ~/.ssh/cm-*; do
+            [ -S "$sock" ] && ssh -O exit -S "$sock" placeholder >/dev/null 2>&1 || true
+          done
+          rm -rf ~/.ssh/deploy_key ~/.ssh/cm-*
