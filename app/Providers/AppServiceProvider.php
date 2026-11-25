@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Database\Connectors\PostgresConnector;
 use App\Domain\Auth\SignInGuard;
+use App\Domain\Auth\UniqueEmailUserProvider;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Notifications\PasswordResetMail;
 use App\Domain\Notifications\WebPushNotices;
@@ -30,6 +31,7 @@ use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\QueueBusy;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -87,6 +89,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // The password broker uses this provider so a shared email never resets whichever account comes first.
+        Auth::provider('unique_email', fn ($app, array $config) => new UniqueEmailUserProvider($app['hash'], $config['model']));
         $this->guardQueries();
         // Nobody using the portal should be asked for "Y-m-d"; the date boxes are filled in as day/month/year.
         Validator::replacer('date_format', static fn (string $message, string $attribute, string $rule, array $parameters): string => str_replace(':format', match ($parameters[0] ?? '') {

@@ -67,6 +67,13 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
+        // Sign-in keeps `users`. Reset links use this provider so an email shared by two accounts
+        // (allowed while the one-person switch is off) does not change one of them at random.
+        'password_reset_users' => [
+            'driver' => 'unique_email',
+            'model' => env('AUTH_MODEL', User::class),
+        ],
+
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
@@ -94,7 +101,7 @@ return [
 
     'passwords' => [
         'users' => [
-            'provider' => 'users',
+            'provider' => 'password_reset_users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
