@@ -306,7 +306,7 @@ final class CommissionQualification
                 }
             }
             if ($steps !== []) {
-                $changes[] = ['user_id' => (int) $rank->user_id, 'role' => (string) ($user?->role ?? ''), 'from' => $current, 'to' => $steps[count($steps) - 1], 'steps' => $steps];
+                $changes[] = ['user_id' => (int) $rank->user_id, 'role' => (string) $user->role, 'from' => $current, 'to' => $steps[count($steps) - 1], 'steps' => $steps];
             }
         }
 
@@ -388,7 +388,7 @@ final class CommissionQualification
                     ? (int) PartnerBenefitControls::effectiveSubDealerRoyaltyTarget($user, $rules)
                     : ($user
                         ? PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, $kinds[$userId] ?? null, $exceptions[$userId] ?? null)
-                        : (int) MonthlyTargets::royaltyTarget($rules, (string) $user?->role, $kinds[$userId] ?? null));
+                        : (int) MonthlyTargets::royaltyTarget($rules, '', $kinds[$userId] ?? null));
                 $grace = false;
             } else {
                 $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);

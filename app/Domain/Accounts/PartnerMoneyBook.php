@@ -326,7 +326,8 @@ final class PartnerMoneyBook
             ->paginate(20, ['*'], 'wd_page')
             ->withQueryString();
 
-        $rows = $rows->through(function (object $row) use ($week): array {
+        $rows = $rows->through(function (mixed $row) use ($week): array {
+            /** @var \stdClass $row */
             $destinationMasked = (string) __('office_withdrawal.destination_office');
             if ($row->channel !== WithdrawalMethods::Office) {
                 try {
@@ -372,11 +373,11 @@ final class PartnerMoneyBook
 
         return [
             'summary' => [
-                'paid_total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals?->paid_total ?? '0')),
-                'paid_count' => (int) ($totals?->paid_count ?? 0),
-                'pending_total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals?->pending_total ?? '0')),
-                'pending_count' => (int) ($totals?->pending_count ?? 0),
-                'total_count' => (int) ($totals?->total_count ?? 0),
+                'paid_total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals->paid_total ?? '0')),
+                'paid_count' => (int) ($totals->paid_count ?? 0),
+                'pending_total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals->pending_total ?? '0')),
+                'pending_count' => (int) ($totals->pending_count ?? 0),
+                'total_count' => (int) ($totals->total_count ?? 0),
             ],
             'filters' => [
                 'status' => $status,

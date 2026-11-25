@@ -530,7 +530,7 @@ final class PartnerDashboardHome
      * The rank row of a dealer or sub-dealer: own purchases toward MO, then the direct-referral lines toward the next rank.
      *
      * @param  array<string, array<string, mixed>>  $rules
-     * @param  array<string, bool|int|string|null>|null  $controls  PartnerBenefitControls::for($user) when already read
+     * @param  array<string, array<string, int|string>|bool|int|string|null>|null  $controls  PartnerBenefitControls::for($user) when already read
      * @return array<string, mixed>
      */
     private function rankTarget(User $user, array $rules, ?array $controls = null): array

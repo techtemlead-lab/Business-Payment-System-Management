@@ -69,7 +69,7 @@ final class PartnerBenefitControls
             'unconditional_rank_royalty' => (bool) ($controls['unconditional_rank_royalty'] ?? false),
             'forced_royalty_rank' => self::normalizeRank($controls['forced_royalty_rank'] ?? null),
             'unconditional_rank_incentive' => (bool) ($controls['unconditional_rank_incentive'] ?? false),
-            'custom_conditions' => self::sanitizeStoredCustom($controls['custom_conditions'] ?? null),
+            'custom_conditions' => self::sanitizeStoredCustom(array_key_exists('custom_conditions', $controls) ? $controls['custom_conditions'] : null),
             'note' => isset($controls['note']) ? (string) $controls['note'] : null,
             'updated_by' => isset($controls['updated_by']) ? (int) $controls['updated_by'] : null,
             'updated_at' => isset($controls['updated_at']) ? (string) $controls['updated_at'] : null,
@@ -304,7 +304,7 @@ final class PartnerBenefitControls
     {
         $clean = [];
         foreach ($input as $key => $raw) {
-            if (! is_string($key) || ! isset(self::CustomConditions[$key])) {
+            if (! isset(self::CustomConditions[$key])) {
                 continue;
             }
             $spec = self::CustomConditions[$key];
@@ -340,7 +340,7 @@ final class PartnerBenefitControls
                     throw ValidationException::withMessages(["custom_conditions.{$key}" => __('commission_page.err_whole')]);
                 }
                 $number = (int) $text;
-                $max = (int) ($spec['max'] ?? 366);
+                $max = (int) $spec['max'];
                 if ($number < (int) $spec['min'] || $number > $max) {
                     throw ValidationException::withMessages(["custom_conditions.{$key}" => __('commission_page.err_whole')]);
                 }
