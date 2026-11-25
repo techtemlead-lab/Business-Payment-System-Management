@@ -256,6 +256,20 @@
 .app-shell .sr-rank select{min-height:44px}
 .app-shell .sr-save{margin-top:var(--ds-s-5);display:grid;gap:var(--ds-s-3)}
 .app-shell .sr-save input{width:100%}
+.app-shell .sr-custom-fields{display:grid;gap:var(--ds-s-2);margin-top:var(--ds-s-3);padding:var(--ds-s-3);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-md)}
+.app-shell .sr-custom-heading{font-size:var(--ds-fs-sm);font-weight:700;color:var(--ds-text)}
+.app-shell .sr-custom-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ds-s-2) var(--ds-s-3);padding:var(--ds-s-2) 0;border-top:1px solid var(--ds-line-soft)}
+.app-shell .sr-custom-row:first-of-type{border-top:0}
+.app-shell .sr-custom-row.has-error{background:var(--ds-danger-bg);margin:0 calc(var(--ds-s-2) * -1);padding-inline:var(--ds-s-2)}
+.app-shell .sr-custom-meta{display:flex;flex-direction:column;gap:2px;min-width:180px;flex:1}
+.app-shell .sr-custom-meta label{font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text)}
+.app-shell .sr-custom-meta small{font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
+.app-shell .sr-custom-input{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2)}
+.app-shell .sr-custom-diff.is-higher{background:var(--ds-warn-bg);color:var(--ds-warn-fg)}
+.app-shell .sr-custom-diff.is-lower{background:var(--ds-brand-soft);color:var(--ds-ok-fg)}
+.pbc-custom{padding:var(--ds-s-3);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+.pbc-custom summary{cursor:pointer;font-weight:600}
+.pbc-custom-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--ds-s-3);margin-top:var(--ds-s-3)}
 
 /* The list of special rates. */
 .app-shell .sr-history{display:grid;gap:var(--ds-s-3);margin:0;padding:0;list-style:none}

@@ -60,9 +60,11 @@ final class PartnerNextSteps
         if (PartnerBenefitControls::waivesSalaryVolume($user)) {
             return ['kind' => 'salary_waived', 'values' => []];
         }
-        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
-        $target = MonthlyTargets::dealerTarget($rules, app(DealerKinds::class)->of((int) $user->id));
-        $volume = $this->qualification->monthlyVolume((int) $user->id, CommissionQualification::currentMonth());
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21) or custom override.
+        $month = CommissionQualification::currentMonth();
+        $exception = app(DealerKinds::class)->exceptions([(int) $user->id], $month)[(int) $user->id] ?? null;
+        $target = PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, app(DealerKinds::class)->of((int) $user->id), $exception);
+        $volume = $this->qualification->monthlyVolume((int) $user->id, $month);
         if ($volume >= $target) {
             return ['kind' => 'salary_met', 'values' => []];
         }
@@ -80,7 +82,7 @@ final class PartnerNextSteps
     {
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
         $current = $rank->current_rank ?? 'dealer';
-        $parameters = $rules['rank_royalty']['parameters'];
+        $parameters = PartnerBenefitControls::effectiveRankParameters($user, $rules);
         $steps = [];
         if ($current !== 'dealer') {
             $paidAs = $this->qualification->paidAs((int) $user->id, CommissionQualification::currentMonth(), $rules);

@@ -3,7 +3,7 @@ import { Head, Link, router, useForm, usePage, usePoll } from '@inertiajs/react'
 import { backgroundRefreshHeaders } from '../shared/backgroundRefresh';
 import { Download, ExternalLink, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, Printer } from 'lucide-react';
 import Shell from '../components/Shell';
-import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
+import { Row, Badge, ActionForm, money, date, dateTimeSeconds, FormErrors, label } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
@@ -450,7 +450,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                         {st.desc && <p className="wd-step-desc">{st.desc}</p>}
                         {st.time && (
                             <div className="wd-step-time">
-                                <span>{date(st.time)}</span>
+                                <span>{dateTimeSeconds(st.time)}</span>
                             </div>
                         )}
                     </article>
@@ -509,7 +509,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             <div className="order-title">
                 <div>
                     <h2>{money(w.amount)}</h2>
-                    <p>{translate('portal', 'wd_requested')} {date(w.created_at)} · {channelName(w.channel, translate)}</p>
+                    <p>{translate('portal', 'wd_requested')} {dateTimeSeconds(w.created_at)} · {channelName(w.channel, translate)}</p>
                 </div>
                 {w.status === 'returned' ? <span className="badge rejected">{translate('payouts', 'status_returned')}</span> : <Badge status={w.status} />}
             </div>
@@ -544,11 +544,11 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <dl className="profile-grid">
                     <div><dt>{translate('portal', 'wd_destination')}</dt><dd>{w.destination_for_payment ?? w.destination_masked}</dd></div>
                     <div><dt>{translate('portal', 'wd_payment_ref')}</dt><dd>{w.payment_reference ?? translate('portal', 'wd_not_recorded')}</dd></div>
-                    <div><dt>{translate('portal', 'wd_payment_date')}</dt><dd>{w.paid_at ? date(w.paid_at) : translate('portal', 'wd_not_recorded')}</dd></div>
+                    <div><dt>{translate('portal', 'wd_payment_date')}</dt><dd>{w.paid_at ? dateTimeSeconds(w.paid_at) : translate('portal', 'wd_not_recorded')}</dd></div>
                 </dl>
                 {w.proof_is_image && (
                     <figure className="wd-proof">
-                        <figcaption><b>{translate('office_withdrawal', 'proof_title')}</b>{w.paid_at && <> · {translate('office_withdrawal', 'proof_sent_on', { date: date(w.paid_at) })}</>}</figcaption>
+                        <figcaption><b>{translate('office_withdrawal', 'proof_title')}</b>{w.paid_at && <> · {translate('office_withdrawal', 'proof_sent_on', { date: dateTimeSeconds(w.paid_at) })}</>}</figcaption>
                         <ProofLink href={`${base}/withdrawals/${w.id}/receipt`} kind="image" title={translate('office_withdrawal', 'proof_title')}>
                             <img src={`${base}/withdrawals/${w.id}/receipt`} alt={translate('office_withdrawal', 'proof_alt')} loading="lazy" style={{ maxWidth: '100%', maxHeight: 480, borderRadius: 8, border: '1px solid var(--ds-line, #e2e8f0)' }} />
                         </ProofLink>
@@ -570,7 +570,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                 <h2>{translate('portal', 'wd_history_title')}</h2>
                 {events.map((e, i) => (
                     <div key={i} className="timeline-item">
-                        <i /><div><b>{eventLabel(String(e.event))} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{date(e.created_at)}</small></div>
+                        <i /><div><b>{eventLabel(String(e.event))} · {e.name}</b>{e.note && <p>{e.note}</p>}<small>{dateTimeSeconds(e.created_at)}</small></div>
                     </div>
                 ))}
             </section>

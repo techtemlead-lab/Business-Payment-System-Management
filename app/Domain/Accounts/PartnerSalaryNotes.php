@@ -31,8 +31,9 @@ final class PartnerSalaryNotes
         }
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $joined = $partner->created_at?->timezone($tz)->format('Y-m') ?? '0000-00';
-        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
-        $minVolume = MonthlyTargets::dealerTarget(app(CommissionPolicy::class)->snapshot(false)['rules'], app(DealerKinds::class)->of((int) $partner->id));
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21) or custom override.
+        $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
+        $kind = app(DealerKinds::class)->of((int) $partner->id);
         $closed = DB::table('commission_allocations')
             ->where('category', 'dealer_monthly_salary_pool')
             ->where('status', 'settled')
@@ -42,7 +43,12 @@ final class PartnerSalaryNotes
             ->limit($months)
             ->pluck('month');
 
-        return $closed->map(fn (string $month): array => $this->month($partner, $month, $minVolume))->all();
+        return $closed->map(function (string $month) use ($partner, $rules, $kind): array {
+            $exception = app(DealerKinds::class)->exceptions([(int) $partner->id], $month)[(int) $partner->id] ?? null;
+            $minVolume = PartnerBenefitControls::effectiveDealerMonthlyTarget($partner, $rules, $kind, $exception);
+
+            return $this->month($partner, $month, $minVolume);
+        })->all();
     }
 
     /**

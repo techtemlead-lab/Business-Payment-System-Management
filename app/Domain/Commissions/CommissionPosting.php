@@ -2,6 +2,7 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceGeographyResolver;
@@ -303,8 +304,9 @@ final class CommissionPosting
                 'policy' => json_encode($snapshot, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $journal = [];
             foreach ($rows as $row) {
+                $rowDays = (int) ($row['cooling_off_days'] ?? $days);
                 $metadata = [...$row['metadata'], 'rule_version' => $rules[$row['rule_key']]['version'], 'basis' => 'purchase_value',
-                    'period_month' => CommissionQualification::currentMonth(), 'maturation_due_at' => $days > 0 ? now()->addDays($days)->toIso8601String() : null,
+                    'period_month' => CommissionQualification::currentMonth(), 'maturation_due_at' => $rowDays > 0 ? now()->addDays($rowDays)->toIso8601String() : null,
                     ...($deliveredPart !== null ? ['posting_scope' => 'delivered_part'] : [])];
                 CommissionAllocation::create(['order_id' => $order->id, 'user_id' => $row['user_id'], 'category' => $row['category'],
                     'rate_percentage' => $row['rate_percentage'], 'cash_basis' => Money::decimal($cash), 'amount' => Money::decimal($row['cents']),
@@ -442,21 +444,38 @@ final class CommissionPosting
         }
         $company = Percentage::from($snapshot['company_mrp_percent'])->of($mrp, 'half_up');
         $type = $snapshot['account_type'];
+        $days = ($rules['commission_cooling_off']['is_active'] ?? false) ? (int) $rules['commission_cooling_off']['parameters']['cooling_off_days'] : 0;
+        $loadedUsers = [];
+        $userOf = function (?int $id) use (&$loadedUsers): ?User {
+            if ($id === null) {
+                return null;
+            }
+            if (! array_key_exists($id, $loadedUsers)) {
+                $loadedUsers[$id] = User::find($id);
+            }
+
+            return $loadedUsers[$id];
+        };
+        $daysFor = function (?int $id) use ($userOf, $rules, $days): int {
+            $user = $userOf($id);
+
+            return $user ? PartnerBenefitControls::effectiveCoolingOffDays($user, $rules) : $days;
+        };
         $rows = [];
-        $add = function (string $category, string $ruleKey, ?int $userId = null, string $status = 'pending', ?string $rate = null, ?int $amount = null, array $metadata = []) use (&$rows, $rules, $cash, $snapshot): void {
+        $add = function (string $category, string $ruleKey, ?int $userId = null, string $status = 'pending', ?string $rate = null, ?int $amount = null, array $metadata = []) use (&$rows, $rules, $cash, $snapshot, $daysFor): void {
             $percentage = $rate === null ? CommissionPolicy::rate($rules, $ruleKey) : Percentage::from($rate);
             $value = $amount ?? $percentage->of($cash, 'half_up');
             if ($percentage->basisPoints > 0 || $userId && isset($snapshot['recipient_overrides'][$userId]['rates'][$category])) {
                 $rows[] = ['category' => $category, 'rule_key' => $ruleKey, 'user_id' => $userId, 'status' => $status,
-                    'rate_percentage' => $percentage->decimal(), 'cents' => $value, 'metadata' => $metadata];
+                    'rate_percentage' => $percentage->decimal(), 'cents' => $value, 'cooling_off_days' => $daysFor($userId), 'metadata' => $metadata];
             }
         };
-        $days = ($rules['commission_cooling_off']['is_active'] ?? false) ? (int) $rules['commission_cooling_off']['parameters']['cooling_off_days'] : 0;
-        $eligibleStatus = $days > 0 ? 'maturing' : 'available';
-        $recipient = function (?int $id) use ($eligibleStatus): string {
-            $user = $id ? User::find($id) : null;
+        $recipient = function (?int $id) use ($userOf, $daysFor): string {
+            $user = $userOf($id);
 
-            return $user && $user->status === 'active' && in_array($user->role, ['dealer', 'sub_dealer'], true) ? $eligibleStatus : ($id ? 'held' : 'pending');
+            return $user && $user->status === 'active' && in_array($user->role, ['dealer', 'sub_dealer'], true)
+                ? ($daysFor($id) > 0 ? 'maturing' : 'available')
+                : ($id ? 'held' : 'pending');
         };
         $add('own_dealer_cashback', 'own_dealer_cashback', $buyer->id, $recipient($buyer->id));
         $uplines = $snapshot['uplines'];
@@ -547,9 +566,19 @@ final class CommissionPosting
             $quotaHold = false;
             $quota = $assignment?->monthly_quota;
             if ($assignment && $monthlyArea) {
-                $quota = Money::decimal(MonthlyTargets::dealerTarget($rules, app(DealerKinds::class)->of((int) $id)));
+                $areaDealer = $userOf($id);
+                $rowEligibleStatus = $daysFor($id) > 0 ? 'maturing' : 'available';
+                if ($areaDealer && PartnerBenefitControls::waivesSalaryVolume($areaDealer)) {
+                    $quota = '0.00';
+                } else {
+                    $dealerKind = app(DealerKinds::class)->of((int) $id);
+                    $quotaCents = $areaDealer
+                        ? PartnerBenefitControls::effectiveDealerMonthlyTarget($areaDealer, $rules, $dealerKind)
+                        : MonthlyTargets::dealerTarget($rules, $dealerKind);
+                    $quota = Money::decimal($quotaCents);
+                }
                 // An inactive dealer's share is held as before (released if he is active again and met the target).
-                $quotaHold = $status === $eligibleStatus;
+                $quotaHold = $status === $rowEligibleStatus;
                 $status = 'held';
             } elseif ($assignment && $this->qualification->monthlyVolume($id, CommissionQualification::currentMonth()) < Money::cents($assignment->monthly_quota)) {
                 $status = 'held';

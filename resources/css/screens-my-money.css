@@ -6,13 +6,19 @@
 .mm-page{display:flex;flex-direction:column;gap:var(--ds-s-6);max-width:1120px;min-width:0}
 .mm-page h2,.ph .mm-income h2{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-md);font-weight:600;letter-spacing:0;line-height:var(--ds-lh-tight);color:var(--ds-text)}
 
-/* The one big number */
-.mm-hero{display:flex;flex-direction:column;gap:var(--ds-s-2);padding:var(--ds-s-6);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
-.mm-hero-label{font-size:var(--ds-fs-md);font-weight:500;color:var(--ds-text-2)}
-.mm-hero-number{font-size:var(--ds-fs-3xl);font-weight:700;line-height:var(--ds-lh-tight);color:var(--ds-text);font-variant-numeric:tabular-nums}
-.mm-hero-small{display:flex;flex-wrap:wrap;gap:var(--ds-s-1) var(--ds-s-5);margin:0;padding:0;list-style:none;font-size:var(--ds-fs-base);color:var(--ds-text-2)}
+/* The three main accounts + actions */
+.mm-hero{display:flex;flex-direction:column;gap:var(--ds-s-4);padding:var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.mm-accounts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--ds-s-3);width:100%}
+.mm-account-card{display:flex;flex-direction:column;align-items:flex-start;gap:var(--ds-s-2);min-width:0;padding:var(--ds-s-4);background:var(--ds-surface-2);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.mm-account-card.is-balance{background:var(--ds-brand-soft);border-color:var(--ds-brand)}
+.mm-account-label,.mm-hero-label{font-size:var(--ds-fs-base);font-weight:600;color:var(--ds-text-2)}
+.mm-account-value,.mm-hero-number{font-size:var(--ds-fs-2xl);font-weight:700;line-height:var(--ds-lh-tight);color:var(--ds-text);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.mm-account-card.is-balance .mm-hero-number{font-size:var(--ds-fs-3xl);color:var(--ds-brand-text,var(--ds-brand))}
+.mm-account-note{font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.mm-account-link{margin-top:auto;font-size:var(--ds-fs-sm);font-weight:600}
+.mm-hero-small{display:flex;flex-wrap:wrap;gap:var(--ds-s-1) var(--ds-s-4);margin:0;padding:0;list-style:none;font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
 .mm-hero-small b{font-weight:600;color:var(--ds-text);white-space:nowrap}
-.mm-hero-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s-3);margin-top:var(--ds-s-3)}
+.mm-hero-actions{display:flex;flex-wrap:wrap;gap:var(--ds-s-3)}
 .mm-hero-actions .button{min-height:46px;padding-inline:var(--ds-s-6);font-size:var(--ds-fs-md)}
 
 /* Income cards: one label, one number */
@@ -70,12 +76,8 @@
 .mm-page .mm-partner-head h2{margin:var(--ds-s-2) 0 0;font-size:var(--ds-fs-xl)}
 .mm-partner-head p{font-size:var(--ds-fs-base);color:var(--ds-text-2)}
 
-@media(min-width:721px){
-  .mm-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--ds-s-6);align-items:center}
-  .mm-hero>*{grid-column:1}
-  .mm-hero-actions{grid-column:2;grid-row:1/span 3;flex-wrap:nowrap;margin-top:0}
-}
 @media(max-width:900px){
+  .mm-accounts{grid-template-columns:1fr}
   .mm-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:767px){
@@ -140,3 +142,46 @@
 .spend-for-warn{color:var(--ds-danger,#b3261e);font-weight:600}
 .spend-for-found,.spend-for-chips{display:flex;flex-wrap:wrap;gap:var(--ds-s-2);margin:0;padding:0;list-style:none}
 .spend-for-chips li{display:inline-flex;align-items:center;gap:var(--ds-s-2);padding:var(--ds-s-1) var(--ds-s-3);background:var(--ds-surface-2,var(--ds-surface));border:1px solid var(--ds-line);border-radius:999px}
+
+/* Full lifetime withdrawal history account */
+.mm-wd-history{display:flex;flex-direction:column;gap:var(--ds-s-4);padding:var(--ds-s-5);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);scroll-margin-top:84px}
+.mm-wd-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:var(--ds-s-4)}
+.mm-wd-head h2{margin:0 0 var(--ds-s-1)}
+.mm-wd-head p{margin:0;font-size:var(--ds-fs-base)}
+.mm-wd-summary{display:flex;flex-wrap:wrap;gap:var(--ds-s-3) var(--ds-s-5);margin:0}
+.mm-wd-summary>div{display:flex;flex-direction:column;gap:2px}
+.mm-wd-summary dt{font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.mm-wd-summary dd{margin:0;font-size:var(--ds-fs-md);font-weight:700;font-variant-numeric:tabular-nums}
+.mm-wd-summary dd small{font-weight:500;color:var(--ds-text-2)}
+.mm-wd-filters{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:var(--ds-s-3)}
+.mm-wd-chips{display:flex;flex-wrap:wrap;gap:var(--ds-s-2)}
+.mm-wd-chip{min-height:38px;padding:0 var(--ds-s-3);border:1px solid var(--ds-line);border-radius:999px;background:var(--ds-surface-2);color:var(--ds-text-2);font:inherit;font-size:var(--ds-fs-sm);font-weight:600;cursor:pointer}
+.mm-wd-chip.is-on{background:var(--ds-brand);border-color:var(--ds-brand);color:var(--ds-on-brand)}
+.mm-wd-channel{display:inline-flex;align-items:center;gap:var(--ds-s-2);font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-2)}
+.mm-wd-channel select{min-height:38px}
+.mm-wd-empty{margin:0;padding:var(--ds-s-4);text-align:center;background:var(--ds-surface-2);border-radius:var(--ds-r-md)}
+.mm-wd-table-wrap{overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+.mm-wd-table{width:100%;border-collapse:collapse;font-size:var(--ds-fs-base)}
+.mm-wd-table th,.mm-wd-table td{padding:var(--ds-s-3) var(--ds-s-4);border-bottom:1px solid var(--ds-line-soft);text-align:left;vertical-align:top}
+.mm-wd-table thead th{background:var(--ds-surface-2);font-weight:600;color:var(--ds-text-2);white-space:nowrap}
+.mm-wd-table tbody tr:last-child td{border-bottom:0}
+.mm-wd-table .num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mm-wd-time,.mm-wd-method,.mm-wd-status{display:flex;flex-direction:column;gap:3px}
+.mm-wd-time time{font-weight:600;font-variant-numeric:tabular-nums}
+.mm-wd-time small,.mm-wd-method small,.mm-wd-status small,.mm-wd-net{display:block;font-size:var(--ds-fs-sm);color:var(--ds-text-2)}
+.mm-wd-note{color:var(--ds-brand-text,var(--ds-brand))}
+.mm-wd-warn{color:var(--ds-warn-fg)}
+.mm-wd-docs{display:flex;flex-wrap:wrap;gap:var(--ds-s-2)}
+.mm-wd-pages{display:flex;align-items:center;justify-content:flex-end;gap:var(--ds-s-3);font-size:var(--ds-fs-sm)}
+@media(max-width:720px){
+  .mm-wd-history{padding:var(--ds-s-4)}
+  .mm-wd-table-wrap{border:0}
+  .mm-wd-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .mm-wd-table,.mm-wd-table tbody,.mm-wd-table tr,.mm-wd-table td{display:block}
+  .mm-wd-table tr{margin-bottom:var(--ds-s-3);padding:var(--ds-s-3);background:var(--ds-surface-2);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg)}
+  .mm-wd-table td{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--ds-s-3);padding:var(--ds-s-2) 0;border-bottom:1px solid var(--ds-line-soft);text-align:right}
+  .mm-wd-table td:last-child{border-bottom:0}
+  .mm-wd-table td::before{content:attr(data-label);flex:none;font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-2);text-align:left}
+  .mm-wd-time,.mm-wd-method,.mm-wd-status{align-items:flex-end}
+  .mm-wd-docs{justify-content:flex-end}
+}

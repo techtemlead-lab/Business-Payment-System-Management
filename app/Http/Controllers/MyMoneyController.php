@@ -45,6 +45,7 @@ class MyMoneyController extends Controller
             'cards' => $book->incomeCards($partner),
             'table' => $book->table($request, $partner),
             'withdrawal_requests' => $book->withdrawalRequests($partner),
+            'withdrawal_history' => $book->withdrawalHistory($request, $partner),
             'not_earned_area' => PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'held_commission' => $book->heldCommission($partner, 20, false),
             'pending' => $pending,

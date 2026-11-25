@@ -151,6 +151,7 @@ class TreasuryController extends Controller
             'not_earned_area' => $pending === null ? [] : PartnerPendingMoney::notReceived($book->notEarnedAreaCommission($partner), $pending['awaiting_close']),
             'view' => $incomeView ? 'income' : 'money',
             'table' => $incomeView ? null : $book->table($request, $partner),
+            'withdrawal_history' => $incomeView ? null : $book->withdrawalHistory($request, $partner),
             'income' => $incomeView ? $income->page($request, $partner) : null,
         ]);
     }

@@ -9,7 +9,8 @@ import MoneyHero from '../components/mymoney/MoneyHero';
 import NotEarnedAreaList from '../components/mymoney/NotEarnedArea';
 import PendingMoneyList from '../components/mymoney/PendingMoney';
 import CompanyBenefitsList from '../components/mymoney/CompanyBenefits';
-import type { CompanyBenefits, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, StatementTable } from '../components/mymoney/types';
+import WithdrawalHistory from '../components/mymoney/WithdrawalHistory';
+import type { CompanyBenefits, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, StatementTable, WithdrawalHistoryData } from '../components/mymoney/types';
 import { label } from '../components/UI';
 import { useTreasuryViewer } from '../components/treasury/TreasuryTabs';
 import { useT } from '../shared/i18n/t';
@@ -20,7 +21,7 @@ type Partner = { id: number; name: string; code: string | null; role: string; ar
  * The office's read-only view of one partner's money: the same body as My Money, without the buttons,
  * or, with the second tab, the same income-by-part view the partner sees.
  */
-export default function TreasuryPartner({ partner, summary, cards, table, income, view, pending, benefits, not_earned_area: notEarnedArea }: {
+export default function TreasuryPartner({ partner, summary, cards, table, income, view, pending, benefits, not_earned_area: notEarnedArea, withdrawal_history: withdrawalHistory }: {
     partner: Partner;
     summary: MoneySummary;
     cards: IncomeCard[];
@@ -30,6 +31,7 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
     pending: PendingMoney | null;
     benefits?: CompanyBenefits | null;
     not_earned_area: NotEarnedArea[];
+    withdrawal_history?: WithdrawalHistoryData | null;
 }) {
     const translate = useT();
     const { portalBase: base } = usePage<any>().props;
@@ -50,7 +52,7 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
                     <h2>{partner.name}</h2>
                     {who && <p>{who}</p>}
                 </header>
-                <MoneyHero summary={summary} pending={pending} />
+                <MoneyHero summary={summary} pending={pending} incomeHref={`${here}?view=income`} />
                 <nav className="office-switch" aria-label={partner.name}>
                     <Link href={here} aria-current={view === 'money' ? 'page' : undefined}>{translate('income', 'tab_money')}</Link>
                     <Link href={`${here}?view=income`} aria-current={view === 'income' ? 'page' : undefined}>{translate('income', 'admin_heading')}</Link>
@@ -62,6 +64,7 @@ export default function TreasuryPartner({ partner, summary, cards, table, income
                     </>
                 ) : (
                     <>
+                        <WithdrawalHistory data={withdrawalHistory} allowCancel={false} />
                         <PendingMoneyList pending={pending} />
                         <CompanyBenefitsList benefits={benefits} />
                         <NotEarnedAreaList rows={notEarnedArea} />

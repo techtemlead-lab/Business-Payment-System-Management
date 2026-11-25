@@ -5,6 +5,8 @@ namespace App\Domain\Accounts;
 use App\Domain\Finance\FundCatalog;
 use App\Domain\Finance\OrderMoneyReport;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Payouts\WithdrawalMethods;
+use App\Domain\Payouts\WithdrawalWeek;
 use App\Models\User;
 use App\Support\CommissionCodeLabel;
 use App\Support\Money;
@@ -55,7 +57,7 @@ final class PartnerMoneyBook
             'lifetime' => [
                 'ordered_mrp' => (string) $delivered->ordered_mrp,
                 'cash_given' => (string) $delivered->cash_given,
-                'withdrawn' => (string) $withdrawn,
+                'withdrawn' => FundCatalog::decimalOf(FundCatalog::centsOf($withdrawn)),
                 'spent' => $this->spentOnOrders($partner),
                 'earned' => FundCatalog::decimalOf($earned),
             ],
@@ -252,6 +254,136 @@ final class PartnerMoneyBook
                 'on_hold' => $row->on_hold_at !== null,
             ])
             ->all();
+    }
+
+    /**
+     * Complete lifetime withdrawal history for one partner, with exact timestamps, payout methods,
+     * masked destination accounts, receipt/proof links, and status/channel filtering.
+     *
+     * @return array{
+     *   summary: array{paid_total: string, paid_count: int, pending_total: string, pending_count: int, total_count: int},
+     *   filters: array{status: string, channel: string},
+     *   rows: mixed
+     * }
+     */
+    public function withdrawalHistory(Request $request, User $partner): array
+    {
+        $allowedStatuses = ['all', 'paid', 'requested', 'approved', 'rejected', 'cancelled', 'returned'];
+        $allowedChannels = ['all', ...WithdrawalMethods::all()];
+        $status = (string) $request->query('wd_status', 'all');
+        if (! in_array($status, $allowedStatuses, true)) {
+            $status = 'all';
+        }
+        $channel = (string) $request->query('wd_channel', 'all');
+        if (! in_array($channel, $allowedChannels, true)) {
+            $channel = 'all';
+        }
+
+        $totals = DB::table('withdrawals')
+            ->where('user_id', $partner->id)
+            ->selectRaw("
+                COALESCE(SUM(amount) FILTER (WHERE status = 'paid'), 0) AS paid_total,
+                COUNT(*) FILTER (WHERE status = 'paid') AS paid_count,
+                COALESCE(SUM(amount) FILTER (WHERE status IN ('requested', 'approved')), 0) AS pending_total,
+                COUNT(*) FILTER (WHERE status IN ('requested', 'approved')) AS pending_count,
+                COUNT(*) AS total_count
+            ")
+            ->first();
+
+        $week = app(WithdrawalWeek::class);
+        $rows = DB::table('withdrawals as w')
+            ->leftJoin('payout_receipts as pr', 'pr.withdrawal_id', '=', 'w.id')
+            ->where('w.user_id', $partner->id)
+            ->when($status !== 'all', fn (Builder $query) => $query->where('w.status', $status))
+            ->when($channel !== 'all', fn (Builder $query) => $query->where('w.channel', $channel))
+            ->orderByDesc('w.created_at')
+            ->orderByDesc('w.id')
+            ->select([
+                'w.id',
+                'w.amount',
+                'w.withheld_amount',
+                'w.net_amount',
+                'w.status',
+                'w.channel',
+                'w.destination',
+                'w.reason',
+                'w.payment_reference',
+                'w.receipt_path',
+                'w.receipt_mime',
+                'w.on_hold_at',
+                'w.approved_at',
+                'w.paid_at',
+                'w.returned_at',
+                'w.created_at',
+                'w.updated_at',
+                'pr.id as receipt_id',
+                'pr.number as receipt_number',
+                'pr.method as receipt_method',
+                'pr.reference as receipt_reference',
+                'pr.bank_name',
+                'pr.received_by',
+            ])
+            ->paginate(20, ['*'], 'wd_page')
+            ->withQueryString();
+
+        $rows = $rows->through(function (object $row) use ($week): array {
+            $destinationMasked = (string) __('office_withdrawal.destination_office');
+            if ($row->channel !== WithdrawalMethods::Office) {
+                try {
+                    $plain = (string) decrypt((string) $row->destination);
+                    $destinationMasked = str_repeat('•', max(0, strlen($plain) - 4)).substr($plain, -4);
+                } catch (\Throwable) {
+                    $destinationMasked = '—';
+                }
+            }
+            $createdAt = CarbonImmutable::parse((string) $row->created_at, 'UTC');
+            $hasProof = (bool) $row->receipt_path;
+
+            return [
+                'id' => (string) $row->id,
+                'created_at' => $createdAt->toIso8601String(),
+                'approved_at' => $row->approved_at ? CarbonImmutable::parse((string) $row->approved_at, 'UTC')->toIso8601String() : null,
+                'paid_at' => $row->paid_at ? CarbonImmutable::parse((string) $row->paid_at, 'UTC')->toIso8601String() : null,
+                'returned_at' => $row->returned_at ? CarbonImmutable::parse((string) $row->returned_at, 'UTC')->toIso8601String() : null,
+                'updated_at' => $row->updated_at ? CarbonImmutable::parse((string) $row->updated_at, 'UTC')->toIso8601String() : null,
+                'amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->amount)),
+                'withheld_amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->withheld_amount ?? '0')),
+                'net_amount' => FundCatalog::decimalOf(FundCatalog::centsOf($row->net_amount ?? $row->amount)),
+                'status' => (string) $row->status,
+                'channel' => (string) $row->channel,
+                'destination_masked' => $destinationMasked,
+                'payment_reference' => ($row->payment_reference ?: $row->receipt_reference) ?: null,
+                'reason' => $row->status === 'rejected' ? ReasonFields::shown($row->reason) : null,
+                'on_hold' => $row->on_hold_at !== null,
+                'has_proof' => $hasProof,
+                'proof_url' => $hasProof ? '/withdrawals/'.$row->id.'/receipt' : null,
+                'proof_is_image' => $hasProof && str_starts_with((string) $row->receipt_mime, 'image/'),
+                'receipt_id' => $row->receipt_id !== null ? (int) $row->receipt_id : null,
+                'receipt_number' => $row->receipt_number !== null ? (string) $row->receipt_number : null,
+                'receipt_method' => $row->receipt_method !== null ? (string) $row->receipt_method : null,
+                'bank_name' => $row->bank_name !== null ? (string) $row->bank_name : null,
+                'received_by' => $row->received_by !== null ? (string) $row->received_by : null,
+                'receipt_print_url' => $row->receipt_id !== null ? '/payment-receipts/'.$row->receipt_id.'/print' : null,
+                'detail_url' => '/withdrawals/'.$row->id,
+                'can_cancel' => $row->status === 'requested',
+                'payout_line' => in_array($row->status, ['requested', 'approved'], true) ? $week->payoutLine((string) $row->channel, $createdAt) : null,
+            ];
+        });
+
+        return [
+            'summary' => [
+                'paid_total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals?->paid_total ?? '0')),
+                'paid_count' => (int) ($totals?->paid_count ?? 0),
+                'pending_total' => FundCatalog::decimalOf(FundCatalog::centsOf($totals?->pending_total ?? '0')),
+                'pending_count' => (int) ($totals?->pending_count ?? 0),
+                'total_count' => (int) ($totals?->total_count ?? 0),
+            ],
+            'filters' => [
+                'status' => $status,
+                'channel' => $channel,
+            ],
+            'rows' => $rows,
+        ];
     }
 
     /**

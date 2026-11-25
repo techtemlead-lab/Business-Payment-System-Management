@@ -103,9 +103,10 @@ final class CommissionQualification
         $rank->update(['lifetime_purchase_total' => Money::decimal(Money::cents($rank->lifetime_purchase_total) + $cash),
             'monthly_purchase_total' => Money::decimal($this->monthlyVolume($buyer->id, CommissionQualification::currentMonth())), 'purchase_period' => CommissionQualification::currentMonth()]);
         $parameters = $rules['rank_royalty']['parameters'];
+        $buyerParameters = PartnerBenefitControls::effectiveRankParameters($buyer, $rules);
         // From the owner's rule of 2026-11-21 a sub-dealer earns ranks too; older rules ranked dealers only.
         $canRank = $buyer->role === 'dealer' || ($buyer->role === 'sub_dealer' && MonthlyTargets::subDealersEarnRanks($rules));
-        if ($canRank && $rank->current_rank === 'dealer' && Money::cents($rank->lifetime_purchase_total) >= Money::cents((string) $parameters['mo_target'])) {
+        if ($canRank && $rank->current_rank === 'dealer' && Money::cents($rank->lifetime_purchase_total) >= Money::cents((string) $buyerParameters['mo_target'])) {
             $this->promote($rank, 'mo');
         }
         $ancestors = ReferralTreePath::getUplines($buyer->id, 100);
@@ -120,9 +121,22 @@ final class CommissionQualification
         }
         /** @var Collection<int, DealerRank> $leaders */
         $leaders = DealerRank::query()->whereIn('user_id', $ancestorIds)->get()->keyBy('user_id');
+        /** @var Collection<int, User> $ancestorUsers */
+        $ancestorUsers = User::query()->whereIn('id', $ancestorIds)->get()->keyBy('id');
 
         $levels = self::RankLevels;
-        $countsByLeader = $this->teamRankCounts($ancestorIds, (int) $parameters['qualification_depth']);
+        $depthGroups = [];
+        foreach ($ancestorIds as $ancestorId) {
+            $ancestorUser = $ancestorUsers->get($ancestorId);
+            $leaderParams = $ancestorUser ? PartnerBenefitControls::effectiveRankParameters($ancestorUser, $rules) : $parameters;
+            $depthGroups[(int) $leaderParams['qualification_depth']][] = $ancestorId;
+        }
+        $countsByLeader = [];
+        foreach ($depthGroups as $depth => $idsForDepth) {
+            foreach ($this->teamRankCounts($idsForDepth, (int) $depth) as $leaderId => $row) {
+                $countsByLeader[$leaderId] = $row;
+            }
+        }
 
         $milestoneLeaderIds = [];
         foreach ($ancestors as $path) {
@@ -131,12 +145,14 @@ final class CommissionQualification
             if ($leader === null) {
                 continue;
             }
+            $ancestorUser = $ancestorUsers->get($leaderId);
+            $leaderParams = $ancestorUser ? PartnerBenefitControls::effectiveRankParameters($ancestorUser, $rules) : $parameters;
             foreach (self::TeamRankRequirements as $target => $required) {
                 if (array_search($leader->current_rank, $levels, true) >= array_search($target, $levels, true)) {
                     continue;
                 }
                 $count = self::leadersAtOrAbove($countsByLeader[$leaderId] ?? [], $required);
-                if ($count >= (int) $parameters[$target.'_count']) {
+                if ($count >= (int) $leaderParams[$target.'_count']) {
                     $this->promote($leader, $target);
                     $leader->refresh();
                 }
@@ -252,31 +268,45 @@ final class CommissionQualification
      */
     private function rankChanges(array $parameters, array $roles): array
     {
-        $users = User::query()->where('status', 'active')->whereIn('role', $roles)->pluck('role', 'id');
+        $users = User::query()->where('status', 'active')->whereIn('role', $roles)->get()->keyBy('id');
         $ranks = DealerRank::query()->whereIn('user_id', $users->keys())->where('current_rank', '<>', 'me')->orderBy('user_id')->get();
         if ($ranks->isEmpty()) {
             return [];
         }
         $levels = self::RankLevels;
-        $counts = $this->teamRankCounts($ranks->pluck('user_id')->map(fn ($id): int => (int) $id)->all(), (int) $parameters['qualification_depth']);
+        $baseRules = ['rank_royalty' => ['parameters' => $parameters]];
+        $depthGroups = [];
+        foreach ($ranks as $rank) {
+            $user = $users->get((int) $rank->user_id);
+            $effective = $user ? PartnerBenefitControls::effectiveRankParameters($user, $baseRules) : $parameters;
+            $depthGroups[(int) $effective['qualification_depth']][] = (int) $rank->user_id;
+        }
+        $counts = [];
+        foreach ($depthGroups as $depth => $idsForDepth) {
+            foreach ($this->teamRankCounts($idsForDepth, (int) $depth) as $leaderId => $row) {
+                $counts[$leaderId] = $row;
+            }
+        }
         $changes = [];
         foreach ($ranks as $rank) {
+            $user = $users->get((int) $rank->user_id);
+            $effective = $user ? PartnerBenefitControls::effectiveRankParameters($user, $baseRules) : $parameters;
             $current = (string) $rank->current_rank;
             $reached = (int) array_search($current, $levels, true);
             $steps = [];
-            if ($current === 'dealer' && Money::cents((string) $rank->lifetime_purchase_total) >= Money::cents((string) $parameters['mo_target'])) {
+            if ($current === 'dealer' && Money::cents((string) $rank->lifetime_purchase_total) >= Money::cents((string) $effective['mo_target'])) {
                 $steps[] = 'mo';
                 $reached = (int) array_search('mo', $levels, true);
             }
             foreach (self::TeamRankRequirements as $target => $required) {
                 $index = (int) array_search($target, $levels, true);
-                if ($index > $reached && self::leadersAtOrAbove($counts[(int) $rank->user_id] ?? [], $required) >= (int) $parameters[$target.'_count']) {
+                if ($index > $reached && self::leadersAtOrAbove($counts[(int) $rank->user_id] ?? [], $required) >= (int) $effective[$target.'_count']) {
                     $steps[] = $target;
                     $reached = $index;
                 }
             }
             if ($steps !== []) {
-                $changes[] = ['user_id' => (int) $rank->user_id, 'role' => (string) $users[$rank->user_id], 'from' => $current, 'to' => $steps[count($steps) - 1], 'steps' => $steps];
+                $changes[] = ['user_id' => (int) $rank->user_id, 'role' => (string) ($user?->role ?? ''), 'from' => $current, 'to' => $steps[count($steps) - 1], 'steps' => $steps];
             }
         }
 
@@ -352,10 +382,13 @@ final class CommissionQualification
             $volume = $volumes[$userId] ?? 0;
             $user = $users->get($userId);
             if ($monthlyTargets) {
-                // The owner's own target for a single dealer this month replaces his kind target (an exception).
-                $required = $user?->role === 'dealer' && isset($exceptions[$userId])
-                    ? $exceptions[$userId]
-                    : (int) MonthlyTargets::royaltyTarget($rules, (string) $user?->role, $kinds[$userId] ?? null);
+                // The owner's own target for a single dealer this month replaces his kind target (an exception),
+                // then per-person custom targets, then the general kind/sub-dealer target.
+                $required = $user && $user->role === 'sub_dealer'
+                    ? (int) PartnerBenefitControls::effectiveSubDealerRoyaltyTarget($user, $rules)
+                    : ($user
+                        ? PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, $kinds[$userId] ?? null, $exceptions[$userId] ?? null)
+                        : (int) MonthlyTargets::royaltyTarget($rules, (string) $user?->role, $kinds[$userId] ?? null));
                 $grace = false;
             } else {
                 $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);
@@ -457,6 +490,10 @@ final class CommissionQualification
             throw ValidationException::withMessages(['milestone_type' => __('portal.err_qual_milestone')]);
         }
         $parameters = $this->rewardParameters();
+        $partner = User::find($userId);
+        if ($partner) {
+            $parameters = PartnerBenefitControls::effectiveVehicleParameters($partner, ['car_bike_incentive' => ['parameters' => $parameters]]);
+        }
         $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
 
         return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()), $this->legVolumes([$userId], false)[$userId] ?? 0);
@@ -491,14 +528,18 @@ final class CommissionQualification
             return;
         }
         $parameters = $this->rewardParameters();
+        $baseRules = ['car_bike_incentive' => ['parameters' => $parameters]];
+        $leaderUsers = User::query()->whereIn('id', $leaderIds)->get()->keyBy('id');
         $legs = User::query()->whereIn('sponsor_id', $leaderIds)->orderBy('id')->get(['id', 'name', 'sponsor_id']);
         $volumes = $this->legVolumes($legs->pluck('id')->all());
         $own = $this->legVolumes($leaderIds, false);
         $legsByLeader = $legs->groupBy(fn (User $leg): int => (int) $leg->sponsor_id);
         foreach ($leaderIds as $leaderId) {
             $leaderLegs = $legsByLeader->get($leaderId, collect());
+            $leaderUser = $leaderUsers->get($leaderId);
+            $leaderParams = $leaderUser ? PartnerBenefitControls::effectiveVehicleParameters($leaderUser, $baseRules) : $parameters;
             foreach (['bike', 'car'] as $type) {
-                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $parameters, $leaderLegs, $volumes, $own[$leaderId] ?? 0));
+                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $leaderParams, $leaderLegs, $volumes, $own[$leaderId] ?? 0));
             }
         }
     }

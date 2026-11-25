@@ -705,17 +705,23 @@ class CommandController extends Controller
             'unconditional_rank_royalty' => 'sometimes|boolean',
             'forced_royalty_rank' => 'nullable|in:mo,am,sm,me',
             'unconditional_rank_incentive' => 'sometimes|boolean',
+            'custom_conditions' => 'sometimes|array',
+            'custom_conditions.*' => 'nullable',
             'note' => ReasonFields::rule('partner.benefit_note', 500),
             'reason' => ReasonFields::rule('partner.benefit_reason', 1000, 5),
         ]);
-        $controls->save($r->user(), $user, [
+        $payload = [
             'unconditional_salary' => $r->boolean('unconditional_salary'),
             'unconditional_rank_royalty' => $r->boolean('unconditional_rank_royalty'),
             'forced_royalty_rank' => $d['forced_royalty_rank'] ?? 'mo',
             'unconditional_rank_incentive' => $r->boolean('unconditional_rank_incentive'),
             'note' => $d['note'] ?? null,
             'reason' => ReasonFields::text($d['reason'] ?? null),
-        ]);
+        ];
+        if ($r->has('custom_conditions')) {
+            $payload['custom_conditions'] = $d['custom_conditions'] ?? [];
+        }
+        $controls->save($r->user(), $user, $payload);
 
         return back()->with('success', __('portal.pbc_saved', ['name' => $user->name]));
     }

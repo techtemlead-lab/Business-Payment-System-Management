@@ -11,19 +11,21 @@ import NotEarnedAreaList from '../components/mymoney/NotEarnedArea';
 import PendingMoneyList from '../components/mymoney/PendingMoney';
 import CompanyBenefitsList from '../components/mymoney/CompanyBenefits';
 import SalaryNotes from '../components/mymoney/SalaryNotes';
+import WithdrawalHistory from '../components/mymoney/WithdrawalHistory';
 import WithdrawalRequests from '../components/mymoney/WithdrawalRequests';
 import WithdrawSheet from '../components/mymoney/WithdrawSheet';
-import type { CompanyBenefits, Certificates, HeldCommission, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, ReserveReceipt, SalaryNote, StatementTable, WithdrawalRequest, WithdrawInfo } from '../components/mymoney/types';
+import type { CompanyBenefits, Certificates, HeldCommission, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, ReserveReceipt, SalaryNote, StatementTable, WithdrawalHistoryData, WithdrawalRequest, WithdrawInfo } from '../components/mymoney/types';
 import { useT } from '../shared/i18n/t';
 import { useIsPhone } from '../shared/useIsPhone';
 import { money } from '../components/UI';
 
 /** All of a partner's money on one page: what they can use, where it came from, every movement. */
-export default function MyMoney({ summary, cards, table, withdrawal_requests: withdrawalRequests, not_earned_area: notEarnedArea, held_commission: heldCommission, pending, salary_notes: salaryNotes, withdraw, certificates, reserve_receipts: reserveReceipts, benefits }: {
+export default function MyMoney({ summary, cards, table, withdrawal_requests: withdrawalRequests, withdrawal_history: withdrawalHistory, not_earned_area: notEarnedArea, held_commission: heldCommission, pending, salary_notes: salaryNotes, withdraw, certificates, reserve_receipts: reserveReceipts, benefits }: {
     summary: MoneySummary;
     cards: IncomeCard[];
     table: StatementTable;
     withdrawal_requests: WithdrawalRequest[];
+    withdrawal_history?: WithdrawalHistoryData | null;
     not_earned_area: NotEarnedArea[];
     held_commission: HeldCommission;
     pending: PendingMoney;
@@ -65,6 +67,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                 <MoneyHero
                     summary={summary}
                     pending={pending}
+                    incomeHref={`${base}/my-income`}
                     actions={(
                         <>
                             <button type="button" className="button dark" onClick={() => setSheetOpen(true)}>{translate('my_money', 'withdraw')}</button>
@@ -74,7 +77,7 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                         </>
                     )}
                 />
-                <WithdrawalRequests requests={withdrawalRequests} />
+                {withdrawalHistory ? <WithdrawalHistory data={withdrawalHistory} allowCancel /> : <WithdrawalRequests requests={withdrawalRequests} />}
                 {hasWaiting && (
                     <details key={isPhone ? 'phone' : 'wide'} className="mm-fold" open={!isPhone} data-testid="my-money-waiting">
                         <summary>

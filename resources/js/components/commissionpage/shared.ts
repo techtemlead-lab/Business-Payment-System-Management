@@ -38,6 +38,7 @@ export interface ConditionNumber {
     unit: 'money' | 'count' | 'percent' | 'days' | 'months';
     controls: 'own' | 'team' | 'each' | 'area' | 'team_count' | 'team_depth' | 'reward' | 'time';
     value: string | null;
+    applies_to?: BuyerType[];
 }
 
 export interface Condition {
@@ -45,7 +46,7 @@ export interface Condition {
     rule: string;
     applies_to: BuyerType[];
     version: number;
-    facts: { destination?: 'rank_fund' | 'extra_fund' };
+    facts: { destination?: 'rank_fund' | 'extra_fund'; max_pct?: string };
     numbers: ConditionNumber[];
 }
 

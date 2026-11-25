@@ -6,6 +6,7 @@ use App\Domain\Finance\Percentage;
 use App\Models\CommissionRuleParameter;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\LocalDigits;
 use App\Support\Money;
 use App\Support\ReasonFields;
 use Carbon\CarbonImmutable;
@@ -254,6 +255,7 @@ final class CommissionPolicy
                     if (array_diff_key($data['parameters'], self::defaults()[$key]['parameters']) !== []) {
                         throw ValidationException::withMessages(['rules' => __('portal.err_policy_unsupported_params', ['key' => $key])]);
                     }
+                    $data['parameters'] = $this->normalizeParameters($data['parameters']);
                     $data['parameters'] = array_replace($merged[$key]['parameters'] ?? [], $data['parameters']);
                 }
                 $merged[$key] = array_replace($merged[$key], $data);
@@ -360,7 +362,7 @@ final class CommissionPolicy
                             throw new InvalidArgumentException(__('reward_settings.err_held_months'));
                         }
                     } elseif (in_array($name, ['cooling_off_days', 'grace_period_days', 'am_count', 'sm_count', 'me_count', 'qualification_depth'], true)) {
-                        if (filter_var($value, FILTER_VALIDATE_INT) === false || $value < 0 || $value > 366 || (str_ends_with($name, '_count') && $value < 1)) {
+                        if (filter_var($value, FILTER_VALIDATE_INT) === false || $value < 0 || $value > 366 || ((str_ends_with($name, '_count') || $name === 'qualification_depth') && $value < 1)) {
                             throw new InvalidArgumentException(__('portal.err_policy_invalid_int', ['name' => $name]));
                         }
                     } else {
@@ -436,6 +438,57 @@ final class CommissionPolicy
     public static function heldShareMonths(): int
     {
         return max(0, (int) app(self::class)->snapshot(false)['rules']['area_dealer_pool']['parameters'][self::HeldMonthsParameter]);
+    }
+
+    /**
+     * Normalize Bangla digits, commas, integer fields, and money/percent strings before validation.
+     *
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    private function normalizeParameters(array $parameters): array
+    {
+        $intKeys = ['held_share_months', 'cooling_off_days', 'grace_period_days', 'am_count', 'sm_count', 'me_count', 'qualification_depth'];
+        $normalized = [];
+        foreach ($parameters as $name => $value) {
+            if (! is_string($value)) {
+                $normalized[$name] = $value;
+
+                continue;
+            }
+            $clean = str_replace([',', ' '], '', trim(LocalDigits::latin($value)));
+            if (in_array($name, self::AwardAmountParameters, true) && $clean === '') {
+                $normalized[$name] = null;
+
+                continue;
+            }
+            if (in_array($name, $intKeys, true)) {
+                $normalized[$name] = preg_match('/^-?\d+$/D', $clean) ? (int) $clean : $clean;
+
+                continue;
+            }
+            if ($name === self::ExtraDestinationParameter || $name === 'dynamic_compression') {
+                $normalized[$name] = $clean;
+
+                continue;
+            }
+            if (str_ends_with($name, '_pct')) {
+                try {
+                    $normalized[$name] = Percentage::from($clean)->decimal();
+                } catch (\Throwable) {
+                    $normalized[$name] = $clean;
+                }
+
+                continue;
+            }
+            try {
+                $normalized[$name] = Money::decimal(Money::cents($clean));
+            } catch (\Throwable) {
+                $normalized[$name] = $clean;
+            }
+        }
+
+        return $normalized;
     }
 
     /** @param array<string, array<string, mixed>> $rules */
