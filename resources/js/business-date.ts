@@ -15,13 +15,13 @@ export function localizeDigits(text: string): string {
     return isBanglaDocument() ? text.replace(/[0-9]/g, digit => BANGLA_DIGITS[Number(digit)]) : text;
 }
 
-function dateFormatter(withTime = false): Intl.DateTimeFormat {
+function dateFormatter(withTime = false, withSeconds = false): Intl.DateTimeFormat {
     const bangla = isBanglaDocument();
     const locale = bangla ? 'bn-BD' : 'en-GB';
 
     return new Intl.DateTimeFormat(locale, withTime
         // Without a day period, Bangla time ends in the English letters "AM" or "PM".
-        ? { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, ...(bangla ? { dayPeriod: 'short' as const } : {}), timeZone: 'Asia/Dhaka' }
+        ? { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', ...(withSeconds ? { second: '2-digit' as const } : {}), hour12: true, ...(bangla ? { dayPeriod: 'short' as const } : {}), timeZone: 'Asia/Dhaka' }
         : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
 }
 
@@ -135,6 +135,22 @@ export function businessDateTime(value?: string | null): string {
     }
 
     return dateFormatter(!/^\d{4}-\d{2}-\d{2}$/.test(text)).format(parsed);
+}
+
+/**
+ * Date plus Dhaka clock time down to the second (e.g. "5 Nov 2026, 3:42:18 pm") for withdrawal records.
+ */
+export function businessDateTimeSeconds(value?: string | null): string {
+    if (!value) {
+        return '—';
+    }
+    const text = String(value).trim();
+    const parsed = parseBusinessTimestamp(text);
+    if (!parsed) {
+        return '—';
+    }
+
+    return dateFormatter(!/^\d{4}-\d{2}-\d{2}$/.test(text), true).format(parsed);
 }
 
 /**

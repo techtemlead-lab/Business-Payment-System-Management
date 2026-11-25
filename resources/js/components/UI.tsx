@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'reac
 import {Link,useForm,usePage} from '@inertiajs/react';
 import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, ArrowLeftRight, RotateCcw, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Download, Printer} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
-import {businessDate, businessDateTime, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
+import {businessDate, businessDateTime, businessDateTimeSeconds, businessTodayIso, isPastBusinessDate, localizeDigits} from '../business-date';
 import {useT} from '../shared/i18n/t';
 import {usePlacedFields,type ReasonPlace} from '../shared/reasonFields';
 import {useKeyboardSafeSheet} from '../shared/useKeyboardSafeSheet';
@@ -50,6 +50,7 @@ export const number=(value:unknown)=>{
 };
 export const date=businessDate;
 export const dateTime=businessDateTime;
+export const dateTimeSeconds=businessDateTimeSeconds;
 type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
 const CODE_PATTERN=/^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$/;
 /** Parts of a commission code written with the current names, so a missing translation never shows an old name. */

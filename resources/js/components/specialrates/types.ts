@@ -49,7 +49,14 @@ export interface Controls {
     unconditional_rank_royalty: boolean;
     forced_royalty_rank: string | null;
     unconditional_rank_incentive: boolean;
+    custom_conditions?: Record<string, string | number>;
     note: string | null;
+}
+
+export interface CustomizableField {
+    key: string;
+    unit: 'money' | 'percent' | 'count' | 'days';
+    general: string;
 }
 
 export interface Seat {
@@ -65,6 +72,8 @@ export interface SpecialData {
     totals: PageTotals;
     conditions: Condition[];
     waivable: Record<string, string>;
+    customizable?: Record<string, CustomizableField[]>;
+    sub_dealer_salary_max_pct?: string;
     funding_sources: string[];
     person: Person | null;
     receiver_current?: { schedule_id: number; rates: Record<string, ReceiverRate> } | null;

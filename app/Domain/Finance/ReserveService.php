@@ -2,10 +2,12 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Commissions\DealerKinds;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Payouts\PayoutReceipts;
@@ -357,16 +359,20 @@ final class ReserveService
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get();
-            $volumes = $this->qualification->monthlyVolumesFor($funds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all(), $month);
+            $partnerIds = $funds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all();
+            $volumes = $this->qualification->monthlyVolumesFor($partnerIds, $month);
+            $partners = User::query()->whereIn('id', $partnerIds)->get()->keyBy('id');
+            $exceptions = app(DealerKinds::class)->exceptions($partnerIds, $month);
             $settlement = app(CommissionSettlement::class);
             $count = 0;
             $total = 0;
             $missedByPartner = [];
             foreach ($funds as $fund) {
                 $partnerId = (int) $fund->user_id;
-                $quota = $fund->metadata['monthly_quota'] ?? null;
+                $partner = $partners->get($partnerId);
+                $quotaCents = $this->areaQuotaCents($fund, $partner, $exceptions[$partnerId] ?? null);
                 $quotaHold = ($fund->metadata['hold_reason'] ?? 'quota') === 'quota';
-                if ($quota === null || ! $quotaHold || ($volumes[$partnerId] ?? 0) >= Money::cents((string) $quota)) {
+                if ($quotaCents === null || ! $quotaHold || ($volumes[$partnerId] ?? 0) >= $quotaCents) {
                     continue;
                 }
                 $amount = Money::cents($fund->amount);
@@ -641,9 +647,12 @@ final class ReserveService
             // this runs every 15 minutes under the money lock, and unmet holds pile up month after month.
             $partners = User::query()->whereIn('id', $funds->pluck('user_id')->unique()->values())->get()->keyBy('id');
             $volumes = [];
+            $exceptionsByPeriod = [];
             foreach ($funds->groupBy(fn (CommissionAllocation $fund): string => (string) ($fund->metadata['period_month'] ?? '')) as $period => $periodFunds) {
                 if ($period !== '') {
-                    $volumes[$period] = $this->qualification->monthlyVolumesFor($periodFunds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all(), $period);
+                    $idsForPeriod = $periodFunds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all();
+                    $volumes[$period] = $this->qualification->monthlyVolumesFor($idsForPeriod, $period);
+                    $exceptionsByPeriod[$period] = app(DealerKinds::class)->exceptions($idsForPeriod, $period);
                 }
             }
             foreach ($funds as $fund) {
@@ -651,9 +660,9 @@ final class ReserveService
                 if (! $partner || $partner->status !== 'active' || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
                     continue;
                 }
-                $quota = $fund->metadata['monthly_quota'] ?? null;
                 $period = $fund->metadata['period_month'] ?? null;
-                if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)
+                $quotaCents = $this->areaQuotaCents($fund, $partner, $period !== null ? ($exceptionsByPeriod[$period][$partner->id] ?? null) : null);
+                if ($quotaCents === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < $quotaCents
                     || self::waitsForMonthEnd($fund) || ($month === null && self::decidedAtMonthClose($fund) && (string) $period >= self::AreaTargetRuleFirstMonth)) {
                     continue;
                 }
@@ -676,6 +685,26 @@ final class ReserveService
         }, 3);
     }
 
+    /** Effective monthly quota in paisa for a held area share, respecting condition waivers and per-person overrides. */
+    private function areaQuotaCents(CommissionAllocation $fund, ?User $partner, ?int $monthException = null): ?int
+    {
+        if ($partner && PartnerBenefitControls::waivesSalaryVolume($partner)) {
+            return 0;
+        }
+        if ($partner && self::decidedAtMonthClose($fund)) {
+            if ($monthException !== null) {
+                return $monthException;
+            }
+            $custom = PartnerBenefitControls::customMoneyCents($partner, 'monthly_target');
+            if ($custom !== null) {
+                return $custom;
+            }
+        }
+        $quota = $fund->metadata['monthly_quota'] ?? null;
+
+        return $quota === null ? null : Money::cents((string) $quota);
+    }
+
     /**
      * Credit a held allocation after eligibility checks. Preserves cooling-off as maturing.
      *
@@ -691,9 +720,10 @@ final class ReserveService
             throw ValidationException::withMessages(['hold' => __('portal.err_hold_active_partner')]);
         }
         if (str_starts_with($fund->category, 'area_')) {
-            $quota = $fund->metadata['monthly_quota'] ?? null;
             $period = $fund->metadata['period_month'] ?? null;
-            if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
+            $monthException = $period !== null ? (app(DealerKinds::class)->exceptions([$partner->id], (string) $period)[$partner->id] ?? null) : null;
+            $quotaCents = $this->areaQuotaCents($fund, $partner, $monthException);
+            if ($quotaCents === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < $quotaCents) {
                 throw ValidationException::withMessages(['hold' => __('portal.err_hold_quota')]);
             }
             if (self::waitsForMonthEnd($fund)) {

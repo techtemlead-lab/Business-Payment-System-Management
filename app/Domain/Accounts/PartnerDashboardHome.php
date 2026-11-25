@@ -302,14 +302,15 @@ final class PartnerDashboardHome
                 ->whereIn('milestone_type', ['bike', 'car'])
                 ->get()->keyBy('milestone_type');
             // One reward row at a time: the bike first; the car starts only once the bike target is full.
-            $bikeTarget = Money::cents((string) $rules['car_bike_incentive']['parameters']['bike_target']);
+            $vehicleParams = PartnerBenefitControls::effectiveVehicleParameters($user, $rules);
+            $bikeTarget = Money::cents((string) $vehicleParams['bike_target']);
             $bikeCurrent = $this->vehicleVolume($user, 'bike');
             if ($bikeTarget > 0 && $bikeCurrent >= $bikeTarget) {
                 $targets[] = $this->progress(
                     key: 'car_incentive',
                     label: __('portal.target_car_incentive'),
                     current: $this->vehicleVolume($user, 'car'),
-                    target: Money::cents((string) $rules['car_bike_incentive']['parameters']['car_target']),
+                    target: Money::cents((string) $vehicleParams['car_target']),
                     hint: __('portal.target_car_incentive_hint'),
                 );
             } else {
@@ -348,6 +349,8 @@ final class PartnerDashboardHome
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $this->targetsVolume = $monthlyVolume;
         $this->targetsVolumeLoaded = true;
+        $controls = PartnerBenefitControls::for($user);
+        $effectiveRules = PartnerBenefitControls::effectiveSubDealerRules($user, $rules);
         $isOn = CommissionPolicy::rate($rules, 'sub_dealer_salary')->basisPoints > 0;
 
         $rows = [
@@ -358,24 +361,32 @@ final class PartnerDashboardHome
                 'value' => Money::decimal($monthlyVolume),
                 'hint' => __('portal.target_subdealer_progress_hint'),
             ],
-            MonthlyTargets::salaryTiers($rules) !== []
-                ? self::salaryTierRow($rules, $monthlyVolume, $isOn)
-                : [
+            $controls['unconditional_salary']
+                ? [
                     'key' => 'sub_dealer_salary',
                     'kind' => 'amount',
                     'label' => __('portal.target_subdealer_salary'),
                     'value' => Money::decimal($this->progress->subDealerSalarySetAside((int) $user->id, $month)),
-                    'hint' => $isOn
-                        ? __('portal.target_subdealer_salary_hint', ['rate' => rtrim(rtrim((string) $rules['sub_dealer_salary']['percentage'], '0'), '.')])
-                        : __('portal.target_switched_off_hint'),
-                ],
+                    'hint' => __('portal.target_unconditional_salary_hint'),
+                ]
+                : (MonthlyTargets::salaryTiers($effectiveRules) !== []
+                    ? self::salaryTierRow($effectiveRules, $monthlyVolume, $isOn)
+                    : [
+                        'key' => 'sub_dealer_salary',
+                        'kind' => 'amount',
+                        'label' => __('portal.target_subdealer_salary'),
+                        'value' => Money::decimal($this->progress->subDealerSalarySetAside((int) $user->id, $month)),
+                        'hint' => $isOn
+                            ? __('portal.target_subdealer_salary_hint', ['rate' => rtrim(rtrim((string) $rules['sub_dealer_salary']['percentage'], '0'), '.')])
+                            : __('portal.target_switched_off_hint'),
+                    ]),
         ];
         if (MonthlyTargets::subDealersEarnRanks($rules)) {
             $rows[] = $this->progress(
                 key: 'sub_dealer_royalty',
                 label: __('portal.target_subdealer_royalty'),
                 current: $monthlyVolume,
-                target: MonthlyTargets::subDealerRoyaltyTarget($rules),
+                target: PartnerBenefitControls::effectiveSubDealerRoyaltyTarget($user, $rules),
                 hint: CommissionPolicy::rate($rules, 'rank_royalty')->basisPoints > 0 ? __('portal.target_subdealer_royalty_hint') : __('portal.target_switched_off_hint'),
             );
             array_push($rows, ...$ranks);
@@ -439,9 +450,8 @@ final class PartnerDashboardHome
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $this->targetsVolume = $monthlyVolume;
         $this->targetsVolumeLoaded = true;
-        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21): it unlocks the salary, the
-        // rank royalty and the area income of the month.
-        $salaryTarget = MonthlyTargets::dealerTarget($rules, $kind);
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21) or custom override.
+        $salaryTarget = PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, $kind);
         $monthHint = MonthlyTargets::usesMonthlyTargets($rules)
             ? ($kind !== null ? __('portal.target_dealer_month_hint', ['kind' => __('portal.target_kind_'.$kind)]) : __('portal.target_dealer_month_no_area_hint'))
             : __('portal.target_dealer_salary_hint');
@@ -520,7 +530,7 @@ final class PartnerDashboardHome
      * The rank row of a dealer or sub-dealer: own purchases toward MO, then the direct-referral lines toward the next rank.
      *
      * @param  array<string, array<string, mixed>>  $rules
-     * @param  array<string, bool|int|string|null>|null  $controls  PartnerBenefitControls::for($user) when already read
+     * @param  array<string, array<string, int|string>|bool|int|string|null>|null  $controls  PartnerBenefitControls::for($user) when already read
      * @return array<string, mixed>
      */
     private function rankTarget(User $user, array $rules, ?array $controls = null): array
@@ -532,7 +542,8 @@ final class PartnerDashboardHome
         $this->rankRowLoaded = true;
         $currentRank = $rank->current_rank ?? 'dealer';
         $this->targetsRank = $currentRank;
-        $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '500000.00'));
+        $rankParameters = PartnerBenefitControls::effectiveRankParameters($user, $rules);
+        $moTarget = Money::cents((string) ($rankParameters['mo_target'] ?? '500000.00'));
         $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
         $targets = [];
 
@@ -559,8 +570,8 @@ final class PartnerDashboardHome
             $code = $levels[array_search($currentRank, $levels, true) + 1] ?? null;
             $requiredRank = $code !== null ? (CommissionQualification::TeamRankRequirements[$code] ?? null) : null;
             if ($code !== null && $requiredRank !== null) {
-                $needed = (int) ($rules['rank_royalty']['parameters'][$code.'_count'] ?? 10);
-                $depth = (int) ($rules['rank_royalty']['parameters']['qualification_depth'] ?? 3);
+                $needed = (int) ($rankParameters[$code.'_count'] ?? 10);
+                $depth = (int) ($rankParameters['qualification_depth'] ?? 3);
                 // The same team count rank promotion uses.
                 $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
                 $count = CommissionQualification::leadersAtOrAbove($counts, $requiredRank);

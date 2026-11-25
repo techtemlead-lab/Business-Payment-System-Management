@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\DB;
 final class PartnerProgress
 {
     /**
-     * The sub-dealer tour fund is hidden from the progress pop-up and the home targets card until the company decides to show it.
+     * The sub-dealer tour fund is hidden from the progress pop-up, the home targets card, and the waiting rewards box (on Home and My Money) until the company decides to show it.
      * Set this to true to bring it back; the money and the data are untouched either way.
      */
     public const ShowTourFund = false;
@@ -94,9 +94,10 @@ final class PartnerProgress
     private function dealerSalary(User $user, array $rules, int $monthlyVolume): array
     {
         $isOn = CommissionPolicy::rate($rules, 'dealer_monthly_salary')->basisPoints > 0;
-        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21).
+        // The dealer's one monthly target by kind of dealer (owner's rule of 2026-11-21) or custom override.
         $kind = app(DealerKinds::class)->of((int) $user->id);
-        $target = MonthlyTargets::dealerTarget($rules, $kind);
+        $exception = app(DealerKinds::class)->exceptions([(int) $user->id], CommissionQualification::currentMonth())[(int) $user->id] ?? null;
+        $target = PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, $kind, $exception);
         $isWaived = PartnerBenefitControls::waivesSalaryVolume($user);
         $isMet = $isWaived || $monthlyVolume >= $target;
 
@@ -126,9 +127,19 @@ final class PartnerProgress
     private function subDealerSalary(User $user, array $rules, string $month, int $monthlyVolume): array
     {
         $earned = $this->subDealerSalarySetAside((int) $user->id, $month);
-        $tiers = MonthlyTargets::salaryTiers($rules);
+        $effectiveRules = PartnerBenefitControls::effectiveSubDealerRules($user, $rules);
+        $tiers = MonthlyTargets::salaryTiers($effectiveRules);
+        if (PartnerBenefitControls::waivesSalaryVolume($user)) {
+            return [
+                'kind' => 'sub_dealer_flat',
+                'status' => CommissionPolicy::rate($rules, 'sub_dealer_salary')->basisPoints > 0 ? 'earning' : 'off',
+                'rate' => (string) $rules['sub_dealer_salary']['percentage'],
+                'current' => Money::decimal($monthlyVolume),
+                'earned' => Money::decimal($earned),
+            ];
+        }
         if ($tiers !== []) {
-            $tierBasisPoints = (int) MonthlyTargets::salaryBasisPoints($rules, $monthlyVolume);
+            $tierBasisPoints = (int) MonthlyTargets::salaryBasisPoints($effectiveRules, $monthlyVolume);
             $next = collect($tiers)->first(fn (array $tier): bool => $tier['volume'] > $monthlyVolume);
 
             return [
@@ -163,7 +174,7 @@ final class PartnerProgress
     {
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
         $current = $rank->current_rank ?? 'dealer';
-        $parameters = $rules['rank_royalty']['parameters'];
+        $parameters = PartnerBenefitControls::effectiveRankParameters($user, $rules);
         $incentiveOn = CommissionPolicy::rate($rules, 'rank_incentive')->basisPoints > 0;
         $bonus = fn (string $code): ?string => $incentiveOn
             ? Money::decimal(Money::cents((string) $rules['rank_incentive']['parameters'][$code.'_bonus']))

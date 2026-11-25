@@ -56,8 +56,8 @@ final class PartnerMonthlyTargets
         $volume = $this->qualification->monthlyVolume((int) $user->id, $month);
         $rank = DealerRank::query()->where('user_id', $user->id)->first();
         $currentRank = $rank->current_rank ?? 'dealer';
-        // One monthly target by kind of dealer (owner's rule of 2026-11-21) for the salary and the royalty.
-        $dealerTarget = MonthlyTargets::dealerTarget($rules, app(DealerKinds::class)->of((int) $user->id));
+        // One monthly target by kind of dealer (owner's rule of 2026-11-21) or custom override for the salary and the royalty.
+        $dealerTarget = PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, app(DealerKinds::class)->of((int) $user->id));
 
         return [
             $this->salaryRow($dealerTarget, $volume, $overrides),
@@ -198,7 +198,8 @@ final class PartnerMonthlyTargets
     {
         $stored = RewardMilestoneProgress::query()->where('user_id', $user->id)->where('milestone_type', 'bike')->first();
         $current = Money::cents((string) ($stored === null ? $this->qualification->milestone($user->id, 'bike')['qualifying_volume'] : $stored->qualifying_volume));
-        $default = Money::cents((string) ($rules['car_bike_incentive']['parameters']['bike_target'] ?? '0'));
+        $vehicleParams = PartnerBenefitControls::effectiveVehicleParameters($user, $rules);
+        $default = Money::cents((string) ($vehicleParams['bike_target'] ?? '0'));
 
         return $this->moneyRow(self::Incentive, __('partner_file.target_incentive'), __('partner_file.target_incentive_hint'), $current, $default, $overrides);
     }
@@ -225,7 +226,7 @@ final class PartnerMonthlyTargets
      */
     private function rankRow(User $user, array $rules, ?DealerRank $rank, string $currentRank, array $overrides): array
     {
-        $parameters = $rules['rank_royalty']['parameters'];
+        $parameters = PartnerBenefitControls::effectiveRankParameters($user, $rules);
         if ($currentRank === 'dealer') {
             $default = Money::cents((string) ($parameters['mo_target'] ?? '500000.00'));
             $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));

@@ -26,7 +26,8 @@
 
 .pd-middle { display: grid; gap: 16px; min-width: 0; }
 .pd-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.pd-totals div { min-width: 0; }
+.pd-totals div, .pd-totals a.pd-total-link { min-width: 0; color: inherit; text-decoration: none; display: block; }
+.pd-totals a.pd-total-link:hover strong { text-decoration: underline; }
 .pd-totals span { display: block; font-size: .85rem; color: var(--ds-text-muted, #455364); font-weight: 600; }
 .pd-totals strong { display: block; margin-top: 4px; font-size: 1.25rem; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .pd-totals .is-balance { padding: 10px 12px; border-radius: 12px; background: var(--ds-brand-soft, #e3f1eb); }
@@ -65,8 +66,8 @@
   .pd-card { padding: 14px; }
   /* The three totals as a list: name on the left, amount on the right, so big amounts never wrap. */
   .pd-totals { grid-template-columns: 1fr; gap: 0; }
-  .pd-totals div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
-  .pd-totals div:last-child { border-bottom: 0; }
+  .pd-totals div, .pd-totals a.pd-total-link { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
+  .pd-totals div:last-child, .pd-totals a.pd-total-link:last-child { border-bottom: 0; }
   .pd-totals .is-balance { padding: 10px 12px; }
   .pd-totals strong { margin-top: 0; font-size: 1.1rem; white-space: nowrap; }
   .pd-head-list { grid-template-columns: 1fr; }
@@ -82,8 +83,8 @@
   .pd-grid { grid-template-columns: 1fr; gap: 12px; }
   .pd-card { padding: 14px; border-radius: 16px; }
   .pd-totals { grid-template-columns: 1fr; }
-  .pd-totals div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
-  .pd-totals div:last-child { border-bottom: 0; }
+  .pd-totals div, .pd-totals a.pd-total-link { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--ds-line-soft, #ecf0ed); }
+  .pd-totals div:last-child, .pd-totals a.pd-total-link:last-child { border-bottom: 0; }
   .pd-totals .is-balance { padding: 12px; }
   .pd-head-list { grid-template-columns: 1fr; }
   .pd-tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }

@@ -259,4 +259,6 @@ return [
     'cond_rank_keep_title' => 'Monthly target for the rank royalty',
     'cond_rank_keep_text' => 'The rank royalty is paid after the month ends to rank holders who met their monthly target in that month. A dealer: his one monthly target. A sub-dealer: :sub_dealer_royalty_target of his own purchases. Each rank (MO, AM, SM, ED) has its own fund for all of Bangladesh, shared equally by every holder who qualified; a fund nobody qualifies for goes to the company profit fund. Paisa left over after an equal split go to the Commission extra fund.',
     'err_salary_tiers' => 'Each salary step must need more purchase than the step before, give at least the same percent, and not give more than the sub-dealer salary percent.',
+    'sub_salary_cap_hint' => 'The sub-dealer salary rate is :max% right now. No step can be above that.',
+    'err_other_tab' => 'There is a mistake in a box on the other tab. Fix it and save again.',
 ];

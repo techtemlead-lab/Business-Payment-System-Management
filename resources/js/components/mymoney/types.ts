@@ -48,6 +48,58 @@ export type WithdrawalRequest = {
     on_hold?: boolean;
 };
 
+export type WithdrawalHistoryRow = {
+    id: string;
+    created_at: string;
+    approved_at: string | null;
+    paid_at: string | null;
+    returned_at: string | null;
+    updated_at: string | null;
+    amount: string;
+    withheld_amount: string;
+    net_amount: string;
+    status: 'requested' | 'approved' | 'paid' | 'rejected' | 'cancelled' | 'returned' | string;
+    channel: string;
+    destination_masked: string;
+    payment_reference: string | null;
+    reason: string | null;
+    on_hold: boolean;
+    has_proof: boolean;
+    proof_url: string | null;
+    proof_is_image: boolean;
+    receipt_id: number | null;
+    receipt_number: string | null;
+    receipt_method: string | null;
+    bank_name: string | null;
+    received_by: string | null;
+    receipt_print_url: string | null;
+    detail_url: string;
+    can_cancel: boolean;
+    payout_line: string | null;
+};
+
+export type WithdrawalHistoryData = {
+    summary: {
+        paid_total: string;
+        paid_count: number;
+        pending_total: string;
+        pending_count: number;
+        total_count: number;
+    };
+    filters: {
+        status: string;
+        channel: string;
+    };
+    rows: {
+        data: WithdrawalHistoryRow[];
+        current_page: number;
+        last_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
+    };
+};
+
 export type NotEarnedArea = { month: string; amount: string };
 
 /** The weekly withdrawal day: requests only on the application day, money on the payout day. */

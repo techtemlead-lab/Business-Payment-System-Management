@@ -84,7 +84,7 @@ final class CommissionPageModel
         // The rank royalty is paid at month end to rank holders who met their monthly target: a dealer's one target, or a
         // sub-dealer's own royalty target. The old rank-keeping minimums (rank_maintenance) only apply to older orders.
         ['id' => 'rank_keep', 'rule' => 'rank_royalty', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
-            ['param' => 'sub_dealer_royalty_target', 'unit' => 'money', 'controls' => 'own'],
+            ['param' => 'sub_dealer_royalty_target', 'unit' => 'money', 'controls' => 'own', 'applies_to' => ['sub_dealer']],
         ]],
         ['id' => 'rank_bonus', 'rule' => 'rank_incentive', 'applies_to' => ['dealer', 'sub_dealer'], 'numbers' => [
             ['param' => 'mo_bonus', 'unit' => 'money', 'controls' => 'reward'],
@@ -237,7 +237,11 @@ final class CommissionPageModel
                 'rule' => $condition['rule'],
                 'applies_to' => $condition['applies_to'],
                 'version' => (int) ($rules[$condition['rule']]['version'] ?? 1),
-                'facts' => $condition['id'] === 'sub_dealer_extras' ? ['destination' => $this->extraDestination($rules)] : [],
+                'facts' => match ($condition['id']) {
+                    'sub_dealer_extras' => ['destination' => $this->extraDestination($rules)],
+                    'sub_salary' => ['max_pct' => CommissionPolicy::rate($rules, 'sub_dealer_salary')->decimal()],
+                    default => [],
+                },
                 'numbers' => array_map(fn (array $number): array => [
                     ...$number,
                     'value' => array_key_exists($number['param'], $parameters) && $parameters[$number['param']] !== null && $parameters[$number['param']] !== ''

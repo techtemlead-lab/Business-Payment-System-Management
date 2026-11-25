@@ -255,10 +255,14 @@ final class CommissionSettlement
                     }
                     // Owner's rule of 2026-11-21: the sub-dealer is paid the tier his own month's purchase reached; the
                     // rest of the salary set aside goes to the company profit fund. Older orders paid all of it.
-                    $tierBasisPoints = MonthlyTargets::salaryBasisPoints($rules, $context['volumes'][$partner->id]);
-                    $tierReason = $tierBasisPoints !== null;
-                    $paid = $tierBasisPoints === null ? $cents
-                        : MonthlyTargets::tierShare($cents, $tierBasisPoints, Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints);
+                    if (PartnerBenefitControls::waivesSalaryVolume($partner)) {
+                        $paid = $cents;
+                    } else {
+                        $tierBasisPoints = MonthlyTargets::salaryBasisPoints(PartnerBenefitControls::effectiveSubDealerRules($partner, $rules), $context['volumes'][$partner->id]);
+                        $tierReason = $tierBasisPoints !== null;
+                        $paid = $tierBasisPoints === null ? $cents
+                            : MonthlyTargets::tierShare($cents, $tierBasisPoints, Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints);
+                    }
                     if ($paid > 0) {
                         $shares[$partner->id] = $paid;
                     }
@@ -645,7 +649,7 @@ final class CommissionSettlement
         // The order's rules say the target: each dealer's one target by kind, or (older orders) one minimum for all.
         $qualifiedIds = $dealers
             ->filter(fn (User $user): bool => ($kind !== 'salary' || $nationwide || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
-                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= ($nationwide && isset($dealerExceptions[(int) $user->id]) ? $dealerExceptions[(int) $user->id] : MonthlyTargets::dealerTarget($rules, $dealerKinds[(int) $user->id] ?? null))))
+                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= PartnerBenefitControls::effectiveDealerMonthlyTarget($user, $rules, $dealerKinds[(int) $user->id] ?? null, $nationwide && isset($dealerExceptions[(int) $user->id]) ? $dealerExceptions[(int) $user->id] : null)))
             ->pluck('id')
             ->map(fn ($id): int => (int) $id)
             ->values()

@@ -217,6 +217,28 @@ class CommissionPageTest extends TestCase
         $this->assertNotContains('salary', $forSub);
         $this->assertContains('bike', $forSub);
         $this->assertContains('bike', $forDealer);
+
+        $rankKeep = collect($page['conditions'])->firstWhere('id', 'rank_keep');
+        $this->assertSame(['sub_dealer'], $rankKeep['numbers'][0]['applies_to']);
+        $subSalary = collect($page['conditions'])->firstWhere('id', 'sub_salary');
+        $this->assertSame('3.00', $subSalary['facts']['max_pct']);
+    }
+
+    public function test_condition_updates_reject_zero_depth_and_accept_bangla_digits(): void
+    {
+        $this->change($this->owner, ['rank_royalty' => ['parameters' => ['qualification_depth' => 0]]], 'sadmin')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('rules');
+
+        $this->change($this->owner, [
+            'dealer_monthly_salary' => ['parameters' => ['union_target' => '৩৫০০০']],
+            'sub_dealer_salary' => ['parameters' => ['tier1_volume' => '১২০০০.৫০', 'tier1_pct' => '১.২৫']],
+        ], 'sadmin')->assertRedirect();
+
+        $live = $this->liveRules();
+        $this->assertSame('35000.00', $live['dealer_monthly_salary']['parameters']['union_target']);
+        $this->assertSame('12000.50', $live['sub_dealer_salary']['parameters']['tier1_volume']);
+        $this->assertSame('1.25', $live['sub_dealer_salary']['parameters']['tier1_pct']);
     }
 
     public function test_a_staff_save_from_the_window_is_a_draft_and_only_the_owner_makes_it_active(): void

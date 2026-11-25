@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Modal, money, number } from '../UI';
 import { useT } from '../../shared/i18n/t';
+import { useReasonField } from '../../shared/reasonFields';
 import { localizeDigits } from '../../business-date';
 import BuyerSwitch from './BuyerSwitch';
 import type { BuyerType, Condition, ConditionNumber } from './shared';
@@ -11,10 +12,16 @@ type Translate = (key: string, replace?: Record<string, string | number>) => str
 /** Targets that must stay above zero: a zero target would make everyone qualify (CommissionPolicy::TargetParameters). */
 const MUST_BE_ABOVE_ZERO = ['mo_target', 'bike_target', 'car_target', 'division_target', 'district_target', 'upazila_target', 'union_target',
     'sub_dealer_royalty_target', 'tier1_volume', 'tier2_volume', 'tier3_volume'];
-/** Counts the engine wants at least one of (CommissionPolicy::validateSchedule). */
-const AT_LEAST_ONE = ['am_count', 'sm_count', 'me_count'];
+/** Counts and depth the engine wants at least one of (CommissionPolicy::validateSchedule). */
+const AT_LEAST_ONE = ['am_count', 'sm_count', 'me_count', 'qualification_depth'];
 /** Award amounts may stay blank until the owner decides. */
 const MAY_BE_BLANK = ['bike_award_amount', 'car_award_amount'];
+const BANGLA_DIGITS = '০১২৩৪৫৬৭৮৯';
+
+/** Normalize Bangla digits and strip commas/whitespace before numeric checks and submission. */
+function plainInput(raw: string): string {
+    return raw.replace(/[০-৯]/g, (digit) => String(BANGLA_DIGITS.indexOf(digit))).replace(/[,\s]/g, '').trim();
+}
 
 /** A number as people read it: money with the taka sign, counts and times in plain digits. */
 function shown(entry: ConditionNumber, t: Translate): string {
@@ -23,7 +30,7 @@ function shown(entry: ConditionNumber, t: Translate): string {
     }
     if (entry.unit === 'money') {
         // Whole takas read better without ".00".
-        return /^d+.00$/.test(entry.value) ? `৳ ${number(entry.value)}` : money(entry.value);
+        return /^\d+\.00$/.test(entry.value) ? `৳\u00A0${number(entry.value)}` : money(entry.value);
     }
     if (entry.unit === 'percent') {
         return `${number(entry.value)}%`;
@@ -98,7 +105,7 @@ export default function ConditionsSection({ conditions, canEdit, mode, onMode, o
 
 /** The problem with one typed number, as a lang key, or '' when it is fine. */
 function numberProblem(entry: ConditionNumber, raw: string): string {
-    const value = raw.trim();
+    const value = plainInput(raw);
     if (value === '') {
         return MAY_BE_BLANK.includes(entry.param) ? '' : 'err_number';
     }
@@ -124,16 +131,42 @@ function numberProblem(entry: ConditionNumber, raw: string): string {
     return AT_LEAST_ONE.includes(entry.param) && amount < 1 ? 'err_at_least_one' : '';
 }
 
+function visibleNumbers(condition: Condition, mode: BuyerType): ConditionNumber[] {
+    return condition.numbers.filter((entry) => !entry.applies_to || entry.applies_to.includes(mode));
+}
+
+function sameValue(entry: ConditionNumber, rawNext: string): boolean {
+    const next = plainInput(rawNext);
+    const prev = plainInput(entry.value ?? '');
+    if (next === prev) {
+        return true;
+    }
+    if (next === '' || prev === '') {
+        return false;
+    }
+    if (entry.unit === 'money' || entry.unit === 'percent') {
+        return Number(next) === Number(prev);
+    }
+
+    return parseInt(next, 10) === parseInt(prev, 10);
+}
+
 /** Change the numbers behind the conditions; each number says what it looks at. */
 export function ConditionsModal({ conditions, startWith, appliesAtOnce, onClose }: { conditions: Condition[]; startWith: BuyerType; appliesAtOnce: boolean; onClose: () => void }) {
     const translate = useT();
     const t: Translate = (key, replace = {}) => translate('commission_page', key, replace as Record<string, string>);
+    const reasonField = useReasonField('money.commission_rules');
     const [mode, setMode] = useState<BuyerType>(startWith);
     const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(conditions.flatMap((condition) => condition.numbers.map((entry) => [`${condition.rule}.${entry.param}`, entry.value ?? '']))));
+    const [reason, setReason] = useState('');
     const [saving, setSaving] = useState(false);
     const [serverError, setServerError] = useState('');
+    const [otherTabError, setOtherTabError] = useState(false);
     const [tried, setTried] = useState(false);
-    const list = conditions.filter((condition) => condition.applies_to.includes(mode) && condition.numbers.length > 0);
+    const list = conditions
+        .filter((condition) => condition.applies_to.includes(mode))
+        .map((condition) => ({ ...condition, visible: visibleNumbers(condition, mode) }))
+        .filter((condition) => condition.visible.length > 0);
 
     const problems = useMemo(() => {
         const found: Record<string, string> = {};
@@ -150,13 +183,36 @@ export function ConditionsModal({ conditions, startWith, appliesAtOnce, onClose 
         return found;
     }, [conditions, values]);
 
+    const tierProblem = useMemo(() => {
+        const subSalary = conditions.find((condition) => condition.id === 'sub_salary');
+        if (!subSalary) {
+            return '';
+        }
+        const keys = ['tier1_volume', 'tier1_pct', 'tier2_volume', 'tier2_pct', 'tier3_volume', 'tier3_pct'];
+        if (keys.some((param) => problems[`sub_dealer_salary.${param}`] !== undefined)) {
+            return '';
+        }
+        const v1 = Number(plainInput(values['sub_dealer_salary.tier1_volume'] ?? '0'));
+        const v2 = Number(plainInput(values['sub_dealer_salary.tier2_volume'] ?? '0'));
+        const v3 = Number(plainInput(values['sub_dealer_salary.tier3_volume'] ?? '0'));
+        const p1 = Number(plainInput(values['sub_dealer_salary.tier1_pct'] ?? '0'));
+        const p2 = Number(plainInput(values['sub_dealer_salary.tier2_pct'] ?? '0'));
+        const p3 = Number(plainInput(values['sub_dealer_salary.tier3_pct'] ?? '0'));
+        const maxPct = Number(subSalary.facts?.max_pct ?? '100');
+        if (v2 <= v1 || v3 <= v2 || p2 < p1 || p3 < p2 || p3 > maxPct) {
+            return 'err_salary_tiers';
+        }
+
+        return '';
+    }, [conditions, values, problems]);
+
     const changed = useMemo(() => {
         const rules: Record<string, { version: number; parameters: Record<string, string> }> = {};
         for (const condition of conditions) {
             for (const entry of condition.numbers) {
                 const key = `${condition.rule}.${entry.param}`;
-                const next = (values[key] ?? '').trim();
-                if (next !== (entry.value ?? '') && problems[key] === undefined) {
+                const next = plainInput(values[key] ?? '');
+                if (!sameValue(entry, next) && problems[key] === undefined) {
                     rules[condition.rule] ??= { version: condition.version, parameters: {} };
                     rules[condition.rule].parameters[entry.param] = next;
                 }
@@ -166,14 +222,26 @@ export function ConditionsModal({ conditions, startWith, appliesAtOnce, onClose 
         return rules;
     }, [conditions, values, problems]);
 
+    const reasonMissing = reasonField.required && reason.trim() === '';
+
     const save = () => {
         setTried(true);
         setServerError('');
-        if (Object.keys(problems).length > 0 || Object.keys(changed).length === 0) {
+        setOtherTabError(false);
+        if (Object.keys(problems).length > 0 || tierProblem !== '') {
+            const visibleKeys = new Set(list.flatMap((c) => c.visible.map((e) => `${c.rule}.${e.param}`)));
+            const hasVisibleProblem = Object.keys(problems).some((k) => visibleKeys.has(k)) || (tierProblem !== '' && list.some((c) => c.id === 'sub_salary'));
+            if (!hasVisibleProblem) {
+                setMode(mode === 'dealer' ? 'sub_dealer' : 'dealer');
+                setOtherTabError(true);
+            }
+            return;
+        }
+        if (Object.keys(changed).length === 0 || reasonMissing) {
             return;
         }
         setSaving(true);
-        router.post('/commands/commissions/rules', { rules: changed as never }, {
+        router.post('/commands/commissions/rules', { rules: changed as never, ...(reasonField.shown ? { reason } : {}) }, {
             preserveScroll: true,
             onSuccess: () => onClose(),
             onError: (errors) => setServerError(Object.values(errors).join(' ')),
@@ -204,11 +272,15 @@ export function ConditionsModal({ conditions, startWith, appliesAtOnce, onClose 
                         <div key={kind}><dt><span className={`cp-tag is-${kind}`}>{t(`controls_${kind}`)}</span></dt><dd>{t(`controls_hint_${kind}`)}</dd></div>
                     ))}
                 </dl>
+                {otherTabError && <p className="cp-error" role="alert">{t('err_other_tab')}</p>}
                 {list.length === 0 && <p className="cp-empty">{t('cond_no_numbers')}</p>}
                 {list.map((condition) => (
                     <fieldset className="cp-cond-group" key={condition.id}>
                         <legend>{t(`cond_${condition.id}_title`)}</legend>
-                        {condition.numbers.map((entry) => {
+                        {condition.id === 'sub_salary' && condition.facts?.max_pct && (
+                            <p className="cp-hint">{t('sub_salary_cap_hint', { max: localizeDigits(String(parseFloat(condition.facts.max_pct))) })}</p>
+                        )}
+                        {condition.visible.map((entry) => {
                             const key = `${condition.rule}.${entry.param}`;
                             const id = `cp-num-${condition.id}-${entry.param}`;
                             const problem = problems[key];
@@ -235,9 +307,19 @@ export function ConditionsModal({ conditions, startWith, appliesAtOnce, onClose 
                                 </div>
                             );
                         })}
+                        {condition.id === 'sub_salary' && tierProblem !== '' && tried && (
+                            <p className="cp-error" role="alert">{t(tierProblem)}</p>
+                        )}
                     </fieldset>
                 ))}
-                {tried && Object.keys(changed).length === 0 && Object.keys(problems).length === 0 && <p className="cp-error" role="alert">{t('err_no_change')}</p>}
+                {reasonField.shown && (
+                    <label className="cp-reason">
+                        {reasonField.label(t('reason_label'))}
+                        <input type="text" maxLength={500} required={reasonField.required} value={reason} onChange={(event) => setReason(event.target.value)} />
+                    </label>
+                )}
+                {tried && reasonMissing && <p className="cp-error" role="alert">{t('err_reason')}</p>}
+                {tried && Object.keys(changed).length === 0 && Object.keys(problems).length === 0 && tierProblem === '' && <p className="cp-error" role="alert">{t('err_no_change')}</p>}
                 {serverError && <p className="cp-error" role="alert">{serverError}</p>}
             </div>
         </Modal>

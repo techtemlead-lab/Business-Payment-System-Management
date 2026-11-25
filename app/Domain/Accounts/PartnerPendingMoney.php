@@ -122,13 +122,18 @@ final class PartnerPendingMoney
         foreach ($rows->pluck('month')->unique() as $month) {
             $volumes[(string) $month] = $this->qualification->monthlyVolume((int) $partner->id, (string) $month);
         }
+        $waived = PartnerBenefitControls::waivesSalaryVolume($partner);
+        $customMonthlyTarget = PartnerBenefitControls::customMoneyCents($partner, 'monthly_target');
 
         return [
             'total' => FundCatalog::centsOf($rows->first()->total),
             'count' => (int) $rows->first()->count,
             'closed' => (int) $rows->first()->closed,
-            'lines' => $rows->map(function (object $row) use ($volumes): array {
-                $met = $row->quota !== null && $volumes[(string) $row->month] >= FundCatalog::centsOf($row->quota);
+            'lines' => $rows->map(function (object $row) use ($volumes, $waived, $customMonthlyTarget): array {
+                $targetCents = $waived
+                    ? 0
+                    : ($row->monthly_close === 'true' && $customMonthlyTarget !== null ? $customMonthlyTarget : ($row->quota !== null ? FundCatalog::centsOf($row->quota) : null));
+                $met = $waived || ($targetCents !== null && $volumes[(string) $row->month] >= $targetCents);
                 $reason = $row->monthly_close === 'true'
                     ? ($met ? 'month_end_area_met' : 'month_end_area')
                     : ($met ? 'target_met_waiting' : 'target_not_met');
@@ -163,13 +168,18 @@ final class PartnerPendingMoney
             ->whereRaw("metadata->>'period_month' < ?", [CommissionQualification::currentMonth()])
             ->selectRaw("id, amount, metadata->>'period_month' AS month, metadata->>'monthly_quota' AS quota")
             ->get();
+        if (PartnerBenefitControls::waivesSalaryVolume($partner)) {
+            return ['ids' => [], 'months' => []];
+        }
+        $customMonthlyTarget = PartnerBenefitControls::customMoneyCents($partner, 'monthly_target');
         $volumes = [];
         $ids = [];
         $months = [];
         foreach ($rows as $row) {
             $month = (string) $row->month;
             $volumes[$month] ??= $this->qualification->monthlyVolume((int) $partner->id, $month);
-            if ($row->quota !== null && $volumes[$month] < FundCatalog::centsOf($row->quota)) {
+            $targetCents = $customMonthlyTarget ?? ($row->quota !== null ? FundCatalog::centsOf($row->quota) : null);
+            if ($targetCents !== null && $volumes[$month] < $targetCents) {
                 $ids[] = (int) $row->id;
                 $months[$month] = ($months[$month] ?? 0) + FundCatalog::centsOf($row->amount);
             }
@@ -223,11 +233,15 @@ final class PartnerPendingMoney
             }
             // Owner's rule of 2026-11-21: only the salary step his own month reached is his, so the line shows that part
             // of what was set aside (an estimate until the month closes). Older rules showed all of it.
-            $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
+            $rules = PartnerBenefitControls::effectiveSubDealerRules($partner, app(CommissionPolicy::class)->snapshot(false)['rules']);
             $setAsideRate = Percentage::from((string) $rules['sub_dealer_salary']['percentage'])->basisPoints;
+            $waived = PartnerBenefitControls::waivesSalaryVolume($partner);
 
-            return $rows->map(function (object $row) use ($partner, $rules, $setAsideRate, $line): array {
+            return $rows->map(function (object $row) use ($partner, $rules, $setAsideRate, $line, $waived): array {
                 $cents = FundCatalog::centsOf($row->amount);
+                if ($waived) {
+                    return $line((string) $row->month, $cents, false);
+                }
                 $step = MonthlyTargets::salaryBasisPoints($rules, $this->qualification->monthlyVolume((int) $partner->id, (string) $row->month));
 
                 return $step === null ? $line((string) $row->month, $cents, false) : $line((string) $row->month, MonthlyTargets::tierShare($cents, $step, $setAsideRate), true);

@@ -257,24 +257,38 @@ class SpecialRatesPageTest extends TestCase
     public function test_only_the_owner_sets_conditions_and_they_are_the_switches_the_engine_reads(): void
     {
         $special = $this->page($this->owner, ['person' => $this->partner->id], 'sadmin')['special'];
-        $this->assertSame(['salary', 'rank_join', 'rank_keep', 'rank_bonus'], array_keys($special['waivable']));
-        $this->assertSame(['unconditional_salary', 'unconditional_rank_royalty', 'unconditional_rank_royalty', 'unconditional_rank_incentive'], array_values($special['waivable']));
+        $this->assertSame(['area', 'salary', 'sub_salary', 'rank_join', 'rank_keep', 'rank_bonus'], array_keys($special['waivable']));
+        $this->assertSame(['unconditional_salary', 'unconditional_salary', 'unconditional_salary', 'unconditional_rank_royalty', 'unconditional_rank_royalty', 'unconditional_rank_incentive'], array_values($special['waivable']));
         $this->assertTrue($special['workflow']['can_set_conditions']);
         $this->assertFalse($special['controls']['unconditional_salary']);
+        $this->assertArrayHasKey('salary', $special['customizable']);
+        $this->assertSame('monthly_target', $special['customizable']['salary'][0]['key']);
         $this->assertFalse($this->page($this->finance, ['person' => $this->partner->id])['special']['workflow']['can_set_conditions']);
 
         $this->actingAs($this->finance)->onPortal('manage')->post('/commands/accounts/'.$this->partner->id.'/benefit-controls', ['unconditional_salary' => true, 'reason' => 'Agreed with the owner'])->assertForbidden();
         $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/accounts/'.$this->partner->id.'/benefit-controls', [
-            'unconditional_salary' => true, 'unconditional_rank_royalty' => true, 'forced_royalty_rank' => 'am', 'unconditional_rank_incentive' => false, 'reason' => 'Agreed with the owner',
+            'unconditional_salary' => true, 'unconditional_rank_royalty' => true, 'forced_royalty_rank' => 'am', 'unconditional_rank_incentive' => false,
+            'custom_conditions' => ['mo_target' => '250000', 'cooling_off_days' => '3'],
+            'reason' => 'Agreed with the owner',
         ])->assertRedirect();
 
         $after = $this->page($this->finance, ['person' => $this->partner->id])['special']['controls'];
         $engine = PartnerBenefitControls::for($this->partner->fresh());
         $this->assertTrue($after['unconditional_salary']);
         $this->assertSame('am', $after['forced_royalty_rank']);
+        $this->assertSame('250000.00', $after['custom_conditions']['mo_target']);
+        $this->assertSame(3, $after['custom_conditions']['cooling_off_days']);
         $this->assertSame($engine['unconditional_salary'], $after['unconditional_salary']);
         $this->assertTrue(PartnerBenefitControls::waivesSalaryVolume($this->partner->fresh()));
         $this->assertSame('am', PartnerBenefitControls::forcedRoyaltyRank($this->partner->fresh()));
+
+        // Clearing custom_conditions resets back to general rules.
+        $this->actingAs($this->owner)->onPortal('sadmin')->post('/commands/accounts/'.$this->partner->id.'/benefit-controls', [
+            'unconditional_salary' => false,
+            'custom_conditions' => [],
+            'reason' => 'Reset back to general rule',
+        ])->assertRedirect();
+        $this->assertSame([], PartnerBenefitControls::for($this->partner->fresh())['custom_conditions']);
     }
 
     public function test_every_condition_is_listed_with_the_general_value_and_the_ones_that_cannot_be_lifted_are_known(): void
@@ -285,8 +299,13 @@ class SpecialRatesPageTest extends TestCase
         foreach (['area', 'salary', 'sub_salary', 'rank_join', 'rank_keep', 'rank_bonus', 'bike', 'car', 'cooling_off', 'sub_dealer_extras'] as $id) {
             $this->assertContains($id, $ids);
         }
-        // The sub-dealer salary steps (10,000 / 20,000 / 40,000) have no per-person switch, like the area income.
-        $this->assertSame(['area', 'sub_salary', 'bike', 'car', 'cooling_off', 'sub_dealer_extras'], array_values(array_diff($ids, $waivable)), 'These conditions have no per-person switch in the engine.');
+        $this->assertSame(['bike', 'car', 'cooling_off', 'sub_dealer_extras'], array_values(array_diff($ids, $waivable)), 'These conditions have no per-person waiver switch in the engine.');
+
+        $subDealer = User::factory()->subDealer()->create(['status' => 'active']);
+        $subSpecial = $this->page($this->owner, ['person' => $subDealer->id], 'sadmin')['special'];
+        $this->assertArrayHasKey('sub_salary', $subSpecial['customizable']);
+        $this->assertArrayHasKey('rank_keep', $subSpecial['customizable']);
+        $this->assertSame('sub_dealer_royalty_target', $subSpecial['customizable']['rank_keep'][0]['key']);
     }
 
     public function test_a_partner_or_a_person_without_the_finance_permission_cannot_open_the_page(): void

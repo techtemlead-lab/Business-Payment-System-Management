@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
 use App\Models\User;
 use App\Support\LocalDigits;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -48,7 +49,9 @@ final class SpecialRateModel
      * @var array<string, string>
      */
     public const Waivable = [
+        'area' => 'unconditional_salary',
         'salary' => 'unconditional_salary',
+        'sub_salary' => 'unconditional_salary',
         'rank_join' => 'unconditional_rank_royalty',
         'rank_keep' => 'unconditional_rank_royalty',
         'rank_bonus' => 'unconditional_rank_incentive',
@@ -77,6 +80,8 @@ final class SpecialRateModel
             'totals' => $general['totals'],
             'conditions' => $general['conditions'],
             'waivable' => self::Waivable,
+            'customizable' => $this->customizable($rules, $partner),
+            'sub_dealer_salary_max_pct' => CommissionPolicy::rate($rules, 'sub_dealer_salary')->decimal(),
             'funding_sources' => RecipientFunding::Sources,
             'person' => null,
         ];
@@ -126,6 +131,67 @@ final class SpecialRateModel
         }
 
         return $lines;
+    }
+
+    /**
+     * Condition thresholds that can be customized higher or lower for this specific partner.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return array<string, list<array{key: string, unit: string, general: string}>>
+     */
+    public function customizable(array $rules, ?User $partner): array
+    {
+        if ($partner === null || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
+            return [];
+        }
+        $rankParams = $rules['rank_royalty']['parameters'] ?? [];
+        $vehicleParams = $rules['car_bike_incentive']['parameters'] ?? [];
+        $subSalaryParams = $rules['sub_dealer_salary']['parameters'] ?? [];
+        $coolingDays = ($rules['commission_cooling_off']['is_active'] ?? false)
+            ? (string) ($rules['commission_cooling_off']['parameters']['cooling_off_days'] ?? 0)
+            : '0';
+
+        $fields = [
+            'rank_join' => [
+                ['key' => 'mo_target', 'unit' => 'money', 'general' => (string) ($rankParams['mo_target'] ?? '500000.00')],
+                ['key' => 'am_count', 'unit' => 'count', 'general' => (string) ($rankParams['am_count'] ?? 10)],
+                ['key' => 'sm_count', 'unit' => 'count', 'general' => (string) ($rankParams['sm_count'] ?? 10)],
+                ['key' => 'me_count', 'unit' => 'count', 'general' => (string) ($rankParams['me_count'] ?? 10)],
+                ['key' => 'qualification_depth', 'unit' => 'count', 'general' => (string) ($rankParams['qualification_depth'] ?? 3)],
+            ],
+            'bike' => [
+                ['key' => 'bike_target', 'unit' => 'money', 'general' => (string) ($vehicleParams['bike_target'] ?? '10000000.00')],
+                ['key' => 'bike_leg_cap', 'unit' => 'money', 'general' => (string) ($vehicleParams['bike_leg_cap'] ?? '2000000.00')],
+            ],
+            'car' => [
+                ['key' => 'car_target', 'unit' => 'money', 'general' => (string) ($vehicleParams['car_target'] ?? '500000000.00')],
+                ['key' => 'car_leg_cap', 'unit' => 'money', 'general' => (string) ($vehicleParams['car_leg_cap'] ?? '80000000.00')],
+            ],
+            'cooling_off' => [
+                ['key' => 'cooling_off_days', 'unit' => 'days', 'general' => $coolingDays],
+            ],
+        ];
+
+        if ($partner->role === 'dealer') {
+            $kind = app(DealerKinds::class)->of((int) $partner->id);
+            $fields['salary'] = [
+                ['key' => 'monthly_target', 'unit' => 'money', 'general' => Money::decimal(MonthlyTargets::dealerTarget($rules, $kind))],
+            ];
+        } else {
+            $fields['sub_salary'] = [
+                ['key' => 'tier1_volume', 'unit' => 'money', 'general' => (string) ($subSalaryParams['tier1_volume'] ?? '10000.00')],
+                ['key' => 'tier1_pct', 'unit' => 'percent', 'general' => (string) ($subSalaryParams['tier1_pct'] ?? '1.00')],
+                ['key' => 'tier2_volume', 'unit' => 'money', 'general' => (string) ($subSalaryParams['tier2_volume'] ?? '20000.00')],
+                ['key' => 'tier2_pct', 'unit' => 'percent', 'general' => (string) ($subSalaryParams['tier2_pct'] ?? '2.00')],
+                ['key' => 'tier3_volume', 'unit' => 'money', 'general' => (string) ($subSalaryParams['tier3_volume'] ?? '40000.00')],
+                ['key' => 'tier3_pct', 'unit' => 'percent', 'general' => (string) ($subSalaryParams['tier3_pct'] ?? '3.00')],
+            ];
+            $fields['rank_keep'] = [
+                ['key' => 'sub_dealer_royalty_target', 'unit' => 'money', 'general' => Money::decimal(MonthlyTargets::subDealerRoyaltyTarget($rules))],
+            ];
+        }
+
+        return $fields;
     }
 
     /**

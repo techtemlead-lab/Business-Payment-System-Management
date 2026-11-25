@@ -94,9 +94,19 @@ function MoneyColumn({ totals, cards, held, pending, benefits, card }: { totals:
         <section className="pd-middle" data-tour="home-metrics" aria-label={translate('my_money', 'title')}>
             <IdentityBoxes card={card} />
             <div className="pd-card pd-totals">
-                <div><span>{translate('cr_partner', 'total_income')}</span><strong>{money(totals.income)}</strong></div>
-                <div title={translate('cr_partner', 'total_withdrawn_hint')}><span>{translate('cr_partner', 'total_withdrawn')}</span><strong>{money(totals.withdrawn)}</strong></div>
-                <div className="is-balance"><span>{translate('cr_partner', 'total_balance')}</span><strong>{money(totals.balance)}</strong></div>
+                {mayWithdraw ? (
+                    <>
+                        <Link className="pd-total-link" href={`${base}/my-income`}><span>{translate('cr_partner', 'total_income')}</span><strong>{money(totals.income)}</strong></Link>
+                        <Link className="pd-total-link" href={`${base}/my-money#mm-withdrawals`} title={translate('cr_partner', 'total_withdrawn_hint')}><span>{translate('cr_partner', 'total_withdrawn')}</span><strong>{money(totals.withdrawn)}</strong></Link>
+                        <Link className="pd-total-link is-balance" href={`${base}/my-money`}><span>{translate('cr_partner', 'total_balance')}</span><strong>{money(totals.balance)}</strong></Link>
+                    </>
+                ) : (
+                    <>
+                        <div><span>{translate('cr_partner', 'total_income')}</span><strong>{money(totals.income)}</strong></div>
+                        <div title={translate('cr_partner', 'total_withdrawn_hint')}><span>{translate('cr_partner', 'total_withdrawn')}</span><strong>{money(totals.withdrawn)}</strong></div>
+                        <div className="is-balance"><span>{translate('cr_partner', 'total_balance')}</span><strong>{money(totals.balance)}</strong></div>
+                    </>
+                )}
             </div>
             {(canOrder || mayWithdraw) && (
                 <div className="pd-primary" data-testid="home-primary-actions">

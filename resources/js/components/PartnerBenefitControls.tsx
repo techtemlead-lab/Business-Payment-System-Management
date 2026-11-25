@@ -5,6 +5,40 @@ import { useT } from '../shared/i18n/t';
 import { rankLabel } from '../shared/rankLabel';
 import { useReasonField } from '../shared/reasonFields';
 
+const DEALER_CUSTOM_KEYS = [
+    'monthly_target',
+    'mo_target',
+    'am_count',
+    'sm_count',
+    'me_count',
+    'qualification_depth',
+    'bike_target',
+    'bike_leg_cap',
+    'car_target',
+    'car_leg_cap',
+    'cooling_off_days',
+] as const;
+
+const SUB_DEALER_CUSTOM_KEYS = [
+    'sub_dealer_royalty_target',
+    'tier1_volume',
+    'tier1_pct',
+    'tier2_volume',
+    'tier2_pct',
+    'tier3_volume',
+    'tier3_pct',
+    'mo_target',
+    'am_count',
+    'sm_count',
+    'me_count',
+    'qualification_depth',
+    'bike_target',
+    'bike_leg_cap',
+    'car_target',
+    'car_leg_cap',
+    'cooling_off_days',
+] as const;
+
 export default function PartnerBenefitControls({ account }: { account: Row }) {
     const translate = useT();
     const benefitReason = useReasonField('partner.benefit_reason');
@@ -13,11 +47,16 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
     // Only owners can grant no-condition benefits (server: CommandController::benefitControls).
     const canEdit = ['super_admin', 'md', 'chairman'].includes(auth?.user?.role);
     const existing = account.profile?.benefit_controls ?? {};
+    const existingCustom: Record<string, string> = Object.fromEntries(
+        Object.entries(existing.custom_conditions ?? {}).map(([key, value]) => [key, String(value ?? '')]),
+    );
+    const customKeys = account.role === 'sub_dealer' ? SUB_DEALER_CUSTOM_KEYS : DEALER_CUSTOM_KEYS;
     const form = useForm({
         unconditional_salary: !!existing.unconditional_salary,
         unconditional_rank_royalty: !!existing.unconditional_rank_royalty,
         forced_royalty_rank: existing.forced_royalty_rank || 'mo',
         unconditional_rank_incentive: !!existing.unconditional_rank_incentive,
+        custom_conditions: existingCustom,
         note: existing.note || '',
         reason: '',
     });
@@ -89,6 +128,24 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                     />
                     {translate('portal', 'pbc_grant_incentive')}
                 </label>
+                <details className="pbc-custom" open={Object.keys(existingCustom).length > 0}>
+                    <summary>{translate('portal', 'pbc_custom_title')}</summary>
+                    <p className="muted pbc-hint">{translate('portal', 'pbc_custom_hint')}</p>
+                    <div className="pbc-custom-grid">
+                        {customKeys.map((key) => (
+                            <label key={key}>
+                                {translate('special_rates', `custom_fld_${key}`)}
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={form.data.custom_conditions[key] ?? ''}
+                                    placeholder={translate('portal', 'pbc_custom_default_ph')}
+                                    onChange={(e) => form.setData('custom_conditions', { ...form.data.custom_conditions, [key]: e.target.value })}
+                                />
+                            </label>
+                        ))}
+                    </div>
+                </details>
                 {benefitNote.shown && (
                     <label>
                         {benefitNote.label(translate('portal', 'pbc_note'))}
