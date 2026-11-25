@@ -112,8 +112,8 @@ class PartnerBenefitControlsTest extends TestCase
 
         $lowDealer = User::factory()->inPlace($unionLow)->create(['role' => 'dealer', 'status' => 'active']);
         $highDealer = User::factory()->inPlace($unionHigh)->create(['role' => 'dealer', 'status' => 'active']);
-        AreaDealerAssignment::create(['user_id' => $lowDealer->id, 'level' => 'union', 'place_code_id' => $unionLow->id, 'active' => true]);
-        AreaDealerAssignment::create(['user_id' => $highDealer->id, 'level' => 'union', 'place_code_id' => $unionHigh->id, 'active' => true]);
+        AreaDealerAssignment::create(['user_id' => $lowDealer->id, 'level' => 'union', 'place_code_id' => $unionLow->id, 'division' => 'Rangpur', 'zone_name' => 'Balia', 'is_active' => true]);
+        AreaDealerAssignment::create(['user_id' => $highDealer->id, 'level' => 'union', 'place_code_id' => $unionHigh->id, 'division' => 'Rangpur', 'zone_name' => 'Kabilpur', 'is_active' => true]);
 
         DealerRank::create(['user_id' => $lowDealer->id, 'current_rank' => 'mo', 'achieved_at' => now()->subMonths(2)]);
         DealerRank::create(['user_id' => $highDealer->id, 'current_rank' => 'mo', 'achieved_at' => now()->subMonths(2)]);
@@ -154,11 +154,11 @@ class PartnerBenefitControlsTest extends TestCase
         $this->deliverPurchase($highBuyer, '1000.00', '2000.00');
 
         $lowAreaRow = CommissionAllocation::where('user_id', $lowDealer->id)
-            ->where('category', 'area')
+            ->where('category', 'area_union')
             ->latest('id')
             ->first();
         $highAreaRow = CommissionAllocation::where('user_id', $highDealer->id)
-            ->where('category', 'area')
+            ->where('category', 'area_union')
             ->latest('id')
             ->first();
 
@@ -177,16 +177,17 @@ class PartnerBenefitControlsTest extends TestCase
         $admin = User::factory()->staff('super_admin')->create();
         $rules = app(CommissionPolicy::class);
         $rules->update($admin, [
-            'commission_hold' => ['parameters' => ['cooling_off_days' => 5]],
+            'commission_cooling_off' => ['parameters' => ['cooling_off_days' => 5]],
         ]);
 
         $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']);
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $defaultDealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
 
-        // Lower sub-dealer tier1 to 10,000 @ 0.50%, higher mo_target to 200,000, lower bike_target to 50,000, cooling_off_days to 0
+        // Lower sub-dealer tier1 to 5,000 @ 0.50% (default 10,000 @ 1.00%), lower mo_target to 100,000 (default 500,000), lower bike_target to 50,000, cooling_off_days to 0
         app(PartnerBenefitControls::class)->save($admin, $subDealer, [
             'custom_conditions' => [
-                'tier1_volume' => '10000.00',
+                'tier1_volume' => '5000.00',
                 'tier1_pct' => '0.50',
                 'cooling_off_days' => 0,
             ],
@@ -194,40 +195,54 @@ class PartnerBenefitControlsTest extends TestCase
         ]);
         app(PartnerBenefitControls::class)->save($admin, $dealer, [
             'custom_conditions' => [
-                'mo_target' => '200000.00',
+                'mo_target' => '100000.00',
                 'bike_target' => '50000.00',
                 'cooling_off_days' => 0,
             ],
-            'reason' => 'Higher MO target, lower bike target, instant release',
+            'reason' => 'Lower MO target, lower bike target, instant release',
         ]);
 
-        // Sub-dealer buys 12,000: qualifies for custom tier1 (10k @ 0.50%), not default 50k
-        $subOrder = $this->deliverPurchase($subDealer, '12000.00', '20000.00');
-        // Dealer buys 120,000: passes default MO (100k) -> should NOT reach MO with custom 200k; DOES pass custom bike 50k
+        // Sub-dealer buys 6,000: qualifies for custom tier1 (5k @ 0.50% = 30.00), below default tier1 (10k)
+        $subOrder = $this->deliverPurchase($subDealer, '6000.00', '10000.00');
+        // Dealer buys 120,000: below default MO (500k) -> reaches MO under custom 100k AND achieves custom bike 50k
         $dealerOrder = $this->deliverPurchase($dealer, '120000.00', '240000.00');
+        // Control dealer with no custom override stays maturing under global cooling_off_days=5
+        $defaultOrder = $this->deliverPurchase($defaultDealer, '1000.00', '2000.00');
 
         $qualification = app(CommissionQualification::class);
-        $this->assertNull(DealerRank::where('user_id', $dealer->id)->first());
+        $this->assertSame('mo', DealerRank::where('user_id', $dealer->id)->value('current_rank'));
 
         $bikeMilestone = $qualification->milestone($dealer->id, 'bike');
         $this->assertSame('50000.00', $bikeMilestone['target_amount']);
         $this->assertSame('120000.00', $bikeMilestone['qualifying_volume']);
         $this->assertTrue($bikeMilestone['achieved']);
 
-        // Cooling-off override = 0: referral/buyer allocations for customized partner skip maturing hold even though global cooling_off_days=5
-        $ref = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'sponsor_id' => $dealer->id]);
-        $refOrder = $this->deliverPurchase($ref, '1000.00', '2000.00');
-        $refAlloc = CommissionAllocation::where('order_id', $refOrder->id)
+        // Cooling-off override = 0 gives available cashback while default partner stays maturing
+        $customCashback = CommissionAllocation::where('order_id', $dealerOrder->id)
             ->where('user_id', $dealer->id)
+            ->where('category', 'own_dealer_cashback')
             ->first();
-        $this->assertNotNull($refAlloc);
-        $this->assertSame('available', $refAlloc->status);
+        $defaultCashback = CommissionAllocation::where('order_id', $defaultOrder->id)
+            ->where('user_id', $defaultDealer->id)
+            ->where('category', 'own_dealer_cashback')
+            ->first();
+        $this->assertNotNull($customCashback);
+        $this->assertNotNull($defaultCashback);
+        $this->assertSame('available', $customCashback->status);
+        $this->assertSame('maturing', $defaultCashback->status);
 
         // Travel past November end so monthly salary settlement runs cleanly for 2026-11
         $this->travelTo(now()->setDate(2026, 12, 1)->startOfDay());
         $subPlan = app(CommissionSettlement::class)->settle('2026-11', 'salary', $admin->id, (string) Str::uuid());
         $this->assertIsArray($subPlan);
-        $this->assertSame('60.00', (string) DB::table('wallets')->where('user_id', $subDealer->id)->value('available'));
+        $this->assertSame(
+            '30.00',
+            (string) DB::table('commission_settlement_payouts')
+                ->where('user_id', $subDealer->id)
+                ->where('kind', 'salary')
+                ->where('period_month', '2026-11')
+                ->value('amount'),
+        );
 
         // Clearing custom_conditions reverts to general defaults cleanly
         app(PartnerBenefitControls::class)->save($admin, $dealer, [
