@@ -164,10 +164,16 @@ class PartnerBenefitControlsTest extends TestCase
 
         $this->assertNotNull($lowAreaRow);
         $this->assertNotNull($highAreaRow);
-        $this->assertNotSame('held', $lowAreaRow->status);
-        $this->assertNull($lowAreaRow->metadata['hold_reason'] ?? null);
+        $this->assertSame('held', $lowAreaRow->status);
+        $this->assertSame('15000.00', (string) ($lowAreaRow->metadata['monthly_quota'] ?? ''));
         $this->assertSame('held', $highAreaRow->status);
-        $this->assertSame('quota', $highAreaRow->metadata['hold_reason'] ?? null);
+        $this->assertSame('50000.00', (string) ($highAreaRow->metadata['monthly_quota'] ?? ''));
+
+        $this->travelTo(now()->setDate(2026, 12, 1)->setTime(1, 0));
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+
+        $this->assertContains($lowAreaRow->fresh()->status, ['available', 'maturing']);
+        $this->assertSame('forfeited', $highAreaRow->fresh()->status);
     }
 
     public function test_custom_conditions_govern_sub_dealer_tiers_rank_mo_bike_and_cooling_off(): void
