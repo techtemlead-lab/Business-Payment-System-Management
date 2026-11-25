@@ -62,14 +62,17 @@ final class PartnerBenefitControls
      */
     public static function for(User $user): array
     {
-        $controls = is_array($user->profile['benefit_controls'] ?? null) ? $user->profile['benefit_controls'] : [];
+        $raw = $user->getAttribute('profile');
+        $rawControls = is_array($raw) ? ($raw['benefit_controls'] ?? null) : null;
+        /** @var array<string, mixed> $controls */
+        $controls = is_array($rawControls) ? $rawControls : [];
 
         return [
             'unconditional_salary' => (bool) ($controls['unconditional_salary'] ?? false),
             'unconditional_rank_royalty' => (bool) ($controls['unconditional_rank_royalty'] ?? false),
             'forced_royalty_rank' => self::normalizeRank($controls['forced_royalty_rank'] ?? null),
             'unconditional_rank_incentive' => (bool) ($controls['unconditional_rank_incentive'] ?? false),
-            'custom_conditions' => self::sanitizeStoredCustom(array_key_exists('custom_conditions', $controls) ? $controls['custom_conditions'] : null),
+            'custom_conditions' => self::sanitizeStoredCustom($controls['custom_conditions'] ?? null),
             'note' => isset($controls['note']) ? (string) $controls['note'] : null,
             'updated_by' => isset($controls['updated_by']) ? (int) $controls['updated_by'] : null,
             'updated_at' => isset($controls['updated_at']) ? (string) $controls['updated_at'] : null,
