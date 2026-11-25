@@ -164,8 +164,10 @@ class PartnerBenefitControlsTest extends TestCase
 
         $this->assertNotNull($lowAreaRow);
         $this->assertNotNull($highAreaRow);
-        $this->assertNotSame('quota_hold', $lowAreaRow->status);
-        $this->assertSame('quota_hold', $highAreaRow->status);
+        $this->assertNotSame('held', $lowAreaRow->status);
+        $this->assertNull($lowAreaRow->metadata['hold_reason'] ?? null);
+        $this->assertSame('held', $highAreaRow->status);
+        $this->assertSame('quota', $highAreaRow->metadata['hold_reason'] ?? null);
     }
 
     public function test_custom_conditions_govern_sub_dealer_tiers_rank_mo_bike_and_cooling_off(): void
