@@ -73,7 +73,8 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                         <span>
                             <b>{takeLabel}</b>
                             {takeRefusal && <small>{takeRefusal}</small>}
-                            {!takeRefusal && withdraw.week?.enabled && <small>{translate('office_withdrawal', officeOn ? 'payout_line_office' : 'payout_line_online', { day: withdraw.week.payout_day, date: withdraw.week.payout_date })}</small>}
+                            {!takeRefusal && withdraw.week?.enabled && <small>{translate('office_withdrawal', `${officeOn ? 'payout_line_office' : 'payout_line_online'}${withdraw.week.same_day ? '_today' : ''}`, { day: withdraw.week.payout_day, date: withdraw.week.payout_date, time: withdraw.week.same_day_until ?? '' })}</small>}
+                            {!takeRefusal && withdraw.week?.enabled && withdraw.week.same_day_until && <small>{translate('office_withdrawal', 'same_day_rule', { day: withdraw.week.payout_day, time: withdraw.week.same_day_until })}</small>}
                         </span>
                     </button>
                     <button type="button" className="mm-choice" disabled={orderRefusal !== null} onClick={() => setStep('order')}>

@@ -16,8 +16,8 @@ use Tests\TestCase;
 
 /**
  * Owner, 2026-11-21 and 2026-11-27: an office withdrawal asked for on any day is handed over in cash at the
- * office on the next Thursday. Staff see it on the payout list and mark it handed over; the usual payout
- * path posts it once. Staff are not stopped from paying on another day.
+ * office on the next Thursday (the same Thursday when asked on Thursday before 14:00). Staff see it on the payout
+ * list and mark it handed over; the usual payout path posts it once. Staff are not stopped from paying on another day.
  */
 class OfficeWithdrawalHandoverTest extends TestCase
 {
@@ -89,23 +89,27 @@ class OfficeWithdrawalHandoverTest extends TestCase
                 ->where('data.office_cash_total', '1500.00'));
     }
 
-    public function test_a_monday_request_is_due_on_thursday_and_a_thursday_request_waits_a_week_without_blocking_staff(): void
+    public function test_a_monday_or_thursday_morning_request_is_due_that_thursday_and_a_thursday_afternoon_request_waits_a_week_without_blocking_staff(): void
     {
         [, $monday] = $this->approvedOfficeWithdrawal('1000.00', '2026-11-23 21:00:00');
-        [, $thursday] = $this->approvedOfficeWithdrawal('700.00', '2026-11-26 09:00:00');
+        [, $morning] = $this->approvedOfficeWithdrawal('800.00', '2026-11-26 09:00:00');
+        [, $thursday] = $this->approvedOfficeWithdrawal('700.00', '2026-11-26 15:00:00');
 
-        $this->at('2026-11-26 11:00:00');
+        $this->at('2026-11-26 16:00:00');
         $this->actingAs($this->payer)->onPortal('manage')->get('/payouts-hub')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.office_payouts.0.id', $monday)
                 ->where('data.office_payouts.0.payout_date', '2026-11-26')
                 ->where('data.office_payouts.0.due', true)
-                ->where('data.office_payouts.1.id', $thursday)
-                ->where('data.office_payouts.1.payout_date', '2026-12-03')
-                ->where('data.office_payouts.1.due', false));
+                ->where('data.office_payouts.1.id', $morning)
+                ->where('data.office_payouts.1.payout_date', '2026-11-26')
+                ->where('data.office_payouts.1.due', true)
+                ->where('data.office_payouts.2.id', $thursday)
+                ->where('data.office_payouts.2.payout_date', '2026-12-03')
+                ->where('data.office_payouts.2.due', false));
 
-        // No staff-side day rule exists: the cashier may still hand over the Thursday request early.
-        $this->actingAs($this->payer)->onPortal('manage')->post('/commands/withdrawals/'.$thursday.'/hand-over', ['paid_at' => '2026-11-26T10:55', 'note' => 'ID card checked'])
+        // No staff-side day rule exists: the cashier may still hand over the Thursday afternoon request early.
+        $this->actingAs($this->payer)->onPortal('manage')->post('/commands/withdrawals/'.$thursday.'/hand-over', ['paid_at' => '2026-11-26T15:55', 'note' => 'ID card checked'])
             ->assertSessionHasNoErrors();
         $this->assertSame('paid', DB::table('withdrawals')->where('id', $thursday)->value('status'));
         $this->assertSame(1, DB::table('journal_entries')->where('event_key', 'manual-payout:'.$thursday)->count());

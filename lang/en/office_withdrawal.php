@@ -22,6 +22,9 @@ return [
     // The weekly withdrawal day
     'payout_line_office' => 'Payment is made only on :day. You can take the money at the office on :day (:date).',
     'payout_line_online' => 'Payment is made only on :day. Your money will be sent on :day (:date).',
+    'payout_line_office_today' => 'Payment is made only on :day. A request made today before :time is paid today: you can take the money at the office today (:date).',
+    'payout_line_online_today' => 'Payment is made only on :day. A request made today before :time is paid today: your money will be sent today (:date).',
+    'same_day_rule' => 'Asked on :day before :time: paid the same day. Asked at :time or later: paid the next :day.',
     'err_weekday' => 'Choose a day of the week.',
     'week_title' => 'Payout day',
     'week_body' => 'Partners can ask for money on any day. When on, the money is paid only on the payout day, and each partner sees that date. The same rule applies to every way. Bangladesh time is used.',
