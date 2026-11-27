@@ -56,7 +56,8 @@ class PartnerDashboardCrTest extends TestCase
         $this->assertSame('', PartnerAreaLine::format(['union' => '—', 'upazila' => ' ', 'district' => null, 'division' => null]));
     }
 
-    public function test_the_card_has_counts_and_the_shop_name_only_for_a_sub_dealer(): void
+    /** Client, 2026-11-27: the card names the pharmacy or shop for a dealer as well as a sub-dealer. */
+    public function test_the_card_has_counts_and_the_shop_name_for_dealers_and_sub_dealers(): void
     {
         $dealer = $this->partner(null, 'dealer', ['profile' => ['shop_name' => 'Dealer Shop']]);
         $first = $this->partner($dealer);
@@ -65,7 +66,7 @@ class PartnerDashboardCrTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')->get('/')->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('data.partner_home.card.type', 'dealer')
-            ->where('data.partner_home.card.shop_name', null)
+            ->where('data.partner_home.card.shop_name', 'Dealer Shop')
             ->where('data.partner_home.card.direct', 2)
             ->where('data.partner_home.card.gen1', 2)
             ->where('data.partner_home.card.gen2', 1));

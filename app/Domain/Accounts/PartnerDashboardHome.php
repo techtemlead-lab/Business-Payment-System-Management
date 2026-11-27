@@ -170,10 +170,8 @@ final class PartnerDashboardHome
             'phone' => $user->phone,
             'email' => $user->email,
             'joined_on' => $user->created_at?->timezone($tz)->format('d/m/Y'),
-            // The shop name belongs to sub-dealers only; a dealer's card never shows one.
-            'shop_name' => $user->role === 'sub_dealer'
-                ? ($profile['shop_name'] ?? $profile['pharmacy'] ?? $profile['pharmacy_name'] ?? null)
-                : null,
+            // The pharmacy or shop name, for a dealer as well as a sub-dealer (client, 2026-11-27).
+            'shop_name' => $profile['shop_name'] ?? $profile['pharmacy'] ?? $profile['pharmacy_name'] ?? null,
             'direct' => (int) ($counts->direct ?? 0),
             'gen1' => (int) ($counts->gen1 ?? 0),
             'gen2' => (int) ($counts->gen2 ?? 0),

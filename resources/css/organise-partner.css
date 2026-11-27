@@ -88,18 +88,51 @@
 .partner-note > summary:focus-visible { outline: 2px solid var(--ds-brand, #006a4e); outline-offset: 2px; border-radius: var(--ds-r-sm, 6px); }
 .partner-note > p { margin: 0 0 var(--ds-s-2, 8px); }
 
-/* Computer: the money column reads balance, main action, waiting money, income by head, and last the identity boxes. */
+/* Computer: under the person, the three figures, this month's target, the main buttons, then money still waiting. */
 .pd-middle > .pd-totals { order: 1; }
-.pd-middle > .pd-primary { order: 2; }
-.pd-middle > .pd-waiting { order: 3; }
-.pd-middle > .pd-heads { order: 4; }
-.pd-middle > .pd-idboxes { order: 5; }
+.pd-middle > .pd-idboxes { order: 2; }
+.pd-middle > .pd-primary { order: 3; }
+.pd-middle > .pd-waiting { order: 4; }
+
+/*
+ * The client's drawing (2026-11-27): the side bar is the menu, the middle holds the person and the money,
+ * the right holds the progress. Two columns when there is room, one under the other when not.
+ */
+.pd-main { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.pd-wrap .pd-grid { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 880px) {
+  .pd-wrap .pd-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
+  .pd-wrap .pd-right { grid-column: auto; }
+}
+@container (min-width: 1100px) {
+  .pd-wrap .pd-grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+}
+@media (min-width: 768px) {
+  /* The person's card lies across the middle: photo beside name, position and rank; the details in three columns. */
+  .pd-main .pd-profile { display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 20px; row-gap: 2px; align-items: center; text-align: left; }
+  .pd-main .pd-profile .pd-photo { grid-row: 1 / span 3; align-self: start; justify-content: flex-start; margin: 0; }
+  .pd-main .pd-profile .pd-photo :is(.avatar.large, .partner-home-avatar, img) { width: 112px; height: 112px; font-size: 42px; }
+  .pd-main .pd-profile > :not(.pd-photo) { grid-column: 2; }
+  .pd-main .pd-profile > :is(.pd-lines, .pd-counts) { grid-column: 1 / -1; }
+  .pd-main .pd-type { margin: 2px 0 0; }
+  .pd-main .pd-type .appt-pill { align-items: flex-start; text-align: left; padding: 0; background: transparent; border-radius: 0; gap: 1px; }
+  .pd-main .pd-lines { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 20px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--ds-line-soft, #ecf0ed); }
+  .pd-main .pd-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); display: grid; }
+  .pd-main .pd-counts div { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .pd-main .pd-idboxes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* "Income this month so far" at the top of the progress panel. */
+.ph-month-income { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--ds-brand-soft, #e3f1eb); }
+.ph-month-income div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ph-month-income dt { margin: 0; font-weight: 600; color: var(--ds-text-2, #334155); }
+.ph-month-income dd { margin: 0; font-weight: 800; font-size: 1.15rem; color: var(--ds-brand-text, #00694d); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Computer: the wallet actions sit in a row next to the balance already; keep the folded block as wide as the page. */
 @media (min-width: 768px) {
   .partner-hub-nav .partner-hub-title { margin-bottom: var(--ds-s-2, 8px); }
-  /* The sidebar is the menu and the identity boxes show the mobile and rank, so these phone-only pieces stay hidden. */
-  .partner-home.ph > .ph-menu-tiles, .pd-profile .pd-line-phone, .pd-profile .pd-rank { display: none; }
+  /* The side bar is the menu on a computer, so the menu tiles are for a phone only. */
+  .partner-home.ph > .ph-menu-tiles { display: none; }
 }
 
 /* The owner's notice now sits inside the home page, whose own gap already spaces it. */
@@ -130,29 +163,20 @@
    * 3 the order and withdraw buttons, 4 every menu row as a tile, 5 the owner's notice, then waiting money and the rest.
    */
   .dealer-shell .pd-wrap, .subdealer-shell .pd-wrap { display: contents; container-type: normal; }
-  .dealer-shell .pd-grid, .subdealer-shell .pd-grid { display: contents; }
-  /* pd-middle, pd-grid and pd-wrap all take no box of their own on a phone, so these are the page's direct flex items. */
+  .dealer-shell .pd-grid, .subdealer-shell .pd-grid, .dealer-shell .pd-main, .subdealer-shell .pd-main { display: contents; }
+  /* pd-middle, pd-main, pd-grid and pd-wrap all take no box of their own on a phone, so these are the page's direct flex items. */
   .partner-home.ph > * { order: 40; }
   .partner-home.ph > .ph-birthday { order: 0; }
   .partner-home.ph .pd-profile { order: 1; }
   .partner-home.ph .pd-totals { order: 2; }
-  .partner-home.ph .pd-primary { order: 3; }
-  .partner-home.ph > .ph-menu-tiles { order: 4; }
-  .partner-home.ph > .portal-notice { order: 5; }
-  .partner-home.ph .pd-waiting { order: 6; }
-  .partner-home.ph .pd-heads { order: 7; }
-  .partner-home.ph > [data-testid="partner-alerts"] { order: 8; }
-  .partner-home.ph > [data-testid="next-steps"] { order: 9; }
-  .partner-home.ph > .ph-follow-up { order: 10; }
-  .partner-home.ph .pd-right { order: 11; }
-  .partner-home.ph .pd-idboxes { order: 12; }
-  .partner-home.ph > .ph-callme { order: 13; }
-  .partner-home.ph .pd-report { order: 14; }
-  .partner-home.ph > .ph-today { order: 15; }
-  .partner-home.ph > [data-tour="recent-orders"] { order: 16; }
-  .partner-home.ph > .sponsor-card { order: 17; }
-  .partner-home.ph > .partner-home-referral { order: 18; }
-  .partner-home.ph > .ph-profile-link { order: 19; }
+  .partner-home.ph .pd-idboxes { order: 3; }
+  .partner-home.ph .pd-primary { order: 4; }
+  .partner-home.ph > .ph-menu-tiles { order: 5; }
+  .partner-home.ph > .portal-notice { order: 6; }
+  .partner-home.ph .pd-waiting { order: 7; }
+  .partner-home.ph > [data-testid="next-steps"] { order: 8; }
+  .partner-home.ph > .ph-follow-up { order: 9; }
+  .partner-home.ph .pd-right { order: 10; }
 
   /* The person's card on a phone: photo beside name, position and rank; mobile, code, area and address always open in two columns. */
   .partner-home.ph .pd-profile { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 12px; row-gap: 0; align-items: center; text-align: left; }
@@ -176,7 +200,6 @@
   .partner-home.ph .pd-profile:not(.is-open) .pd-counts { display: none; }
   .partner-home.ph .pd-more-toggle { margin-top: 8px; min-height: 40px; }
   .partner-home.ph .pd-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .partner-home.ph .pd-idboxes .is-rank { display: none; }
 
   /* The menu tiles: four in a row, big enough for a thumb; a red count where something waits. */
   .partner-home.ph > .ph-menu-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }

@@ -187,6 +187,7 @@ return [
     'today_activity_hint' => 'কোম্পানি থেকে আপনার কেনা, টিমের বিক্রি ও এই মাসের কমিশন।',
     'targets' => 'টার্গেট',
     'targets_hint' => 'এই মাসের কেনা, আপনার বেতন, র‍্যাঙ্ক ও বাইক পুরস্কার।',
+    'month_income_so_far' => 'এই মাসে এ পর্যন্ত আয়',
     'targets_notes_show' => 'ব্যাখ্যা দেখুন',
     'targets_notes_hide' => 'ব্যাখ্যা লুকান',
     'company_notices' => 'কোম্পানি নোটিশ',

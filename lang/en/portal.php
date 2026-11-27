@@ -187,6 +187,7 @@ return [
     'today_activity_hint' => 'Your purchase from the company, team sales, and this month’s commission.',
     'targets' => 'Targets',
     'targets_hint' => 'Your purchase this month, your salary, your rank and the bike reward.',
+    'month_income_so_far' => 'Income this month so far',
     'targets_notes_show' => 'Show explanations',
     'targets_notes_hide' => 'Hide explanations',
     'company_notices' => 'Company notices',

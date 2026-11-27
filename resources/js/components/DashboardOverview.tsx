@@ -8,7 +8,6 @@ import {
 import IncomeCards from './mymoney/IncomeCards';
 import type { IncomeCard } from './mymoney/types';
 import { PartnerProgressButton } from './PartnerProgress';
-import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
 import NextStepsCard from './dealertools/NextStepsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import Figures, { type FigureItem } from './office/Figures';
@@ -19,8 +18,7 @@ import StartBooksCard from './office/StartBooksCard';
 import { Badge, Empty, date, humanize, money, type Row, number } from './UI';
 import { businessTodayIso, localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
-import CallMeCard from './CallMeCard';
-import { DashboardGrid, IncomeReport } from './PartnerDashboard';
+import { DashboardGrid } from './PartnerDashboard';
 import { usePartnerHomeSlots } from './PartnerHomeSlots';
 
 /** A progress bar row, or a plain line with no target: kind "amount" (a figure, such as a sub-dealer's salary) or kind "status" (words, such as a dealer's salary state). */
@@ -209,7 +207,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                 </section>
             )}
 
-            <DashboardGrid home={home} moneyCards={moneyCards} targetsPanel={targets.length > 0 ? (
+            <DashboardGrid home={home} targetsPanel={(
                 <section className="ph-card ph-targets" data-tour="home-targets">
                     <div className="ph-card-head ph-targets-head">
                         <div>
@@ -218,6 +216,10 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         </div>
                         <PartnerProgressButton />
                     </div>
+                    {/* This month so far (client's sketch, "side 3"): income earned this month, beside the purchase and rank bars below. */}
+                    <dl className="ph-month-income" data-testid="home-month-income">
+                        <div><dt>{translate('portal', 'month_income_so_far')}</dt><dd>{money(snapshot.commission_month ?? 0)}</dd></div>
+                    </dl>
                     <div className="partner-home-target-list">
                         {targets.map((target) => target.kind === 'amount' ? (
                             <article key={target.key} className="partner-home-target-amount">
@@ -265,13 +267,13 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         {translate('portal', showNotes ? 'targets_notes_hide' : 'targets_notes_show')}
                     </button>
                 </section>
-            ) : null} />
+            )} />
 
             {/* Phone only: every menu row as a big tile, under the person's card and money (client, 2026-11-25). */}
             {slots?.tiles}
 
-            {/* The big easy-way buttons sit under the money and targets, above the long report. */}
-            <CallMeCard />
+            {/* Only what needs doing now: a step the partner must still take, or customers to call back today. Everything else has its own page (client, 2026-11-27: "keep the panel fresh"). */}
+            <NextStepsCard steps={tools?.next_steps ?? []} />
 
             {Number(home.follow_up_due ?? 0) > 0 && sections.includes('customers') && (
                 <Link href={`${base}/customers?status=due`} className="ph-card ph-follow-up" data-testid="home-follow-up">
@@ -280,69 +282,6 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                     <ArrowUpRight size={16} aria-hidden="true" />
                 </Link>
             )}
-
-            <IncomeReport />
-
-            <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
-                <h3 id="ph-today-title">{translate('portal', 'today_activity')}</h3>
-                <div className="ph-today-grid">
-                    <div>
-                        <span>{translate('portal', 'today_purchase')}</span>
-                        <strong>{money(snapshot.own_sales_today)}</strong>
-                    </div>
-                    <div>
-                        <span>{translate('portal', 'today_commission')}</span>
-                        <strong>{money(snapshot.commission_today)}</strong>
-                    </div>
-                    <div>
-                        <span>{translate('portal', 'team_sales')}</span>
-                        <strong>{money(snapshot.team_sales_today)}</strong>
-                    </div>
-                </div>
-            </section>
-
-            <PartnerAlertsCard alerts={tools?.alerts ?? []} inactivePartners={tools?.inactive_partners ?? []} />
-            <NextStepsCard steps={tools?.next_steps ?? []} />
-
-            <section className="panel table-panel dense-panel" data-tour="recent-orders">
-                <div className="panel-heading">
-                    <div>
-                        <h2>{translate('portal', 'recent_orders')}</h2>
-                        <p>{translate('portal', 'recent_orders_hint')}</p>
-                    </div>
-                    <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
-                </div>
-                {orders}
-            </section>
-
-            {home.sponsor && (
-                <section className="panel sponsor-card" data-tour="sponsor-contact">
-                    <div className="sponsor-info">
-                        <span className="eyebrow">{translate('portal', 'assigned_sponsor_dealer')}</span>
-                        <h4>{home.sponsor.name}{home.sponsor.dealer_code ? ` (${home.sponsor.dealer_code})` : ''}</h4>
-                        <p>{home.sponsor.phone || translate('portal', 'no_phone_provided')}</p>
-                    </div>
-                    {home.sponsor.phone && (
-                        <div className="sponsor-actions">
-                            <a href={`tel:${home.sponsor.phone}`} className="button small">
-                                <Phone size={14} /> {translate('portal', 'call_dealer')}
-                            </a>
-                            <a
-                                href={`https://wa.me/${String(home.sponsor.phone).replace(/[^0-9]/g, '').replace(/^01/, '8801')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="button small ph-whatsapp"
-                            >
-                                <MessageCircle size={14} /> {translate('portal', 'whatsapp')}
-                            </a>
-                        </div>
-                    )}
-                </section>
-            )}
-            <ReferralShare referral={home.referral ?? null} role={profile.role} />
-
-            {/* Name, code and place are already in the card at the top; the full profile is one tap away. */}
-            <p className="ph-profile-link"><Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link></p>
         </div>
     );
 }
