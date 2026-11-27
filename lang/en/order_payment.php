@@ -83,5 +83,13 @@ return [
     'claim_fact_order' => 'Order',
     'claim_fact_partner' => 'Paid by',
     'claim_fact_reference' => 'Transaction number',
+    'one_step_title' => 'Money received? Approve in one step',
+    'one_step_hint' => 'This payment covers the whole price. Check that the money reached the bank or mobile account. One press records the money and approves the order.',
+    'one_step_hint_office' => 'This cash covers the whole price. Count the money. One press records the money and approves the order.',
+    'one_step_button' => 'Money received, approve',
+    'one_step_confirm_title' => 'Record the money and approve the order?',
+    'one_step_confirm_sentence' => 'The money from :name is recorded as received and order :number is approved. Both happen together, or neither does.',
+    'one_step_other_choices' => 'Or hold or reject the order',
+    'approve_after_payment' => 'The order can be approved once its whole price is checked. Until then you can hold or reject it here.',
     'flash_verified_approved' => 'The money was recorded and the order is approved.',
 ];

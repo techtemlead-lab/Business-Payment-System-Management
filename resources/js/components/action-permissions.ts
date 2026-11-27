@@ -27,6 +27,8 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/stock-lots')||path.startsWith('/commands/stock-transfers'))return any(['inventory'],path==='/commands/stock-transfers'?'create':'edit');
     if(/^\/commands\/branches\/\d+\/select$/.test(path))return true;
     if(path.startsWith('/commands/branches'))return any(['inventory','accounts'],method==='post'&&path==='/commands/branches'?'create':'edit');
+    // Payment check and approval in one press: both rights are needed, as for the two steps.
+    if(/^\/commands\/orders\/[^/]+\/verify-and-approve$/.test(path))return any(['finance'],'approve')&&any(['order_review'],'approve');
     if(/\/decision$/.test(path))return any(['order_review'],'approve');
     // Owners may refund without a staff matrix entry; the order page only shows this form when the server says canRefund.
     if(/^\/commands\/orders\/[^/]+\/refund$/.test(path))return true;
