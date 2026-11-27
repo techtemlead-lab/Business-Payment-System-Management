@@ -162,7 +162,8 @@ final class TourGuide
     private function partnerDefinitions(string $role, ?User $user = null): array
     {
         $sideMenu = '[data-tour="sidebar-nav"], .workspace-menu-button';
-        $courierStep = $this->overviewStep('[data-tour="recent-orders"]', 'tour_partner_courier', 'tour_cat_orders', 'manual');
+        // The home keeps only the person, the money, the menu tiles and the progress (client, 2026-11-27); recent orders,
+        // the sponsor card and the invite card moved off it, so the tour no longer stops there.
         // The cards are drawn only when there is something to say; the tour skips them otherwise.
         $alertsStep = $this->overviewStep('[data-testid="partner-alerts"], [data-testid="next-steps"]', 'tour_partner_alerts', 'tour_cat_targets', 'manual');
         $moneyStep = $this->overviewStep($sideMenu, 'tour_partner_money', 'tour_cat_nav', 'manual');
@@ -180,9 +181,6 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_dealer_step_metrics', 'tour_cat_metrics'),
             $alertsStep,
             $this->overviewStep('[data-tour="home-targets"]', 'tour_dealer_step_targets', 'tour_cat_targets'),
-            $this->overviewStep('[data-tour="recent-orders"]', 'tour_dealer_step_orders', 'tour_cat_orders'),
-            $courierStep,
-            $this->overviewStep('[data-tour="home-referral"]', 'tour_dealer_step_referral', 'tour_cat_network'),
             $this->overviewStep('[data-tour="header-actions"]', 'tour_dealer_step_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
             $sidebarStep,
@@ -194,13 +192,9 @@ final class TourGuide
             $this->overviewStep('[data-tour="home-profile"]', 'tour_subdealer_step_profile', 'tour_cat_profile'),
             $buyStep,
             $incomeStep,
-            $this->overviewStep('[data-tour="sponsor-contact"]', 'tour_subdealer_step_sponsor', 'tour_cat_sponsor'),
             $this->overviewStep('[data-tour="home-metrics"]', 'tour_subdealer_step_metrics', 'tour_cat_metrics'),
             $alertsStep,
             $this->overviewStep('[data-tour="home-targets"]', 'tour_subdealer_step_targets', 'tour_cat_targets'),
-            $this->overviewStep('[data-tour="recent-orders"]', 'tour_subdealer_step_orders', 'tour_cat_orders'),
-            $courierStep,
-            $this->overviewStep('[data-tour="home-referral"]', 'tour_subdealer_step_referral', 'tour_cat_network'),
             $this->overviewStep('[data-tour="header-actions"]', 'tour_subdealer_step_header', 'tour_cat_controls'),
             ...$this->topBarSteps(),
             $sidebarStep,
@@ -402,6 +396,8 @@ final class TourGuide
     private function officeOverviewSteps(string $prefix, User $user): array
     {
         $sideMenu = '[data-tour="sidebar-nav"], .workspace-menu-button';
+        // The home keeps only the person, the money, the menu tiles and the progress (client, 2026-11-27); recent orders,
+        // the sponsor card and the invite card moved off it, so the tour no longer stops there.
 
         return [
             $this->overviewStep('[data-tour="home-metrics"]', $prefix.'_stats', 'tour_cat_metrics', 'manual'),
