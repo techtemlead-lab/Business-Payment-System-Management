@@ -127,6 +127,6 @@ class PublicSiteHeaderAndFooterTest extends TestCase
     {
         $this->get('/')->assertOk()
             ->assertSee('family=inter:400,500,600,700|noto-sans-bengali:', false)
-            ->assertSee('family=marcellus:400|tiro-bangla:400', false);
+            ->assertSee('family=marcellus:400|noto-serif-bengali:500,600,700', false);
     }
 }

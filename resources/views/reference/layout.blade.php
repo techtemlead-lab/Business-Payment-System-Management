@@ -13,7 +13,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" as="image" href="{{ \App\Support\SiteCustomization::logoUrl() }}" fetchpriority="high">
 @include('partials.fonts')
-<link rel="stylesheet" href="https://fonts.bunny.net/css?family=marcellus:400|tiro-bangla:400|amiri:400&display=swap">
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=marcellus:400|noto-serif-bengali:500,600,700|amiri:400&display=swap">
 {{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}
 <link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>

@@ -3602,7 +3602,7 @@ a.ref-concern-tag{text-decoration:none}
 
 
 /* Sonar Madina: the green and gold of the logo, for every public page.
-   Headings use Marcellus and Tiro Bangla, body text Inter and Noto Sans Bengali (fonts.css). Each stack
+   Headings use Marcellus and Noto Serif Bengali, body text Inter and Noto Sans Bengali (fonts.css). Each stack
    holds both, so a sentence that mixes the two languages still reads as one design. */
 :root{
   --ds-font-display:var(--font-heading);
