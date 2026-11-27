@@ -13,6 +13,7 @@ use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PartnerProfileCard;
 use App\Domain\Accounts\PartnerProfileLock;
+use App\Domain\Accounts\PartnerReferrerChange;
 use App\Domain\Accounts\PasswordAccess;
 use App\Domain\Accounts\PasswordResetOwnerNotice;
 use App\Domain\Auth\SignInGuard;
@@ -388,7 +389,7 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
-        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|'.($isPartner ? 'required' : 'nullable').'|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => ReasonFields::rule($isPartner ? 'partner.account_edit' : 'staff.account_edit', 1000),
+        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|'.($isPartner ? 'required' : 'nullable').'|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'sponsor_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:40'], 'directory_visible' => 'sometimes|boolean', 'reason' => ReasonFields::rule($isPartner ? 'partner.account_edit' : 'staff.account_edit', 1000),
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30',
@@ -399,18 +400,15 @@ class CommandController extends Controller
             'area_district_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer'],
             'area_upazila_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer'],
             'area_union_id' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'integer']]);
-        if ($r->has('sponsor_id')) {
-            $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
-            if ($newSponsorId) {
-                if ($newSponsorId === $user->id) {
-                    throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_self_sponsor')]);
-                }
-                abort_unless(User::whereKey($newSponsorId)->whereIn('role', PartnerAccountProvisioning::SponsorRoles)->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
-                if (ReferralTreePath::isDescendant($user->id, $newSponsorId)) {
-                    throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_circular_sponsor')]);
-                }
-            }
+        // The referrer (who referred this partner) is picked by their code, or by id from older screens.
+        // Either way it is an active dealer or sub-dealer, not the partner, and not anyone in their team below.
+        $referrers = app(PartnerReferrerChange::class);
+        if ($isPartner && array_key_exists('sponsor_code', $d)) {
+            $d['sponsor_id'] = $referrers->referrerForCode($user, $d['sponsor_code'])?->id;
+        } elseif (array_key_exists('sponsor_id', $d)) {
+            $d['sponsor_id'] = $referrers->referrerForId($user, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null)?->id;
         }
+        unset($d['sponsor_code']);
         $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
         $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         if ($r->has('profile') || $r->hasAny($profileKeys) || $r->has('permissions')) {
@@ -579,6 +577,14 @@ class CommandController extends Controller
             if ($isPartner && array_key_exists('sponsor_id', $d)) {
                 $nextSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
                 if ($previousSponsorId !== $nextSponsorId) {
+                    // Only orders placed from now on follow the new referrer: each earlier order keeps the
+                    // referral chain it captured, and posted commission and the ledger are never touched.
+                    Audit::record($r->user()->id, 'account.referrer_changed', (string) $user->id, [
+                        'before' => PartnerReferrerChange::describe($previousSponsorId !== null ? User::find($previousSponsorId) : null),
+                        'after' => PartnerReferrerChange::describe($nextSponsorId !== null ? User::find($nextSponsorId) : null),
+                        'applies_to' => 'orders_from_now',
+                        'reason' => $reason,
+                    ]);
                     $sponsorChange = [
                         'from' => $previousSponsorId,
                         'to' => $nextSponsorId,

@@ -164,6 +164,7 @@ return function (string $portal): void {
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
     Route::delete('/commands/accounts/{user}', [PartnerAccountDeletionController::class, 'destroy'])->middleware('throttle:10,1');
     Route::get('/commands/accounts/{user}/deletion-check', [PartnerAccountDeletionController::class, 'show'])->middleware('throttle:60,1');
+    Route::get('/commands/accounts/{user}/referrer-lookup', [IdentityLookupController::class, 'referrerLookup'])->middleware('throttle:60,1');
     Route::get('/commands/accounts/{user}/closed-balance', [ClosedAccountBalanceController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/closed-balance/to-company', [ClosedAccountBalanceController::class, 'store'])->middleware('throttle:10,1');
     Route::post('/commands/accounts/{user}/clawback/write-off', [StaleHoldingsController::class, 'writeOff'])->middleware('throttle:10,1');
