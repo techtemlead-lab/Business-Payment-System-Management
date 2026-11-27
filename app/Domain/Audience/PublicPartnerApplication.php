@@ -2,10 +2,12 @@
 
 namespace App\Domain\Audience;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\IdentityKeys;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Support\Audit;
+use App\Support\PhoneIdentity;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -31,6 +33,19 @@ final class PublicPartnerApplication
             $open = DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [$email])->whereIn('status', ['pending', 'correction'])->first(['application_number']);
             if ($open) {
                 throw ValidationException::withMessages(['email' => __('joining.err_already_applied', ['number' => $open->application_number, 'url' => '/partnership/status'])]);
+            }
+            // One number, one account (owner's switch): an open application already holding this mobile is refused too,
+            // so the office never finds two applications it can approve only one of.
+            $identity = PhoneIdentity::normalize((string) $data['phone']);
+            if ($identity !== null && app(AccountPhoneRules::class)->enforced()) {
+                $openForPhone = DB::table('dealer_applications')
+                    ->whereIn('status', ['pending', 'correction'])
+                    ->whereRaw('('.PhoneIdentity::sqlFor("COALESCE(data->>'phone', '')").') = ?', [$identity])
+                    ->exists();
+                if ($openForPhone) {
+                    // The same words as a number held by an account: never which application holds it.
+                    throw ValidationException::withMessages(['phone' => __('portal.err_public_app_phone_taken')]);
+                }
             }
 
             $id = (string) Str::uuid();
