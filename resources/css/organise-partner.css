@@ -102,6 +102,9 @@
   .partner-home.ph > .ph-menu-tiles, .pd-profile .pd-line-phone, .pd-profile .pd-rank { display: none; }
 }
 
+/* The owner's notice now sits inside the home page, whose own gap already spaces it. */
+.partner-home.ph > .portal-notice { margin: 0; }
+
 /* The rank line under the position on the person's card (phone). */
 .pd-rank { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; font-size: var(--ds-fs-sm, 14px); color: var(--ds-text-2, #334155); }
 .pd-rank svg { flex: none; color: var(--ds-warn-fg, #8a5a00); }
@@ -150,7 +153,6 @@
   .partner-home.ph > .sponsor-card { order: 17; }
   .partner-home.ph > .partner-home-referral { order: 18; }
   .partner-home.ph > .ph-profile-link { order: 19; }
-  .partner-home.ph > .portal-notice { margin: 0; }
 
   /* The person's card on a phone: photo beside name, position and rank; mobile, code, area and address always open in two columns. */
   .partner-home.ph .pd-profile { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 12px; row-gap: 0; align-items: center; text-align: left; }
