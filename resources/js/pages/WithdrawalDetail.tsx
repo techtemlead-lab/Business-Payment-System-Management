@@ -11,6 +11,7 @@ import WithdrawalFacts, { AmountWords, type WithdrawalFactsData } from '../compo
 import ReceiptPicker from '../components/payouts/ReceiptPicker';
 import { ProofLink, proofKindOf } from '../components/ProofViewer';
 import { HandOverDialog } from '../components/payouts/OfficePayoutList';
+import OneStepPayDialog from '../components/payouts/OneStepPay';
 import ConfirmSheet, { useConfirm, type ConfirmFact } from '../components/ConfirmSheet';
 import { actionAllowed } from '../components/action-permissions';
 
@@ -21,6 +22,11 @@ function payeeOf(facts: WithdrawalFactsData | null): string {
     }
 
     return facts.partner.code ? `${facts.partner.name} (${facts.partner.code})` : facts.partner.name;
+}
+
+/** Folds the full payment form away behind one line when the one-step button is offered above it. */
+function Fold({ folded, summary, children }: { folded: boolean; summary: string; children: React.ReactNode }) {
+    return folded ? <details><summary>{summary}</summary>{children}</details> : <>{children}</>;
 }
 
 /**
@@ -472,6 +478,9 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
     });
     const isCash = form.data.method === 'cash';
     const [handingOver, setHandingOver] = React.useState(false);
+    // Owner, 2026-11-27: the main way to pay. Send the money by hand, then one press approves (if needed) and records it.
+    const [oneStepOpen, setOneStepOpen] = React.useState(false);
+    const oneStepReady = finance && w.one_step_state === 'ready';
     // Recording a payment asks once more, with the amount and who gets it, before the same request is sent.
     const [confirmingPay, setConfirmingPay] = React.useState(false);
     const { confirm, sheet } = useConfirm();
@@ -536,6 +545,21 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             {sheet}
             <WithdrawalProgressStepper withdrawal={w} events={events} />
             {finance && facts && <section className="panel narrow-panel wd-act"><WithdrawalFacts facts={facts} channel={String(w.channel)} amount={w.amount} /></section>}
+            {oneStepReady && (
+                <section className="panel narrow-panel wd-act" data-testid="withdrawal-one-step">
+                    <h2>{translate('payouts', 'one_step_title')}</h2>
+                    <div className="decision-summary">
+                        <strong>{money(w.net_amount ?? w.amount)}</strong>
+                        <span>{[payeeOf(facts), channelName(w.channel, translate), w.channel === 'Office' ? '' : String(w.destination_for_payment ?? '')].filter(Boolean).join(' · ')}</span>
+                    </div>
+                    {facts?.blocker && <p className="notice" role="alert"><b>{translate('payouts', 'blocked_title')}</b> {facts.blocker}</p>}
+                    <button type="button" className="button dark" disabled={Boolean(facts?.blocker)} onClick={() => setOneStepOpen(true)}><Check size={18} aria-hidden="true" />{translate('payouts', 'one_step_button')}</button>
+                    {oneStepOpen && <OneStepPayDialog record={{ id: String(w.id), channel: String(w.channel), user_name: String(facts?.partner.name ?? ''), dealer_code: facts?.partner.code ?? null, amount: w.amount, net_amount: w.net_amount }} destination={String(w.destination_for_payment ?? '')} onClose={() => setOneStepOpen(false)} />}
+                </section>
+            )}
+            {finance && w.status === 'requested' && w.one_step_state === 'two_people' && (
+                <p className="notice" role="status">{translate('payouts', 'one_step_two_people')}</p>
+            )}
             {finance && w.status === 'requested' && (
                 <WithdrawalDecision withdrawal={w} facts={facts} payers={facts?.payers ?? []} allowApprove={!(facts?.blocker || facts?.over_channel_limit || w.waits_for_owner)} />
             )}
@@ -620,7 +644,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                     <p className="muted" role="status">{translate('self_approval', 'wait_second_person')}</p>
                 </section>
             )}
-            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel === 'Office' && (
+            {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel === 'Office' && !oneStepReady && (
                 <section className="panel narrow-panel wd-act">
                     <h2>{translate('office_withdrawal', 'hand_over_title')}</h2>
                     <p className="muted">{translate('office_withdrawal', 'list_body')}</p>
@@ -632,6 +656,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
             {finance && w.status === 'approved' && w.payer_state !== 'second_person' && w.channel !== 'Office' && (
                 <section className="panel narrow-panel wd-act">
                     <h2>{translate('portal', 'wd_record_title')}</h2>
+                    <Fold folded={oneStepReady} summary={translate('payouts', 'one_step_more')}>
                     <div className="notice">
                         <ShieldCheck size={20} />
                         <p>{translate('portal', 'wd_record_notice')}</p>
@@ -674,6 +699,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [], payoutRec
                             <Upload size={17} />{form.processing ? translate('portal', 'wd_recording') : translate('portal', 'wd_record_payment')}
                         </button>
                     </form>
+                    </Fold>
                     {confirmingPay && (
                         <ConfirmSheet
                             title={translate('payouts', 'wd_pay_title')}

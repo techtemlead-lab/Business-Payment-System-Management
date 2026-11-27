@@ -127,12 +127,16 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
-    // Owner, 2026-11-21: withdrawals are paid as cash at the office for now. These are only the starting values;
-    // the owner switches each method on or off in Finance settings (WithdrawalMethods).
-    'withdrawal_methods_default' => array_values(array_filter(array_map('trim', explode(',', (string) env('MADINA_WITHDRAWAL_METHODS', 'Office'))))),
+    // Owner, 2026-11-27: partners take money out as cash at the office or by bKash, Nagad or Rocket (sent by hand by the
+    // office); bank stays off. These are only the starting values; the owner switches each method on or off in Finance
+    // settings (WithdrawalMethods), and a saved choice wins over this list.
+    'withdrawal_methods_default' => array_values(array_filter(array_map('trim', explode(',', (string) env('MADINA_WITHDRAWAL_METHODS', 'Office,bKash,Nagad,Rocket'))))),
     // Owner, 2026-11-27: withdrawals are asked for on any day and paid on the weekly payout day (Thursday).
     // Starting value of the weekly payout day only; the owner changes the day or switches it off in Finance settings (WithdrawalWeek).
     'withdrawal_weekly_window' => (bool) env('MADINA_WITHDRAWAL_WEEKLY_WINDOW', true),
+    // Owner, 2026-11-27: a request made ON the payout day before this Bangladesh time ("HH:MM", 24-hour) is paid that
+    // same day; at or after it, on the next payout day. "00:00" switches same-day payment off (WithdrawalWeek::payoutDateFor).
+    'withdrawal_same_day_until' => (string) env('MADINA_WITHDRAWAL_SAME_DAY_UNTIL', '14:00'),
 
     // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.
     'agreement_required_default' => (bool) env('MADINA_AGREEMENT_REQUIRED_DEFAULT', true),

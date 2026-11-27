@@ -14,7 +14,9 @@ use Tests\TestCase;
 
 /**
  * Owner, 2026-11-27: a withdrawal is asked for on any day and at any hour; it is paid only on the weekly
- * payout day (Thursday, Bangladesh day). 2026-11-23 is a Monday, 2026-11-26 and 2026-12-03 are Thursdays.
+ * payout day (Thursday, Bangladesh day). A request made on Thursday before 14:00 (MADINA_WITHDRAWAL_SAME_DAY_UNTIL)
+ * is paid that same Thursday; at or after 14:00, the next Thursday. 2026-11-23 is a Monday, 2026-11-26 and
+ * 2026-12-03 are Thursdays.
  */
 class WithdrawalWeekTest extends TestCase
 {
@@ -67,21 +69,68 @@ class WithdrawalWeekTest extends TestCase
         $this->assertSame('2900.00', DB::table('wallets')->where('user_id', $dealer->id)->value('available'));
     }
 
-    public function test_a_request_on_the_payout_day_is_paid_the_next_week_by_the_bangladesh_clock(): void
+    public function test_a_payout_day_request_before_the_cut_off_is_paid_the_same_day_by_the_bangladesh_clock(): void
     {
         $week = app(WithdrawalWeek::class);
 
         $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-23 09:00:00', 'Asia/Dhaka'))->toDateString());
         // Wednesday 23:59:59 in Dhaka is still Wednesday (17:59:59 UTC): paid the next day.
         $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-25 23:59:59', 'Asia/Dhaka'))->toDateString());
-        // 2026-11-25 18:00 UTC is already Thursday 00:00 in Dhaka: paid on the next week's Thursday.
-        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-25 18:00:00', 'UTC'))->toDateString());
-        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 09:00:00', 'Asia/Dhaka'))->toDateString());
+        // 2026-11-25 18:00 UTC is already Thursday 00:00 in Dhaka, before 14:00: paid that Thursday.
+        $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-25 18:00:00', 'UTC'))->toDateString());
+        $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 10:00:00', 'Asia/Dhaka'))->toDateString());
+        $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 13:59:59', 'Asia/Dhaka'))->toDateString());
+        // 14:00 itself and later wait for the next week's Thursday.
+        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 14:00:00', 'Asia/Dhaka'))->toDateString());
+        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 15:00:00', 'Asia/Dhaka'))->toDateString());
+        // 08:00 UTC is 14:00 in Dhaka.
+        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 08:00:00', 'UTC'))->toDateString());
         $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-29 12:00:00', 'Asia/Dhaka'))->toDateString());
 
         $dealer = $this->partnerWithWallet('5000.00');
-        $this->at('2026-11-26 09:00:00');
+        $this->at('2026-11-26 10:00:00');
+        $this->actingAs($dealer)->postJson('/api/v1/withdrawals', $this->office('300.00'))->assertCreated()->assertJsonPath('data.payout_on', '2026-11-26');
+        $this->at('2026-11-26 15:00:00');
         $this->actingAs($dealer)->postJson('/api/v1/withdrawals', $this->office('300.00'))->assertCreated()->assertJsonPath('data.payout_on', '2026-12-03');
+    }
+
+    public function test_a_thursday_morning_request_tells_the_partner_it_is_paid_today(): void
+    {
+        $dealer = $this->partnerWithWallet('5000.00');
+        $this->at('2026-11-26 10:00:00');
+
+        $response = $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->office('1000.00'))->assertSessionHasNoErrors();
+
+        $flash = (string) $response->getSession()->get('success');
+        $this->assertStringContainsString(__('office_withdrawal.payout_line_office_today', ['day' => 'Thursday', 'date' => '26 November 2026', 'time' => '2:00 PM']), $flash);
+        $this->assertStringContainsString('before 2:00 PM is paid today', $flash);
+        $id = (string) DB::table('withdrawals')->where('user_id', $dealer->id)->value('id');
+        $this->actingAs($dealer)->onPortal('dealer')->get('/withdrawals/'.$id)->assertOk()
+            ->assertInertia(fn ($page) => $page->where('withdrawal.payout_line', __('office_withdrawal.payout_line_office_today', ['day' => 'Thursday', 'date' => '26 November 2026', 'time' => '2:00 PM'])));
+
+        $this->at('2026-11-26 15:00:00');
+        $late = $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->office('500.00'))->assertSessionHasNoErrors();
+        $this->assertStringContainsString(__('office_withdrawal.payout_line_office', ['day' => 'Thursday', 'date' => '3 December 2026']), (string) $late->getSession()->get('success'));
+    }
+
+    public function test_the_same_day_cut_off_follows_the_setting(): void
+    {
+        $week = app(WithdrawalWeek::class);
+
+        config(['madina.withdrawal_same_day_until' => '09:30']);
+        $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 09:29:00', 'Asia/Dhaka'))->toDateString());
+        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 09:30:00', 'Asia/Dhaka'))->toDateString());
+
+        // "00:00" switches same-day payment off: every Thursday request waits a week.
+        config(['madina.withdrawal_same_day_until' => '00:00']);
+        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 00:05:00', 'Asia/Dhaka'))->toDateString());
+        $this->assertNull($week->sameDayUntilText());
+
+        // A malformed value falls back to 14:00.
+        config(['madina.withdrawal_same_day_until' => 'noon']);
+        $this->assertSame('2026-11-26', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 13:00:00', 'Asia/Dhaka'))->toDateString());
+        $this->assertSame('2026-12-03', $week->payoutDateFor(CarbonImmutable::parse('2026-11-26 14:00:00', 'Asia/Dhaka'))->toDateString());
+        $this->assertSame('2:00 PM', $week->cutOffText('en'));
     }
 
     public function test_the_payout_line_names_the_day_and_date_in_bangla(): void
@@ -92,6 +141,10 @@ class WithdrawalWeekTest extends TestCase
         $this->assertStringContainsString('২৬', (string) $line);
         $this->assertStringContainsString('২০২৬', (string) $line);
         $this->assertStringContainsString('অফিস', (string) $line);
+
+        $today = app(WithdrawalWeek::class)->payoutLine('bKash', CarbonImmutable::parse('2026-11-26 10:00:00', 'Asia/Dhaka'), 'bn');
+        $this->assertStringContainsString('আজ দুপুর ২:০০-এর আগে আবেদন হলে আজই টাকা দেওয়া হয়', (string) $today);
+        $this->assertStringContainsString('২৬ নভেম্বর ২০২৬', (string) $today);
     }
 
     public function test_a_replay_returns_the_first_request(): void
@@ -119,7 +172,11 @@ class WithdrawalWeekTest extends TestCase
 
         $this->at('2026-11-26 12:00:00');
         $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('withdraw.week.payout_date', '3 December 2026'));
+            ->assertInertia(fn ($page) => $page->where('withdraw.week.payout_date', '26 November 2026')->where('withdraw.week.same_day', true)->where('withdraw.week.same_day_until', '2:00 PM'));
+
+        $this->at('2026-11-26 15:00:00');
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('withdraw.week.payout_date', '3 December 2026')->where('withdraw.week.same_day', false));
     }
 
     public function test_the_owner_changes_the_payout_day_or_switches_it_off(): void

@@ -64,6 +64,7 @@ final class OfficePayouts
                 'id_hint' => $partner === null ? null : $this->idHint($partner),
                 'blocker' => $partner !== null && in_array($row->status, ['requested', 'approved'], true) ? $this->payouts->unpayableReason($row, $partner) : null,
                 'payer_state' => $this->payouts->payerState($row, $viewer),
+                'one_step_state' => $this->payouts->oneStepState($row, $viewer),
                 'waits_for_owner' => $this->payouts->waitsForOwner($row, $viewer),
             ];
         })->values()->all();

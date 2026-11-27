@@ -102,8 +102,8 @@ export type WithdrawalHistoryData = {
 
 export type NotEarnedArea = { month: string; amount: string };
 
-/** The weekly withdrawal day: requests only on the application day, money on the payout day. */
-export type WithdrawWeek = { enabled: boolean; payout_day: string; payout_date: string };
+/** The weekly payout day: requests on any day, money on the payout day (the same day when asked before the cut-off). */
+export type WithdrawWeek = { enabled: boolean; payout_day: string; payout_date: string; same_day?: boolean; same_day_until?: string | null };
 
 export type WithdrawInfo ={ can: boolean; kyc_block: boolean; nid_block?: boolean; nid_request?: NidRequest; saved_accounts?: Array<{ id: number; label: string; is_default: boolean; channel?: string }>; methods?: string[]; week?: WithdrawWeek; security_wait: string | null; minimum: string; channel_limits?: Record<string, string | null>; tin_last4?: string | null };
 
