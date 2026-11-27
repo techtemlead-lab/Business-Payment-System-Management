@@ -63,6 +63,8 @@ return [
     'nav_module_commerce' => 'My orders',
     'nav_module_network' => 'My team & customers',
     'nav_module_earnings' => 'Wallet',
+    'nav_wallet_history' => 'Wallet history',
+    'nav_withdraw' => 'Withdraw',
     'nav_module_account' => 'My account',
     'nav_my_profile' => 'My profile',
     'nav_module_people' => 'Staff',

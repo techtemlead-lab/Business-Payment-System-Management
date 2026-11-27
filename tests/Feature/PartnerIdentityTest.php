@@ -257,11 +257,12 @@ class PartnerIdentityTest extends TestCase
         $this->assertStringContainsString('sign_out_ask', $button);
     }
 
-    public function test_the_partner_sidebar_order_is_home_profile_account_then_orders(): void
+    /** The client's list (2026-11-27): profile, account, wallet, wallet history, withdraw, products, new order, order history. */
+    public function test_the_partner_sidebar_order_is_home_profile_account_wallet_then_orders(): void
     {
         $menu = (string) file_get_contents(resource_path('js/shared/portalNav.ts'));
 
-        $this->assertMatchesRegularExpression("/function partnerMothers[\s\S]*?'home'[\s\S]*?rowMother\('partner-account'[\s\S]*?mother\('my-income', 'nav_module_account'[\s\S]*?mother\('new-order'[\s\S]*?rowMother\('partner-orders'[\s\S]*?'partner-money'/", $menu);
+        $this->assertMatchesRegularExpression("/function partnerMothers[\s\S]*?'home'[\s\S]*?rowMother\('partner-account'[\s\S]*?mother\('my-income', 'nav_module_account'[\s\S]*?'partner-money'[\s\S]*?'wallet-history'[\s\S]*?'wallet-withdraw'[\s\S]*?mother\('products'[\s\S]*?mother\('new-order'[\s\S]*?rowMother\('partner-orders'/", $menu);
         $this->assertStringContainsString("hrefPath: 'my-income'", $menu);
         $this->assertSame('আমার প্রোফাইল', __('portal.nav_my_profile', [], 'bn'));
         $this->assertSame('আমার অ্যাকাউন্ট', __('portal.nav_module_account', [], 'bn'));

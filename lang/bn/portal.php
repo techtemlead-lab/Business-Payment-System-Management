@@ -63,6 +63,8 @@ return [
     'nav_module_commerce' => 'আমার অর্ডার',
     'nav_module_network' => 'আমার টিম ও গ্রাহক',
     'nav_module_earnings' => 'ওয়ালেট',
+    'nav_wallet_history' => 'ওয়ালেট হিস্ট্রি',
+    'nav_withdraw' => 'টাকা উত্তোলন',
     'nav_module_account' => 'আমার অ্যাকাউন্ট',
     'nav_my_profile' => 'আমার প্রোফাইল',
     'nav_module_people' => 'স্টাফ',
