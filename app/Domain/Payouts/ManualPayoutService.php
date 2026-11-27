@@ -25,8 +25,31 @@ use Illuminate\Validation\ValidationException;
 class ManualPayoutService
 {
     /**
-     * 'second_person' when the staff member viewing approved this payment, so someone else
-     * must record it; otherwise null. The owner records a payment they approved themselves.
+     * The ways the one-step "money sent, mark paid" covers: cash at the office and the mobile wallets the
+     * office pays into by hand. A bank transfer keeps the full payment form (bank name, account, bank file).
+     */
+    public const OneStepChannels = [WithdrawalMethods::Office, 'bKash', 'Nagad', 'Rocket'];
+
+    /** The payout method written on the receipt for each one-step way (PayoutReceipts::Methods). */
+    private const OneStepMethods = [WithdrawalMethods::Office => 'cash', 'bKash' => 'bkash', 'Nagad' => 'nagad', 'Rocket' => 'other'];
+
+    /**
+     * Whether the person who approved a withdrawal may also record its payment. The owner always may;
+     * finance staff may too while `madina.withdrawal_staff_pay_own_approval` is on (owner, 2026-11-27).
+     * The partner never pays themselves, and the owner's amount limit still decides who may approve.
+     */
+    public function approverMayPay(User $approver): bool
+    {
+        if (app(SelfApproval::class)->ownerFinishesAlone($approver)) {
+            return true;
+        }
+
+        return (bool) config('madina.withdrawal_staff_pay_own_approval', true) && $approver->fresh()?->allows('finance') === true;
+    }
+
+    /**
+     * 'second_person' when the staff member viewing approved this payment and may not also record it,
+     * so someone else must; otherwise null.
      */
     public function payerState(object $withdrawal, User $viewer): ?string
     {
@@ -34,7 +57,7 @@ class ManualPayoutService
             return null;
         }
 
-        return app(SelfApproval::class)->ownerFinishesAlone($viewer) ? null : 'second_person';
+        return $this->approverMayPay($viewer) ? null : 'second_person';
     }
 
     /**
@@ -46,6 +69,30 @@ class ManualPayoutService
         return $withdrawal->status === 'requested'
             && app(OwnerApprovalLimits::class)->needsOwner(OwnerApprovalLimits::Withdrawal, (string) $withdrawal->amount)
             && ! OwnerApprovalLimits::ownerDecides($viewer);
+    }
+
+    /**
+     * Whether the viewer may use the one-step "money sent, mark paid" on this withdrawal (owner, 2026-11-27):
+     * 'ready' — one press approves it (when still waiting) and records the payment; 'two_people' — it still
+     * needs approval and the viewer may not pay what they approve ({@see self::approverMayPay()}), so another
+     * finance person records the payment; null — not offered (a bank transfer, finished, in a bank file,
+     * waiting for an owner, or approved by the viewer when they may not pay it).
+     *
+     * @return 'ready'|'two_people'|null
+     */
+    public function oneStepState(object $withdrawal, User $viewer): ?string
+    {
+        if (! in_array($withdrawal->channel, self::OneStepChannels, true)) {
+            return null;
+        }
+        if ($withdrawal->status === 'approved') {
+            return $withdrawal->exported_at === null && $this->payerState($withdrawal, $viewer) === null ? 'ready' : null;
+        }
+        if ($withdrawal->status !== 'requested' || $this->waitsForOwner($withdrawal, $viewer)) {
+            return null;
+        }
+
+        return $this->approverMayPay($viewer) ? 'ready' : 'two_people';
     }
 
     /** @param array<string, mixed> $data */
@@ -282,15 +329,15 @@ class ManualPayoutService
     }
 
     /**
-     * Finance people who may pay a withdrawal: active staff with finance work, except the person who
-     * approved it (a second person pays), unless that person is the owner, who finishes alone.
+     * Finance people who may pay a withdrawal: active staff with finance work, including the person who
+     * approved it while they may pay their own approval ({@see self::approverMayPay()}).
      *
      * @return list<array{id: int, name: string}>
      */
     public function eligiblePayers(User $viewer, ?int $approverId = null): array
     {
         $approverId ??= (int) $viewer->id;
-        $ownerAlone = app(SelfApproval::class)->ownerFinishesAlone(User::find($approverId) ?? $viewer);
+        $ownerAlone = $this->approverMayPay(User::find($approverId) ?? $viewer);
 
         return User::query()->where('status', 'active')->staffAccounts()->orderBy('name')->get()
             ->filter(fn (User $staff): bool => $staff->allows('finance') && ($ownerAlone || (int) $staff->id !== $approverId))
@@ -303,19 +350,20 @@ class ManualPayoutService
      * Cash needs the name of the person who took the money; every other method needs the
      * transaction reference (plus bank and account, or the wallet number) and the transfer proof.
      * With `$receiptLater` the proof may follow: the payout is recorded and stays on the
-     * "receipt to attach" list until someone attaches it.
+     * "receipt to attach" list until someone attaches it. With `$referenceOptional` (the one-step
+     * "money sent, mark paid") the transaction ID may be left out; the receipt number stands in for it.
      *
      * @param  array{method: string, bank_name?: ?string, account_number?: ?string, wallet_number?: ?string, received_by?: ?string}  $payout
      * @return string The new receipt number.
      */
-    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null, bool $receiptLater = false): string
+    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null, bool $receiptLater = false, bool $referenceOptional = false): string
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
         $isCash = $payout['method'] === 'cash';
         $reference = ($reference === null || trim($reference) === '') ? null : $reference;
         $receiptDue = ! $isCash && $receipt === null && $receiptLater;
-        if (! $isCash && ($reference === null || ($receipt === null && ! $receiptDue))) {
+        if (! $isCash && (($reference === null && ! $referenceOptional) || ($receipt === null && ! $receiptDue))) {
             throw ValidationException::withMessages([$reference === null ? 'payment_reference' : 'receipt' => __('portal.err_payout_details_needed')]);
         }
         if ($reference !== null) {
@@ -349,8 +397,8 @@ class ManualPayoutService
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
                 $selfApproved = (int) $actor->id === (int) $w->reviewed_by;
-                if ($selfApproved) {
-                    app(SelfApproval::class)->finishOwnStep($actor, 'withdrawal', __('portal.err_wd_payer_separation'));
+                if ($selfApproved && ! $this->approverMayPay($actor)) {
+                    throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
                 if ($reference !== null && PayoutReceiptCheck::referenceUsed($reference)) {
                     throw ValidationException::withMessages(['payment_reference' => __('portal.err_wd_payment_ref_used')]);
@@ -401,6 +449,84 @@ class ManualPayoutService
         }
 
         return $issued['number'];
+    }
+
+    /**
+     * Owner, 2026-11-27: the office sends the money by hand (bKash, Nagad, Rocket) or hands over cash, then
+     * presses ONE button. In one transaction this approves the request when it is still waiting and records
+     * the payment, with the same checks, ledger entry, numbered receipt, audit events ("withdrawal.approved",
+     * then "withdrawal.paid") and partner notices as the two separate steps. The transaction ID and the
+     * screenshot are optional: without a screenshot an online payout stays on the "receipt to attach" list;
+     * without an ID the receipt number stands in for it. Cash records the partner as the receiver unless
+     * another name is given.
+     *
+     * Every rule of the two steps still applies: an owner approves at or above the owner limit, holds,
+     * suspensions, the security wait, debts, method limits and the held balance are checked again, and staff
+     * never approve and pay the same money themselves (only the owner finishes alone), so a staff member is
+     * refused here for a request still waiting. A second press, or a press on a payout already recorded,
+     * returns the first receipt and posts nothing.
+     *
+     * @return array{number: string, approved: bool, replayed: bool}
+     */
+    public function sendAndMarkPaid(User $actor, string $id, ?string $reference, ?UploadedFile $proof, string $paidAt, string $note, ?string $receivedBy = null): array
+    {
+        abort_unless($actor->allows('finance'), 403);
+        CommissionWallet::requireActive();
+        $replay = $this->paidReceiptNumber($id);
+        if ($replay !== null) {
+            return ['number' => $replay, 'approved' => false, 'replayed' => true];
+        }
+        try {
+            return DB::transaction(function () use ($actor, $id, $reference, $proof, $paidAt, $note, $receivedBy): array {
+                CommissionWallet::lock();
+                $partner = $this->lockPartnerOf($id);
+                $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
+                abort_unless($w !== null, 404);
+                // Two presses at the same moment: the first one paid it while this one waited for the lock.
+                $replay = $w->status === 'paid' ? $this->paidReceiptNumber($id) : null;
+                if ($replay !== null) {
+                    return ['number' => $replay, 'approved' => false, 'replayed' => true];
+                }
+                if (! in_array($w->channel, self::OneStepChannels, true)) {
+                    throw ValidationException::withMessages(['withdrawal' => __('payouts.err_one_step_bank')]);
+                }
+                $approve = $w->status === 'requested';
+                if ($approve) {
+                    app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Withdrawal, (string) $w->amount, 'withdrawal');
+                    if (! $this->approverMayPay($actor)) {
+                        throw ValidationException::withMessages(['withdrawal' => __('payouts.err_one_step_second_person')]);
+                    }
+                    $this->review($actor, $id, 'approved', $note !== '' ? $note : (string) __('payouts.one_step_approval_note'));
+                }
+                $destination = (string) decrypt($w->destination);
+                $method = self::OneStepMethods[$w->channel];
+                $payout = match ($method) {
+                    'cash' => ['method' => 'cash', 'received_by' => mb_substr(trim((string) $receivedBy) !== '' ? trim((string) $receivedBy) : (string) $partner->name, 0, 100)],
+                    'bkash', 'nagad' => ['method' => $method, 'wallet_number' => $destination],
+                    default => ['method' => 'other', 'bank_name' => (string) $w->channel, 'account_number' => $destination],
+                };
+                $number = $this->settle($actor, $id, $payout, $proof, $reference, $paidAt, $note, null, $method !== 'cash', true);
+
+                return ['number' => $number, 'approved' => $approve, 'replayed' => false];
+            }, 3);
+        } catch (ValidationException $exception) {
+            $replay = $this->paidReceiptNumber($id);
+            if ($replay !== null) {
+                return ['number' => $replay, 'approved' => false, 'replayed' => true];
+            }
+            throw $exception;
+        }
+    }
+
+    /** The receipt number of a withdrawal already recorded as paid, else null. */
+    private function paidReceiptNumber(string $id): ?string
+    {
+        if (! DB::table('withdrawals')->where('id', $id)->where('status', 'paid')->exists()) {
+            return null;
+        }
+        $number = DB::table('payout_receipts')->where('withdrawal_id', $id)->orderBy('id')->value('number');
+
+        return $number === null ? null : (string) $number;
     }
 
     /**

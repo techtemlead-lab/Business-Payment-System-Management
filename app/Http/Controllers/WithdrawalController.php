@@ -94,7 +94,7 @@ class WithdrawalController extends Controller
             Audit::record($r->user()->id, 'withdrawal.destination_viewed', $id);
         }
 
-        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key', ...($finance ? [] : ['return_note', 'not_sent_note'])])->all() + ['destination_masked' => $w->channel === WithdrawalMethods::Office ? $destination : str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'proof_is_image' => (bool) $w->receipt_path && str_starts_with((string) $w->receipt_mime, 'image/'), 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), 'return_state' => $finance ? app(PayoutReturns::class)->state($w, $r->user()) : null, 'not_sent_state' => $finance ? app(PayoutBatchFiles::class)->notSentState($w, $r->user()) : null, ...$this->timing($w)],
+        return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key', ...($finance ? [] : ['return_note', 'not_sent_note'])])->all() + ['destination_masked' => $w->channel === WithdrawalMethods::Office ? $destination : str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $finance ? $destination : null, 'has_receipt' => (bool) $w->receipt_path, 'proof_is_image' => (bool) $w->receipt_path && str_starts_with((string) $w->receipt_mime, 'image/'), 'payer_state' => $finance ? $service->payerState($w, $r->user()) : null, 'one_step_state' => $finance ? $service->oneStepState($w, $r->user()) : null, 'waits_for_owner' => $finance && $service->waitsForOwner($w, $r->user()), 'return_state' => $finance ? app(PayoutReturns::class)->state($w, $r->user()) : null, 'not_sent_state' => $finance ? app(PayoutBatchFiles::class)->notSentState($w, $r->user()) : null, ...$this->timing($w)],
             'paymentAccounts' => $finance ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
             'facts' => $finance && in_array($w->status, ['requested', 'approved'], true) ? $service->reviewFacts($r->user(), $id) : null,
@@ -192,6 +192,40 @@ class WithdrawalController extends Controller
         }
 
         return back()->with('success', __('office_withdrawal.flash_handed_over', ['number' => $result['number']]));
+    }
+
+    /**
+     * Owner, 2026-11-27, one step: "money sent, mark paid". The office has sent the money by hand (bKash, Nagad,
+     * Rocket) or handed over the cash; one submit approves the request when it still waits and records the
+     * payment. The transaction ID and the screenshot are optional; the time defaults to now. A second submit
+     * returns the first receipt. The separate review and record-payment steps still work.
+     */
+    public function sentPaid(Request $r, string $id, ManualPayoutService $s): JsonResponse|RedirectResponse
+    {
+        abort_unless($r->user()->allows('finance'), 403);
+        TransactionReference::tidy($r, 'payment_reference');
+        $d = $r->validate([
+            'payment_reference' => ['nullable', 'string', TransactionReference::MinRule, 'max:100'],
+            'receipt' => ['nullable', 'file', 'mimes:'.self::ProofTypes, 'max:5120'],
+            'paid_at' => ['nullable', 'date', function ($attribute, $value, $fail) {
+                if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
+                    $fail(__('portal.err_wd_paid_at_future'));
+                }
+            }],
+            'received_by' => 'nullable|string|max:100',
+            'note' => ReasonFields::rule('money.withdrawal_settle', 1000),
+        ], TransactionReference::messages('payment_reference'));
+        $reference = isset($d['payment_reference']) && trim((string) $d['payment_reference']) !== '' ? strtoupper(trim((string) $d['payment_reference'])) : null;
+        $paidAt = isset($d['paid_at']) ? Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString() : now()->utc()->toDateTimeString();
+        $result = $s->sendAndMarkPaid($r->user(), $id, $reference, $r->file('receipt'), $paidAt, ReasonFields::text($d['note'] ?? null), $d['received_by'] ?? null);
+        if (! $result['replayed']) {
+            $this->notifyPartnerWithdrawal($id, 'paid');
+        }
+        if ($r->expectsJson()) {
+            return response()->json(['data' => ['id' => $id, 'status' => 'paid', 'receipt' => $result['number'], 'approved_now' => $result['approved'], 'replayed' => $result['replayed']]]);
+        }
+
+        return back()->with('success', __($result['replayed'] ? 'payouts.flash_one_step_already' : 'payouts.flash_one_step_done', ['number' => $result['number']]));
     }
 
     /** Attaches the transfer proof to a payout recorded as "paid, receipt later". */

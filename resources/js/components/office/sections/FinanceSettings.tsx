@@ -73,6 +73,7 @@ export default function FinanceSettings({ withdrawalSetting, withdrawalSecurityW
                     <section className="set-block" data-tour="withdrawal-week">
                         <h2>{translate('office_withdrawal', 'week_title')}</h2>
                         <p className="set-line">{translate('office_withdrawal', 'week_body')}</p>
+                        {withdrawalWeek.same_day_until && <p className="set-line">{translate('office_withdrawal', 'same_day_rule', { day: withdrawalWeek.day_names?.[withdrawalWeek.payout_day] ?? '', time: withdrawalWeek.same_day_until })}</p>}
                         <WithdrawalWeekForm setting={withdrawalWeek} />
                     </section>
                 )}

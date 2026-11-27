@@ -133,6 +133,7 @@ return function (string $portal): void {
     Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
+    Route::post('/commands/orders/{order}/verify-and-approve', [CommandController::class, 'verifyAndApprove'])->middleware('throttle:20,1');
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
     Route::post('/commands/orders/{order}/payments', [CommandController::class, 'claim'])->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/pay-from-account', [CommandController::class, 'payFromAccount'])->middleware('throttle:10,1');
@@ -258,6 +259,7 @@ return function (string $portal): void {
     Route::post('/commands/testimonials', [CommandController::class, 'storeStaffTestimonial'])->middleware('throttle:30,1');
     Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/sent-paid', [WithdrawalController::class, 'sentPaid'])->whereUuid('id')->middleware('throttle:30,1');
     Route::get('/commands/withdrawals/{id}/facts', [WithdrawalController::class, 'facts'])->whereUuid('id')->middleware('throttle:60,1');
     Route::post('/commands/withdrawals/{id}/payer', [WithdrawalController::class, 'payer'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/attach-receipt', [WithdrawalController::class, 'attachReceipt'])->whereUuid('id');

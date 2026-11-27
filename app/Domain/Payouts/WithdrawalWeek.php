@@ -13,7 +13,9 @@ use Illuminate\Validation\ValidationException;
  * The weekly payout day. Owner, 2026-11-21: one payout day a week (Thursday). Owner, 2026-11-27: a partner may
  * ask for a withdrawal on any day and at any hour; only the payment waits for the payout day. Days are
  * Bangladesh calendar days (00:00 to 23:59, Asia/Dhaka). The owner sets the payout day, or switches the
- * weekly payout day off, in Finance settings. Every other withdrawal rule (minimum, limits, security wait,
+ * weekly payout day off, in Finance settings. A request made on the payout day itself before the same-day
+ * cut-off (14:00 unless `MADINA_WITHDRAWAL_SAME_DAY_UNTIL` says otherwise) is paid that same day; see
+ * {@see self::payoutDateFor()}. Every other withdrawal rule (minimum, limits, security wait,
  * National ID, tax, holds) still applies when the request is made. Staff are not stopped from paying on
  * another day; their list only shows which requests are due.
  */
@@ -44,23 +46,42 @@ final class WithdrawalWeek
     }
 
     /**
-     * The payout day promised for a request made at this moment: the first payout weekday AFTER the request's
-     * Bangladesh day. A request made on the payout day itself is paid on the next week's payout day. There is
-     * no cut-off hour, and a same-day promise could not be kept for a request sent in the evening, after the
-     * office has closed, or before staff have checked and approved it; the old Wednesday-to-Thursday rule also
-     * always left the office one day to approve. Staff may still pay earlier.
+     * The payout day promised for a request made at this moment (Bangladesh time).
+     *
+     * Owner, 2026-11-27: a request made ON the payout day before the same-day cut-off is paid that same day; a
+     * request made on the payout day at or after the cut-off, or on any other day, is paid on the first payout
+     * weekday AFTER the request's Bangladesh day. The cut-off is `madina.withdrawal_same_day_until` (env
+     * `MADINA_WITHDRAWAL_SAME_DAY_UNTIL`, "HH:MM" in 24-hour Bangladesh time, default "14:00"), so a Thursday
+     * request at 10:00 is due that Thursday and one at 14:00 or 15:00 the next Thursday. "00:00" switches same-day
+     * payment off. Staff may still pay earlier.
      */
     public function payoutDateFor(CarbonImmutable $requestedAt): CarbonImmutable
     {
-        $day = $this->local($requestedAt)->startOfDay()->addDay();
+        $local = $this->local($requestedAt);
+        $payoutDay = $this->settings()['payout_day'];
+        if ($local->dayOfWeekIso === $payoutDay && $local->lessThan($this->sameDayCutOff($local))) {
+            return $local->startOfDay();
+        }
+        $day = $local->startOfDay()->addDay();
 
-        return $day->addDays(($this->settings()['payout_day'] - $day->dayOfWeekIso + 7) % 7);
+        return $day->addDays(($payoutDay - $day->dayOfWeekIso + 7) % 7);
+    }
+
+    /**
+     * The moment on this Bangladesh day after which a payout-day request waits for the next payout day.
+     * A missing or malformed setting falls back to 14:00.
+     */
+    public function sameDayCutOff(CarbonImmutable $day): CarbonImmutable
+    {
+        [$hour, $minute] = self::sameDayUntil();
+
+        return $this->local($day)->startOfDay()->setTime($hour, $minute);
     }
 
     /**
      * When the money of a withdrawal comes, in one plain sentence ("Payment is made only on Thursday. …"),
      * or null when the weekly payout day is off. Office withdrawals are taken at the office; the other ways
-     * are sent that day.
+     * are sent that day. A request paid the same day it was made says "today" and names the cut-off time.
      */
     public function payoutLine(string $channel, CarbonImmutable $requestedAt, ?string $locale = null): ?string
     {
@@ -68,25 +89,32 @@ final class WithdrawalWeek
         if (! $settings['enabled']) {
             return null;
         }
-        $replace = ['day' => $this->dayName($settings['payout_day'], $locale), 'date' => $this->dateText($this->payoutDateFor($requestedAt), $locale)];
+        $payoutDate = $this->payoutDateFor($requestedAt);
+        $sameDay = $payoutDate->isSameDay($this->local($requestedAt));
+        $replace = ['day' => $this->dayName($settings['payout_day'], $locale), 'date' => $this->dateText($payoutDate, $locale), 'time' => $this->cutOffText($locale)];
+        $key = $channel === WithdrawalMethods::Office ? 'office_withdrawal.payout_line_office' : 'office_withdrawal.payout_line_online';
 
-        return __($channel === WithdrawalMethods::Office ? 'office_withdrawal.payout_line_office' : 'office_withdrawal.payout_line_online', $replace, $locale);
+        return __($sameDay ? $key.'_today' : $key, $replace, $locale);
     }
 
     /**
-     * What the partner's withdraw sheet needs: whether the weekly payout day is on, its name, and the date
-     * the money of a request made now comes.
+     * What the partner's withdraw sheet needs: whether the weekly payout day is on, its name, the date the
+     * money of a request made now comes, whether that is today, and the same-day cut-off time.
      *
-     * @return array{enabled: bool, payout_day: string, payout_date: string}
+     * @return array{enabled: bool, payout_day: string, payout_date: string, same_day: bool, same_day_until: ?string}
      */
     public function partnerInfo(?CarbonImmutable $at = null): array
     {
         $settings = $this->settings();
+        $now = $this->local($at);
+        $payoutDate = $this->payoutDateFor($now);
 
         return [
             'enabled' => $settings['enabled'],
             'payout_day' => $this->dayName($settings['payout_day']),
-            'payout_date' => $this->dateText($this->payoutDateFor($this->local($at))),
+            'payout_date' => $this->dateText($payoutDate),
+            'same_day' => $payoutDate->isSameDay($now),
+            'same_day_until' => $this->sameDayUntilText(),
         ];
     }
 
@@ -123,6 +151,37 @@ final class WithdrawalWeek
     public function dayName(int $isoDay, ?string $locale = null): string
     {
         return CarbonImmutable::create(2026, 1, 5, 0, 0, 0, self::TimeZone)->addDays($isoDay - 1)->locale($locale ?? app()->getLocale())->isoFormat('dddd');
+    }
+
+    /** The same-day cut-off as the reader says it, or null when same-day payment is switched off ("00:00"). */
+    public function sameDayUntilText(?string $locale = null): ?string
+    {
+        return self::sameDayUntil() === [0, 0] ? null : $this->cutOffText($locale);
+    }
+
+    /** The same-day cut-off as the reader says it ("2:00 PM", "দুপুর ২:০০"). */
+    public function cutOffText(?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+        [$hour, $minute] = self::sameDayUntil();
+
+        // Bangla says the part of the day first ("দুপুর ২:০০"); English after ("2:00 PM").
+        return LocalDigits::text(CarbonImmutable::create(2026, 1, 1, $hour, $minute, 0, self::TimeZone)->locale($locale)->isoFormat($locale === 'bn' ? 'A h:mm' : 'h:mm A'), $locale);
+    }
+
+    /**
+     * The configured same-day cut-off as [hour, minute]; 14:00 when the setting is missing or malformed.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private static function sameDayUntil(): array
+    {
+        $value = trim((string) config('madina.withdrawal_same_day_until', '14:00'));
+        if (preg_match('/^([01]?\d|2[0-3]):([0-5]\d)$/D', $value, $match) !== 1) {
+            return [14, 0];
+        }
+
+        return [(int) $match[1], (int) $match[2]];
     }
 
     private function dateText(CarbonImmutable $date, ?string $locale = null): string

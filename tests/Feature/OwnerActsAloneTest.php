@@ -127,6 +127,8 @@ class OwnerActsAloneTest extends TestCase
 
     public function test_staff_cannot_pay_a_withdrawal_they_approved_and_the_page_says_so(): void
     {
+        // With the owner's switch off (MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL=false), a second finance person pays.
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         $withdrawal = $this->withdrawal();
         $this->actingAs($this->approver)->post("/commands/withdrawals/{$withdrawal}/review", ['decision' => 'approved', 'reason' => self::Reason])->assertSessionHasNoErrors();
 

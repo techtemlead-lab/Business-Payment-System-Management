@@ -10,6 +10,7 @@ import { channelName, methodForChannel, payoutMethods, type PayoutMethod } from 
 import WithdrawalFacts, { AmountWords, useWithdrawalFacts } from './payouts/WithdrawalFacts';
 import ReceiptPicker from './payouts/ReceiptPicker';
 import OfficePayoutList from './payouts/OfficePayoutList';
+import OneStepPayDialog from './payouts/OneStepPay';
 import { PartnerTypeCell } from './office/portalShared';
 import { randomUuid } from '../shared/randomUuid';
 import { useConfirm } from './ConfirmSheet';
@@ -22,6 +23,8 @@ type ReturnState = 'record' | 'confirm' | 'wait_second' | 'wait_owner' | null;
 interface WithdrawalRecord {
     id: string;
     payer_state?: 'second_person' | null;
+    /** The one-step "money sent, mark paid" (ManualPayoutService::oneStepState). */
+    one_step_state?: 'ready' | 'two_people' | null;
     waits_for_owner?: boolean;
     user_id: number;
     user_name: string;
@@ -263,6 +266,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
     const [paymentAccountId, setPaymentAccountId] = useState('');
     const isCash = payoutMethod === 'cash';
     const [payerId, setPayerId] = useState('');
+    const [oneStepRecord, setOneStepRecord] = useState<WithdrawalRecord | null>(null);
     const [attachRecord, setAttachRecord] = useState<WithdrawalRecord | null>(null);
     const [attachFile, setAttachFile] = useState<File | null>(null);
     useEscape(attachRecord !== null, () => setAttachRecord(null));
@@ -397,8 +401,19 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
         });
     };
 
+    const oneStepReady = (w: WithdrawalRecord) => canProcess && w.one_step_state === 'ready';
     const rowActions = (w: WithdrawalRecord) => (
         <div className="hub-row is-end">
+            {/* Owner, 2026-11-27: the main button. Send the money by hand, then one press approves (if needed) and records it. */}
+            {oneStepReady(w) && (
+                <button type="button" onClick={() => setOneStepRecord(w)} className="button small dark">
+                    {translate('payouts', 'one_step_button')}
+                </button>
+            )}
+            {w.status === 'requested' && canProcess && w.one_step_state === 'two_people' && (
+                <small className="muted">{translate('payouts', 'one_step_two_people')}</small>
+            )}
+
             {w.status === 'approved' && canProcess && w.payer_id !== myId && w.payer_state !== 'second_person' && (
                 <button type="button" onClick={() => takeOver(w)} className="button small">
                     {translate('payouts', 'payer_take')}
@@ -419,7 +434,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 <button
                     type="button"
                     onClick={() => handleOpenReview(w)}
-                    className="button small dark"
+                    className={`button small${oneStepReady(w) ? '' : ' dark'}`}
                 >
                     {translate('portal', 'pay_review')}
                 </button>
@@ -430,7 +445,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
             )}
 
             {/* Office withdrawals are handed over in cash from the office list, not sent to an account. */}
-            {w.status === 'approved' && w.channel === 'Office' && w.payer_state !== 'second_person' && canProcess && (
+            {w.status === 'approved' && w.channel === 'Office' && w.payer_state !== 'second_person' && canProcess && !oneStepReady(w) && (
                 <small className="muted">{translate('office_withdrawal', 'use_office_list')}</small>
             )}
 
@@ -438,7 +453,7 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                 <button
                     type="button"
                     onClick={() => handleOpenSettle(w)}
-                    className="button small dark"
+                    className={`button small${oneStepReady(w) ? '' : ' dark'}`}
                 >
                     {translate('portal', 'pay_record_payout')}
                 </button>
@@ -885,6 +900,8 @@ export default function PayoutDisbursementHub({ data, tdsRate = 0, totals }: Pay
                     </div>
                 </div>
             )}
+
+            {oneStepRecord && <OneStepPayDialog record={oneStepRecord} onClose={() => setOneStepRecord(null)} />}
 
             {/* Receipt for a payout recorded as "money sent, receipt later" */}
             {attachRecord && (

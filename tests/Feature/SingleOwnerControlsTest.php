@@ -168,8 +168,25 @@ class SingleOwnerControlsTest extends TestCase
         $this->assertAudited('withdrawal.paid');
     }
 
-    public function test_rule_3_staff_who_approved_a_withdrawal_cannot_pay_it_but_a_second_payer_can(): void
+    /** Owner, 2026-11-27: finance staff approve and pay a withdrawal themselves. */
+    public function test_rule_3_staff_who_approved_a_withdrawal_may_pay_it_themselves(): void
     {
+        $this->openMoneyGate();
+        $id = $this->withdrawal(User::factory()->dealer()->create());
+        $approver = User::factory()->staff('finance')->create();
+        $service = app(ManualPayoutService::class);
+        $service->review($approver, $id, 'approved', self::Reason);
+
+        $service->settle($approver, $id, ['method' => 'cash', 'received_by' => 'Rahim'], null, null, now()->toDateTimeString(), 'Paid over the counter');
+
+        $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid', 'paid_by' => $approver->id]);
+        $this->assertDatabaseHas('audit_events', ['action' => 'withdrawal.paid', 'subject' => $id]);
+    }
+
+    /** With the owner's switch off, a second finance person pays what another approved. */
+    public function test_rule_3_with_the_switch_off_staff_who_approved_a_withdrawal_cannot_pay_it_but_a_second_payer_can(): void
+    {
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         $this->openMoneyGate();
         $id = $this->withdrawal(User::factory()->dealer()->create());
         $approver = User::factory()->staff('finance')->create();
