@@ -491,6 +491,56 @@ class PartnerAgreementTest extends TestCase
         (require database_path('migrations/2026_11_17_021457_publish_company_details_in_partner_agreement.php'))->up();
     }
 
+    private function runSalaryNamesMigration(): void
+    {
+        (require database_path('migrations/2026_11_27_200000_publish_salary_names_in_partner_agreement.php'))->up();
+    }
+
+    /** Client, 2026-11-27: the agreement uses today's names (salary pool, Staff commission), as a new version. */
+    public function test_the_salary_names_migration_publishes_the_corrected_text_over_a_system_version(): void
+    {
+        DB::table('partner_agreement_versions')->insert([
+            'version' => (int) PartnerAgreementVersion::query()->max('version') + 1,
+            'body_bn' => "পুরোনো লেখা\n  - বিভাগভিত্তিক মাসিক বেতন পুল (মাসিক কেনার লক্ষ্য পূরণ হলে)",
+            'body_en' => "Old text\n  - the Dealer Acquisition Target Bonus for each division (when the monthly purchase target is met)",
+            'published_by' => null,
+            'published_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $before = PartnerAgreementVersion::query()->count();
+
+        $this->runSalaryNamesMigration();
+        $this->runSalaryNamesMigration();
+
+        $this->assertSame($before + 1, PartnerAgreementVersion::query()->count(), 'One new version, and running it again adds nothing.');
+        $latest = PartnerAgreementVersion::query()->orderByDesc('version')->firstOrFail();
+        $this->assertStringContainsString('the monthly salary pool', $latest->body_en);
+        $this->assertStringContainsString('Staff commission', $latest->body_en);
+        $this->assertStringNotContainsString('Dealer Acquisition Target Bonus', $latest->body_en);
+        $this->assertStringContainsString('  - মাসিক বেতন পুল', $latest->body_bn);
+        $this->assertStringNotContainsString('বিভাগভিত্তিক', $latest->body_bn);
+    }
+
+    public function test_the_salary_names_migration_never_replaces_an_owner_published_version(): void
+    {
+        $owner = User::factory()->staff()->create();
+        DB::table('partner_agreement_versions')->insert([
+            'version' => (int) PartnerAgreementVersion::query()->max('version') + 1,
+            'body_bn' => 'মালিকের লেখা',
+            'body_en' => "The owner's text with the Dealer Acquisition Target Bonus",
+            'published_by' => $owner->id,
+            'published_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $before = PartnerAgreementVersion::query()->count();
+
+        $this->runSalaryNamesMigration();
+
+        $this->assertSame($before, PartnerAgreementVersion::query()->count());
+    }
+
     private function turnSwitchOn(): void
     {
         $owner = User::factory()->staff()->create();
