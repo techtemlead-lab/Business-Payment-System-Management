@@ -2768,7 +2768,7 @@ return [
     'pay_reason_approved' => 'Identity and wallet balance verified.',
     'pay_reason_rejected' => 'Did not pass the checks.',
     'pay_reason_paid' => 'Paid by bank transfer.',
-    'pay_heading_hint' => 'Check partner withdrawal requests. A staff member who approves a request cannot also pay it; the owner can do both. Each payment needs the bank or mobile banking reference and a receipt file.',
+    'pay_heading_hint' => 'Check partner withdrawal requests. A staff member who approves a request cannot also pay it; the owner can do both in one press. After sending the money, press "Sent — mark paid"; a transaction ID and a screenshot help but are optional.',
     'pay_kpi_pending' => 'Waiting for review',
     'pay_kpi_pending_hint' => ':count requests waiting for approval',
     'pay_kpi_approved' => 'Approved, waiting for payment',
