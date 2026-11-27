@@ -195,7 +195,8 @@ class UserManualRoundTwoTest extends TestCase
         $chapters = collect(app(UserManual::class)->chaptersFor($owner))->keyBy('key');
 
         $this->assertStringContainsString('can cancel a request that is still waiting', implode(' ', $chapters['payouts_settlements']['tips']));
-        $this->assertStringContainsString('The owner can approve and pay alone', implode(' ', $chapters['withdrawals']['steps']));
+        // Owner, 2026-11-27: approving and paying a withdrawal is one press, for the owner and finance staff.
+        $this->assertStringContainsString('One press approves and pays it', implode(' ', $chapters['withdrawals']['steps']));
         $this->assertMatchesRegularExpression('/\d+(\.\d+)?% of each dealer purchase/', $chapters['commissions_pool']['purpose']);
     }
 
