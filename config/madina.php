@@ -137,6 +137,9 @@ return [
     // Owner, 2026-11-27: a request made ON the payout day before this Bangladesh time ("HH:MM", 24-hour) is paid that
     // same day; at or after it, on the next payout day. "00:00" switches same-day payment off (WithdrawalWeek::payoutDateFor).
     'withdrawal_same_day_until' => (string) env('MADINA_WITHDRAWAL_SAME_DAY_UNTIL', '14:00'),
+    // Owner, 2026-11-27: finance staff may approve a withdrawal and record its payment themselves, in one
+    // step. Set false to go back to a second finance person paying what another approved.
+    'withdrawal_staff_pay_own_approval' => (bool) env('MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL', true),
 
     // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.
     'agreement_required_default' => (bool) env('MADINA_AGREEMENT_REQUIRED_DEFAULT', true),

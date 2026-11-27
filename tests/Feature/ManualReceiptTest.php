@@ -45,6 +45,8 @@ class ManualReceiptTest extends TestCase
 
     public function test_manual_receipt_settlement_is_private_balanced_and_cannot_repeat(): void
     {
+        // With the owner's switch off (MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL=false), a second finance person pays.
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         $owner = User::factory()->create(['role' => 'dealer']);
         $outsider = User::factory()->create(['role' => 'dealer']);
         $reviewer = User::factory()->create(['role' => 'finance']);

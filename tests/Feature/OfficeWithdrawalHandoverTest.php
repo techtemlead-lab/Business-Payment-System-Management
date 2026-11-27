@@ -135,6 +135,8 @@ class OfficeWithdrawalHandoverTest extends TestCase
 
     public function test_the_approver_does_not_hand_over_alone(): void
     {
+        // With the owner's switch off (MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL=false), a second finance person pays.
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         [, $id] = $this->approvedOfficeWithdrawal('1500.00');
         $this->at('2026-11-26 11:00:00');
 

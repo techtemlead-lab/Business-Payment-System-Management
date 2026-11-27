@@ -145,6 +145,8 @@ class PayoutHoldsAndReviewTest extends TestCase
 
     public function test_an_approved_payout_names_its_payer_and_shows_as_overdue_after_the_due_days(): void
     {
+        // With the owner's switch off (MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL=false), a second finance person pays.
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         $partner = $this->partnerWithWallet('5000.00');
         $id = $this->withdraw($partner, '1000.00');
         $approver = User::factory()->staff('finance')->create();

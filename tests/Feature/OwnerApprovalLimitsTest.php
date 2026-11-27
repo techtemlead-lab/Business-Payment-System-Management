@@ -68,6 +68,8 @@ class OwnerApprovalLimitsTest extends TestCase
 
     public function test_finance_staff_approve_a_small_withdrawal_without_the_owner_and_a_second_staff_member_pays(): void
     {
+        // With the owner's switch off (MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL=false), a second finance person pays.
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         $this->setLimit('withdrawal', '2000.00');
         $approver = User::factory()->staff('finance')->create(['name' => 'Approving Clerk']);
         $payer = User::factory()->staff('finance')->create();

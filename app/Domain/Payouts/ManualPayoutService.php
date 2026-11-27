@@ -9,7 +9,6 @@ use App\Domain\Finance\FraudAnomalyDetector;
 use App\Domain\Finance\OwnerApprovalLimits;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\WithdrawalSecurityWait;
-use App\Domain\Security\OwnerExemption;
 use App\Domain\Security\SelfApproval;
 use App\Models\User;
 use App\Support\Audit;
@@ -35,8 +34,22 @@ class ManualPayoutService
     private const OneStepMethods = [WithdrawalMethods::Office => 'cash', 'bKash' => 'bkash', 'Nagad' => 'nagad', 'Rocket' => 'other'];
 
     /**
-     * 'second_person' when the staff member viewing approved this payment, so someone else
-     * must record it; otherwise null. The owner records a payment they approved themselves.
+     * Whether the person who approved a withdrawal may also record its payment. The owner always may;
+     * finance staff may too while `madina.withdrawal_staff_pay_own_approval` is on (owner, 2026-11-27).
+     * The partner never pays themselves, and the owner's amount limit still decides who may approve.
+     */
+    public function approverMayPay(User $approver): bool
+    {
+        if (app(SelfApproval::class)->ownerFinishesAlone($approver)) {
+            return true;
+        }
+
+        return (bool) config('madina.withdrawal_staff_pay_own_approval', true) && $approver->fresh()?->allows('finance') === true;
+    }
+
+    /**
+     * 'second_person' when the staff member viewing approved this payment and may not also record it,
+     * so someone else must; otherwise null.
      */
     public function payerState(object $withdrawal, User $viewer): ?string
     {
@@ -44,7 +57,7 @@ class ManualPayoutService
             return null;
         }
 
-        return app(SelfApproval::class)->ownerFinishesAlone($viewer) ? null : 'second_person';
+        return $this->approverMayPay($viewer) ? null : 'second_person';
     }
 
     /**
@@ -61,9 +74,9 @@ class ManualPayoutService
     /**
      * Whether the viewer may use the one-step "money sent, mark paid" on this withdrawal (owner, 2026-11-27):
      * 'ready' — one press approves it (when still waiting) and records the payment; 'two_people' — it still
-     * needs approval and the viewer is not the owner, so after the viewer approves, another finance person
-     * records the payment (staff never approve and pay the same money: SelfApproval); null — not offered (a
-     * bank transfer, finished, in a bank file, waiting for an owner, or approved by the viewer themselves).
+     * needs approval and the viewer may not pay what they approve ({@see self::approverMayPay()}), so another
+     * finance person records the payment; null — not offered (a bank transfer, finished, in a bank file,
+     * waiting for an owner, or approved by the viewer when they may not pay it).
      *
      * @return 'ready'|'two_people'|null
      */
@@ -79,7 +92,7 @@ class ManualPayoutService
             return null;
         }
 
-        return OwnerExemption::applies($viewer) ? 'ready' : 'two_people';
+        return $this->approverMayPay($viewer) ? 'ready' : 'two_people';
     }
 
     /** @param array<string, mixed> $data */
@@ -316,15 +329,15 @@ class ManualPayoutService
     }
 
     /**
-     * Finance people who may pay a withdrawal: active staff with finance work, except the person who
-     * approved it (a second person pays), unless that person is the owner, who finishes alone.
+     * Finance people who may pay a withdrawal: active staff with finance work, including the person who
+     * approved it while they may pay their own approval ({@see self::approverMayPay()}).
      *
      * @return list<array{id: int, name: string}>
      */
     public function eligiblePayers(User $viewer, ?int $approverId = null): array
     {
         $approverId ??= (int) $viewer->id;
-        $ownerAlone = app(SelfApproval::class)->ownerFinishesAlone(User::find($approverId) ?? $viewer);
+        $ownerAlone = $this->approverMayPay(User::find($approverId) ?? $viewer);
 
         return User::query()->where('status', 'active')->staffAccounts()->orderBy('name')->get()
             ->filter(fn (User $staff): bool => $staff->allows('finance') && ($ownerAlone || (int) $staff->id !== $approverId))
@@ -384,8 +397,8 @@ class ManualPayoutService
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
                 $selfApproved = (int) $actor->id === (int) $w->reviewed_by;
-                if ($selfApproved) {
-                    app(SelfApproval::class)->finishOwnStep($actor, 'withdrawal', __('portal.err_wd_payer_separation'));
+                if ($selfApproved && ! $this->approverMayPay($actor)) {
+                    throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
                 if ($reference !== null && PayoutReceiptCheck::referenceUsed($reference)) {
                     throw ValidationException::withMessages(['payment_reference' => __('portal.err_wd_payment_ref_used')]);
@@ -480,7 +493,9 @@ class ManualPayoutService
                 $approve = $w->status === 'requested';
                 if ($approve) {
                     app(OwnerApprovalLimits::class)->refuseUnlessOwnerMayApprove($actor, OwnerApprovalLimits::Withdrawal, (string) $w->amount, 'withdrawal');
-                    app(SelfApproval::class)->finishOwnStep($actor, 'withdrawal', __('payouts.err_one_step_second_person'));
+                    if (! $this->approverMayPay($actor)) {
+                        throw ValidationException::withMessages(['withdrawal' => __('payouts.err_one_step_second_person')]);
+                    }
                     $this->review($actor, $id, 'approved', $note !== '' ? $note : (string) __('payouts.one_step_approval_note'));
                 }
                 $destination = (string) decrypt($w->destination);

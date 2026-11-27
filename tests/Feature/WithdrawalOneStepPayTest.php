@@ -127,8 +127,43 @@ class WithdrawalOneStepPayTest extends TestCase
         $this->assertFalse((bool) DB::table('withdrawals')->where('id', $id)->value('receipt_due'));
     }
 
+    /** Owner, 2026-11-27: finance staff approve and pay a withdrawal in one press, like the owner. */
+    public function test_finance_staff_approve_and_pay_in_one_press(): void
+    {
+        $finance = User::factory()->staff('finance')->create();
+        [, $id] = $this->request('bKash', '01711111111', '900.00');
+
+        $this->actingAs($finance)->onPortal('manage')->get('/payouts-hub')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.payouts_table.rows.data.0.id', $id)->where('data.payouts_table.rows.data.0.one_step_state', 'ready'));
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/sent-paid', ['payment_reference' => 'BKX7Q2M9TA'])
+            ->assertSessionHasNoErrors();
+
+        $w = DB::table('withdrawals')->where('id', $id)->sole();
+        $this->assertSame('paid', $w->status);
+        $this->assertSame($finance->id, (int) $w->reviewed_by);
+        $this->assertSame($finance->id, (int) $w->paid_by);
+        $this->assertDatabaseHas('audit_events', ['action' => 'withdrawal.approved', 'subject' => $id, 'actor_id' => $finance->id]);
+        $this->assertDatabaseHas('audit_events', ['action' => 'withdrawal.paid', 'subject' => $id, 'actor_id' => $finance->id]);
+        $this->assertSame(1, DB::table('journal_entries')->where('event_key', 'manual-payout:'.$id)->count());
+    }
+
+    public function test_staff_who_approved_earlier_can_pay_it_themselves(): void
+    {
+        $finance = User::factory()->staff('finance')->create();
+        [, $id] = $this->request('Nagad', '01711111112', '700.00');
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Number checked'])->assertSessionHasNoErrors();
+
+        $this->actingAs($finance)->onPortal('manage')->get('/payouts-hub')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.payouts_table.rows.data.0.one_step_state', 'ready')->where('data.payouts_table.rows.data.0.payer_state', null));
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/sent-paid', [])->assertSessionHasNoErrors();
+
+        $this->assertSame('paid', DB::table('withdrawals')->where('id', $id)->value('status'));
+    }
+
     public function test_staff_never_approve_and_pay_alone_so_a_second_person_presses_the_button(): void
     {
+        // With the owner's switch off (MADINA_WITHDRAWAL_STAFF_PAY_OWN_APPROVAL=false), a second finance person pays.
+        config(['madina.withdrawal_staff_pay_own_approval' => false]);
         $approver = User::factory()->staff('finance')->create();
         $payer = User::factory()->staff('finance')->create();
         [, $id] = $this->request('bKash', '01711111111', '900.00');
