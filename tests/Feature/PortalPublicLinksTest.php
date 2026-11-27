@@ -50,9 +50,12 @@ class PortalPublicLinksTest extends TestCase
     {
         $hrefs = $this->hrefs($this->onPortal($portal)->get('/login')->assertOk()->getContent());
 
-        foreach (['/', '/products', '/about', '/contact', '/dealers', '/partnership', '/services', '/faq', '/login'] as $path) {
+        foreach (['/', '/products', '/about', '/contact', '/dealers', '/partnership', '/services', '/faq'] as $path) {
             $this->assertContains(PortalHost::url('public', $path), $hrefs, "The sign-in page on {$portal}. has no public link to {$path}.");
         }
+        // The header names both partner logins (client, 2026-11-27) instead of one account page.
+        $this->assertContains(PortalHost::url('dealer', '/login'), $hrefs);
+        $this->assertContains(PortalHost::url('subdealer', '/login'), $hrefs);
         $relativePublic = array_values(array_intersect($hrefs, self::PublicPaths));
         $this->assertSame([], $relativePublic, "The sign-in page on {$portal}. keeps a visitor on the portal host.");
         // Moving around inside the portal stays relative.
@@ -76,7 +79,8 @@ class PortalPublicLinksTest extends TestCase
         $drawer = substr($html, (int) strpos($html, 'id="refMobileDrawer"'));
         $drawer = substr($drawer, 0, (int) strpos($drawer, '</aside>'));
 
-        $this->assertStringContainsString('href="'.PortalHost::url('public', '/login').'"', $drawer);
+        $this->assertStringContainsString('href="'.PortalHost::url('dealer', '/login').'"', $drawer);
+        $this->assertStringContainsString('href="'.PortalHost::url('subdealer', '/login').'"', $drawer);
         $this->assertStringContainsString('href="'.PortalHost::url('public', '/partnership').'"', $drawer);
         $this->assertSame([], array_values(array_intersect($this->hrefs($drawer), self::PublicPaths)));
     }
@@ -108,7 +112,7 @@ class PortalPublicLinksTest extends TestCase
     {
         $hrefs = $this->hrefs($this->onPortal('public')->get('/about')->assertOk()->getContent());
 
-        foreach (['/', '/products', '/contact', '/login'] as $path) {
+        foreach (['/', '/products', '/contact'] as $path) {
             $this->assertContains($path, $hrefs);
         }
         $this->assertNotContains(PortalHost::url('public', '/products'), $hrefs);
@@ -120,7 +124,7 @@ class PortalPublicLinksTest extends TestCase
 
         $hrefs = $this->hrefs($this->get('http://localhost/about')->assertOk()->getContent());
 
-        foreach (['/', '/products', '/contact', '/login'] as $path) {
+        foreach (['/', '/products', '/contact'] as $path) {
             $this->assertContains($path, $hrefs);
         }
     }
