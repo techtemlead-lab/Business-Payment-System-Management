@@ -250,16 +250,16 @@ function WithdrawalMethodsForm({ setting }: { setting: Row }) {
     );
 }
 
-/** The weekly application day and payout day (Wednesday and Thursday at the start), with an on/off for the rule. */
+/** The weekly payout day (Thursday at the start), with an on/off for it. Requests are taken on any day. */
 function WithdrawalWeekForm({ setting }: { setting: Row }) {
     const translate = useT();
     const days: Record<string, string> = setting.day_names ?? {};
-    const initial = () => ({ enabled: Boolean(setting.enabled), request_day: String(setting.request_day), payout_day: String(setting.payout_day), version: setting.version ?? 0, reason: '' });
+    const initial = () => ({ enabled: Boolean(setting.enabled), payout_day: String(setting.payout_day), version: setting.version ?? 0, reason: '' });
     const form = useForm<Row>(initial());
     const canEdit = Boolean(setting.can_edit);
     // After a save the page brings the new days and version; keep the form in step with them.
     useEffect(() => { form.setData(initial()); }, [setting.version]);
-    const daySelect = (field: 'request_day' | 'payout_day') => (
+    const daySelect = (field: 'payout_day') => (
         <label>{translate('office_withdrawal', `week_${field}`)}
             <select disabled={!canEdit} value={form.data[field]} onChange={(event) => form.setData(field, event.target.value)}>
                 {Object.entries(days).map(([value, name]) => <option key={value} value={value}>{name}</option>)}
@@ -273,7 +273,6 @@ function WithdrawalWeekForm({ setting }: { setting: Row }) {
                 <input type="checkbox" role="switch" disabled={!canEdit} checked={Boolean(form.data.enabled)} onChange={(event) => form.setData('enabled', event.target.checked)} />
                 <span><b>{translate('office_withdrawal', 'week_switch')}</b><small>{translate('office_withdrawal', form.data.enabled ? 'week_on' : 'week_off')}</small></span>
             </label>
-            {daySelect('request_day')}
             {daySelect('payout_day')}
             {!canEdit && <p className="aa-note">{translate('office_withdrawal', 'week_owner_only')}</p>}
             {canEdit && <ReasonAndSave place={'money.withdrawal_minimum'} value={form.data.reason} errors={form.errors} processing={form.processing} onChange={(reason) => form.setData('reason', reason)} />}

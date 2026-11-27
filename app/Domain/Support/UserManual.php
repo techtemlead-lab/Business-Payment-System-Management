@@ -393,7 +393,7 @@ final class UserManual
             $this->ch('catalog_orders', ['partner', 'dealer', 'sub_dealer'], 11, 3, 4, 4, ['order', 'catalog', 'purchase', 'cart', 'invoice', 'mrp', 'payment', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস', 'পাইকারি']),
             $this->ch('deliveries_dues', ['partner', 'dealer', 'sub_dealer'], 8, 3, 2, 2, ['delivery', 'due', 'dispatch', 'courier', 'claim', 'ডেলিভারি', 'বাকি', 'চালান', 'কুরিয়ার']),
             $this->ch('commissions_pool', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 7, 1, 1, 1, ['commission', 'earnings', 'ledger', '40%', '60%', 'wallet', 'কমিশন', 'আয়', 'লেজার', 'ওয়ালেট']),
-            $this->ch('withdrawals', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 4, ['withdrawal', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'office', 'wednesday', 'উত্তোলন', 'ওয়ালেট', 'পেআউট', 'উইথড্রো', 'অফিস', 'বুধবার']),
+            $this->ch('withdrawals', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 4, ['withdrawal', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'office', 'thursday', 'উত্তোলন', 'ওয়ালেট', 'পেআউট', 'উইথড্রো', 'অফিস', 'বৃহস্পতিবার']),
             $this->ch('payment_receipts', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 3, 1, 1, 1, ['receipt', 'payment-receipts', 'payout', 'print', 'cash', 'রসিদ', 'প্রিন্ট', 'পেমেন্ট']),
             $this->ch('reports', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 5, 1, 1, 1, ['report', 'pdf', 'full_report', 'analytics', 'রিপোর্ট', 'অডিট', 'বিবরণী']),
             $this->ch('network_genealogy', ['dealer', 'staff', 'owner'], 8, 3, 3, 2, ['network', 'referral', 'tree', 'genealogy', 'downline', 'qr', 'নেটওয়ার্ক', 'রেফারাল', 'ডাউনলাইন', 'টিম']),

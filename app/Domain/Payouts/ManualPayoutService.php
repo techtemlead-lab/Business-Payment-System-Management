@@ -68,8 +68,8 @@ class ManualPayoutService
         // Outside the transaction below, so the record of a refusal is kept. A replay of a request that
         // already went through is not refused: it just returns the existing one.
         $replay = DB::table('withdrawals')->where('user_id', $actor->id)->where('idempotency_key', $data['idempotency_key'])->exists();
+        // Owner, 2026-11-27: requests are taken on any day; only the payment waits for the payout day (WithdrawalWeek).
         if (! $replay) {
-            app(WithdrawalWeek::class)->refuseOutsideWindow($actor);
             app(WithdrawalMethods::class)->refuseOff((string) ($data['channel'] ?? ''));
             app(WithdrawalSecurityWait::class)->refuseWhileWaiting($actor);
         }
