@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { useT } from '../../../shared/i18n/t';
 import { useReasonField } from '../../../shared/reasonFields';
@@ -245,39 +245,52 @@ function PlacePicker({ picked, onPick }: { picked: PickedPlace; onPick: (next: P
         }
     };
 
+    // Every pick gets a number; a list that arrives after a newer pick is dropped, so a quick second pick never
+    // gets its union list wiped by the first pick's late answer.
+    const latestPick = useRef(0);
+
     useEffect(() => {
         let alive = true;
+        const startedAt = latestPick.current;
+        const stillCurrent = () => alive && latestPick.current === startedAt;
         (async () => {
-            const next: Record<string, PlaceChoice[]> = { division: await load('division', ''), district: [], upazila: [], union: [] };
-            next.district = await load('district', picked.division);
-            next.upazila = await load('upazila', picked.district);
-            next.union = await load('union', picked.upazila);
-            if (alive) {
-                setOptions(next);
+            // The lists for the places the application already names, one level at a time as each arrives.
+            const levels: [keyof PickedPlace, string][] = [['division', ''], ['district', picked.division], ['upazila', picked.district], ['union', picked.upazila]];
+            for (const [level, parent] of levels) {
+                const choices = await load(level, parent);
+                if (!stillCurrent()) {
+                    return;
+                }
+                setOptions((current) => ({ ...current, [level]: choices }));
             }
         })();
 
         return () => { alive = false; };
-        // The lists are loaded once for the places the application already names.
+        // Loaded once on open; later picks load their own child list in choose().
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const choose = async (level: keyof PickedPlace, value: string) => {
+        const pickNumber = ++latestPick.current;
         const index = PLACE_LEVELS.indexOf(level);
         const next: PickedPlace = { ...picked, [level]: value };
-        const lists = { ...options };
-        for (const lower of PLACE_LEVELS.slice(index + 1)) {
-            next[lower] = '';
-            lists[lower] = [];
+        const lower = PLACE_LEVELS.slice(index + 1);
+        for (const item of lower) {
+            next[item] = '';
         }
+        setOptions((current) => ({ ...current, ...Object.fromEntries(lower.map((item) => [item, []])) }));
+        // The lower levels are now empty, so the deepest chosen place sits at or above this level, in lists already loaded.
+        const deepest = [...PLACE_LEVELS].reverse().find((item) => next[item] !== '');
+        const chosen = deepest ? options[deepest].find((item) => String(item.id) === next[deepest]) : undefined;
+        onPick(next, chosen?.code ?? null);
+
         const child = PLACE_LEVELS[index + 1];
         if (child && value !== '') {
-            lists[child] = await load(child, value);
+            const children = await load(child, value);
+            if (latestPick.current === pickNumber) {
+                setOptions((current) => ({ ...current, [child]: children }));
+            }
         }
-        setOptions(lists);
-        const deepest = [...PLACE_LEVELS].reverse().find((item) => next[item] !== '');
-        const chosen = deepest ? lists[deepest].find((item) => String(item.id) === next[deepest]) : undefined;
-        onPick(next, chosen?.code ?? null);
     };
 
     const wording: Record<keyof PickedPlace, string> = {
