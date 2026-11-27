@@ -15,6 +15,7 @@ import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
 import { toLatin } from '../shared/countUp';
 import PlacePickers, { loadPlaceList, placeLevels, usePlaceChain, type PlaceField, type PlaceLevel, type PlaceOption } from './PlacePickers';
+import PartnerReferrerField, { type ReferrerChange } from './PartnerReferrerField';
 
 /** The Super Admin's way to pay this active dealer's or sub-dealer's bike or car prize in advance, in an emergency. */
 function PrizeAdvanceLink({ account }: { account: Row }) {
@@ -105,6 +106,9 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     const placeListFailed = translate('portal', 'acct_request_failed');
     const home = usePlaceChain(homeDivisions, (level, parentId) => loadPlaceList(level, parentId, placeListFailed));
     const [homeError, setHomeError] = useState('');
+    // A new referrer waits here until the whole form is saved; null keeps the current one.
+    const [referrerChange, setReferrerChange] = useState<ReferrerChange>(null);
+    const [referrerError, setReferrerError] = useState('');
     // The owner's rule: a partner's own code (also their refer code) stays as it is once given.
     const codeLocked = isPartner && Boolean(account.dealer_code);
     const homeNow = (['union', 'upazila', 'district', 'division'] as const).map(level => account.profile?.[`permanent_${level}`]).filter(Boolean).join(', ');
@@ -187,6 +191,11 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 setAreaError(translate('portal', 'acct_area_chain_incomplete'));
                 return;
             }
+            // A referrer change is saved only after the office confirms it counts for new orders only.
+            if (isPartner && referrerChange && !referrerChange.confirmed) {
+                setReferrerError(translate('portal', 'acct_referrer_confirm_needed'));
+                return;
+            }
             form.transform((data) => {
                 const profile = { ...data.profile };
                 // One shop name for dealers and sub-dealers; the older pharmacy field just follows it.
@@ -196,7 +205,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 const { permanent_place_id: homePlaceId, dealer_code: dealerCode, ...rest } = data;
                 const areaIds = isPartner && areaPicked ? { area_division_id: area.ids.division, area_district_id: area.ids.district, area_upazila_id: area.ids.upazila, area_union_id: area.ids.union } : {};
                 const codeField = codeLocked ? {} : { dealer_code: dealerCode };
-                return isPartner && homePlaceId ? { ...rest, ...codeField, profile, ...areaIds, permanent_place_id: homePlaceId } : { ...rest, ...codeField, profile, ...areaIds };
+                const referrer = isPartner && referrerChange ? { sponsor_code: referrerChange.code } : {};
+                return isPartner && homePlaceId ? { ...rest, ...codeField, profile, ...areaIds, ...referrer, permanent_place_id: homePlaceId } : { ...rest, ...codeField, profile, ...areaIds, ...referrer };
             });
             form.patch(`/commands/accounts/${account.id}`, { onSuccess: onDone });
         }}>
@@ -236,6 +246,11 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} />
                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                     </label>
+                    <PartnerReferrerField
+                        account={account}
+                        error={referrerError || areaFieldErrors.sponsor_code || areaFieldErrors.sponsor_id}
+                        onChange={change => { setReferrerChange(change); setReferrerError(''); }}
+                    />
                     <div className="full">
                         <b>{translate('portal', 'acct_step_home')}</b>
                         <p className="muted">{translate('portal', 'acct_home_now', { place: homeNow || translate('portal', 'acct_home_not_given') })} {translate('portal', 'acct_home_change_hint')}</p>
@@ -283,7 +298,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {dealerListOn && (account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
-            <FormErrors errors={form.errors} besideFields={['phone', 'dealer_code', 'place_code', 'latitude', 'longitude', 'permanent_place_id', 'area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id']}/>
+            <FormErrors errors={form.errors} besideFields={['phone', 'dealer_code', 'place_code', 'latitude', 'longitude', 'permanent_place_id', 'area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id', 'sponsor_code', 'sponsor_id']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
             {isPartner && <a className="button" href={`/exports/partner-registration-form/${account.id}`} title={translate('partner_form', 'download_hint')}>{translate('partner_form', 'download_form')}</a>}
         </form>}
