@@ -105,6 +105,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     const placeListFailed = translate('portal', 'acct_request_failed');
     const home = usePlaceChain(homeDivisions, (level, parentId) => loadPlaceList(level, parentId, placeListFailed));
     const [homeError, setHomeError] = useState('');
+    // The owner's rule: a partner's own code (also their refer code) stays as it is once given.
+    const codeLocked = isPartner && Boolean(account.dealer_code);
     const homeNow = (['union', 'upazila', 'district', 'division'] as const).map(level => account.profile?.[`permanent_${level}`]).filter(Boolean).join(', ');
     useEffect(() => {
         if (!isPartner || !canEditDetails) {
@@ -191,9 +193,10 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 if (isPartner) {
                     profile.pharmacy = profile.shop_name;
                 }
-                const { permanent_place_id: homePlaceId, ...rest } = data;
+                const { permanent_place_id: homePlaceId, dealer_code: dealerCode, ...rest } = data;
                 const areaIds = isPartner && areaPicked ? { area_division_id: area.ids.division, area_district_id: area.ids.district, area_upazila_id: area.ids.upazila, area_union_id: area.ids.union } : {};
-                return isPartner && homePlaceId ? { ...rest, profile, ...areaIds, permanent_place_id: homePlaceId } : { ...rest, profile, ...areaIds };
+                const codeField = codeLocked ? {} : { dealer_code: dealerCode };
+                return isPartner && homePlaceId ? { ...rest, ...codeField, profile, ...areaIds, permanent_place_id: homePlaceId } : { ...rest, ...codeField, profile, ...areaIds };
             });
             form.patch(`/commands/accounts/${account.id}`, { onSuccess: onDone });
         }}>
@@ -202,9 +205,14 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 <label>{translate('portal', 'acct_full_name')}
                     <input id="ace-name-en" required value={form.data.name} onChange={event => form.setData('name', event.target.value)} />
                 </label>
-                {isPartner && <label>{translate('portal', 'acct_dealer_code_unique')}
+                {isPartner && (codeLocked ? <label>{translate('portal', 'acct_code_locked')}
+                    <input readOnly aria-readonly="true" value={form.data.dealer_code} />
+                    <small className="muted">{translate('portal', 'acct_code_locked_hint')}</small>
+                    {form.errors.dealer_code && <span className="field-error">{form.errors.dealer_code}</span>}
+                </label> : <label>{translate('portal', 'acct_dealer_code_unique')}
                     <input required value={form.data.dealer_code} onChange={event => form.setData('dealer_code', event.target.value.toUpperCase())} />
-                </label>}
+                    {form.errors.dealer_code && <span className="field-error">{form.errors.dealer_code}</span>}
+                </label>)}
                 <label>{translate('portal', 'acct_phone_number')}
                     <input required value={form.data.phone} onChange={event => form.setData('phone', event.target.value)} />
                     {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
@@ -275,7 +283,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {dealerListOn && (account.role === 'dealer' || account.role === 'sub_dealer') && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             {changeReason.shown && <label>{changeReason.required ? translate('portal', 'acct_correction_reason') : changeReason.label(translate('reason_fields', 'box_account_change_reason'))}<textarea required={changeReason.required} maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>}
-            <FormErrors errors={form.errors} besideFields={['phone', 'place_code', 'latitude', 'longitude', 'permanent_place_id', 'area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id']}/>
+            <FormErrors errors={form.errors} besideFields={['phone', 'dealer_code', 'place_code', 'latitude', 'longitude', 'permanent_place_id', 'area_division_id', 'area_district_id', 'area_upazila_id', 'area_union_id']}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
             {isPartner && <a className="button" href={`/exports/partner-registration-form/${account.id}`} title={translate('partner_form', 'download_hint')}>{translate('partner_form', 'download_form')}</a>}
         </form>}

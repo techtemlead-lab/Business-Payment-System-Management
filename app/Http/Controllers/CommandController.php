@@ -409,6 +409,14 @@ class CommandController extends Controller
             $d['sponsor_id'] = $referrers->referrerForId($user, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null)?->id;
         }
         unset($d['sponsor_code']);
+        // The owner's rule: a partner's dealer (or sub-dealer) code, which is also their refer code, stays as it is.
+        // Only a move to another place (the place code) gives a new code; a partner who has none yet may get one.
+        if ($isPartner && array_key_exists('dealer_code', $d) && filled($user->dealer_code)) {
+            if (strcasecmp(trim((string) $d['dealer_code']), (string) $user->dealer_code) !== 0) {
+                throw ValidationException::withMessages(['dealer_code' => __('portal.acct_val_dealer_code_locked')]);
+            }
+            $d['dealer_code'] = (string) $user->dealer_code;
+        }
         $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
         $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         if ($r->has('profile') || $r->hasAny($profileKeys) || $r->has('permissions')) {

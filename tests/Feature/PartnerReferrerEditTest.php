@@ -120,6 +120,19 @@ class PartnerReferrerEditTest extends TestCase
         $this->assertSame(0, DB::table('audit_events')->where('action', 'account.referrer_changed')->count());
     }
 
+    public function test_the_partners_own_code_stays_as_it_is(): void
+    {
+        $this->edit(['dealer_code' => 'NEW-CODE-1', 'reason' => 'Try to rename'])
+            ->assertSessionHasErrors(['dealer_code' => __('portal.acct_val_dealer_code_locked')]);
+        $this->edit(['dealer_code' => 'partner-1', 'name' => 'Same Code Kept', 'reason' => 'Same code'])
+            ->assertSessionHasNoErrors();
+
+        $partner = $this->partner->fresh();
+        $this->assertSame('PARTNER-1', $partner->dealer_code);
+        $this->assertSame('PARTNER-1', $partner->refer_code);
+        $this->assertSame('Same Code Kept', $partner->name);
+    }
+
     public function test_referrer_and_every_address_change_in_one_save(): void
     {
         $this->seedClassicPlaceCodes();
