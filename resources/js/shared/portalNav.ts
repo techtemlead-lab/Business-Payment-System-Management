@@ -137,6 +137,24 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
         iconKey: 'my-income',
         match: ({ section }) => section === 'my-income',
     },
+    /** The wallet's history of money in and out, straight from the menu (client's list, 2026-11-27). The wallet row stays the one lit up. */
+    'wallet-history': {
+        id: 'wallet-history',
+        section: 'my-money',
+        labelKey: 'nav_wallet_history',
+        hrefPath: 'my-money#mm-book',
+        iconKey: 'ledger',
+        match: () => false,
+    },
+    /** Opens the wallet with its withdrawal form (client's list, 2026-11-27). */
+    'wallet-withdraw': {
+        id: 'wallet-withdraw',
+        section: 'my-money',
+        labelKey: 'nav_withdraw',
+        hrefPath: 'my-money?withdraw=1',
+        iconKey: 'withdrawals',
+        match: () => false,
+    },
     /** One partner row for all their money. */
     'partner-money': {
         id: 'partner-money',
@@ -529,13 +547,16 @@ function staffMothers(available: Set<string>): NavMother[] {
 function partnerMothers(role: string, available: Set<string>): NavMother[] {
     return compactMothers([
         mother('home', 'nav_module_home', pick(available, ['overview'])),
-        // V1: home, my profile, my account (the income page), then orders and money.
+        // The client's order (2026-11-27): my profile, my account, wallet, wallet history, withdraw, products,
+        // new order, order history, then the team and the rest.
         rowMother('partner-account', available),
         mother('my-income', 'nav_module_account', pick(available, ['my-income'])),
+        mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
+        mother('wallet-history', 'nav_wallet_history', pick(available, ['wallet-history'])),
+        mother('wallet-withdraw', 'nav_withdraw', pick(available, ['wallet-withdraw'])),
+        mother('products', 'nav_products', pick(available, ['catalog'])),
         mother('new-order', 'purchase', pick(available, ['purchase'])),
         rowMother('partner-orders', available),
-        mother('products', 'nav_products', pick(available, ['catalog'])),
-        mother('earnings', 'nav_module_earnings', pick(available, ['partner-money'])),
         // A sub-dealer has no team tree, so the row carries the customer book's name.
         role === 'sub_dealer' ? rowMother('partner-customers', available) : rowMother('partner-team', available),
         rowMother('partner-office', available),

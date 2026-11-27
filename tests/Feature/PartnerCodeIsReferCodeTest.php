@@ -128,15 +128,17 @@ class PartnerCodeIsReferCodeTest extends TestCase
         $this->assertSame($dealer->id, $partners->findSponsor('MNHC102')?->id);
     }
 
-    public function test_correcting_a_partner_code_by_hand_moves_the_refer_code_with_it(): void
+    public function test_a_partner_code_is_not_changed_by_hand_on_the_editor(): void
     {
+        // The client's rule of 2026-11-27: the dealer code (and so the refer code) stays as it is;
+        // only a move to another place gives a new code, and old codes keep finding the person.
         $dealer = User::factory()->dealer()->create(['status' => 'active', 'dealer_code' => 'OLD-1', 'refer_code' => 'OLD-1']);
 
-        $this->edit($dealer, ['dealer_code' => 'NEW-1'])->assertSessionHasNoErrors();
+        $this->edit($dealer, ['dealer_code' => 'NEW-1'])->assertSessionHasErrors(['dealer_code' => __('portal.acct_val_dealer_code_locked')]);
 
-        $this->assertSame('NEW-1', $dealer->fresh()->dealer_code);
-        $this->assertSame('NEW-1', $dealer->fresh()->refer_code);
-        $this->assertSame($dealer->id, app(PartnerAccountProvisioning::class)->findSponsor('OLD-1')?->id);
+        $this->assertSame('OLD-1', $dealer->fresh()->dealer_code);
+        $this->assertSame('OLD-1', $dealer->fresh()->refer_code);
+        $this->assertDatabaseMissing('partner_former_codes', ['user_id' => $dealer->id]);
     }
 
     public function test_correcting_a_code_to_one_someone_else_refers_with_is_refused(): void

@@ -59,7 +59,7 @@ class PublicRenderPerformanceTest extends TestCase
         $html = $this->get('/')->assertOk()->getContent();
 
         $this->assertStringContainsString('family=inter:400,500,600,700|noto-sans-bengali:400,500,600,700', $html);
-        $this->assertStringContainsString('marcellus:400|tiro-bangla:400', $html);
+        $this->assertStringContainsString('marcellus:400|noto-serif-bengali:500,600,700', $html);
         // The digits ০-৯ keep their own equal-width face, through a small unicode-range face.
         foreach (['resources/css/reference-home.css', 'resources/css/dashboard.css'] as $css) {
             $text = (string) file_get_contents(base_path($css));

@@ -33,6 +33,6 @@ return [
     'report_loading' => 'Loading the report…',
     'targets_live' => 'Updates by itself with every order and delivery.',
     'open_wallet' => 'Wallet & withdrawals',
-    'card_more' => 'Address, email and more',
+    'card_more' => 'Join date and team',
     'card_less' => 'Show less',
 ];

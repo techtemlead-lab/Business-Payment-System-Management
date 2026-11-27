@@ -79,6 +79,29 @@ class PublicFormResultTest extends TestCase
         $this->assertSame([], config('madina.sms.sent'));
     }
 
+    public function test_a_number_already_on_an_open_application_is_refused_while_the_rule_is_on(): void
+    {
+        $this->switchOneNumberRuleOn();
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())->assertSessionHasNoErrors();
+
+        // Another e-mail, the same mobile written another way: the first application is still open.
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['email' => 'second@example.test', 'phone' => '+880 1811-112223'] + $this->application())
+            ->assertRedirect('/partnership#partner-apply-status')
+            ->assertSessionHasErrors(['phone' => __('portal.err_public_app_phone_taken')]);
+
+        $this->assertSame(1, DB::table('dealer_applications')->count());
+    }
+
+    public function test_a_number_on_an_open_application_may_apply_again_while_the_rule_is_off(): void
+    {
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', $this->application())->assertSessionHasNoErrors();
+
+        $this->onPortal('public')->from('/partnership')->post('/partnership/apply', ['email' => 'second@example.test'] + $this->application())
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, DB::table('dealer_applications')->count());
+    }
+
     public function test_the_old_confirm_box_no_longer_gets_a_taken_number_through(): void
     {
         $this->switchOneNumberRuleOn();

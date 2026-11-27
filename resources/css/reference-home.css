@@ -3602,7 +3602,7 @@ a.ref-concern-tag{text-decoration:none}
 
 
 /* Sonar Madina: the green and gold of the logo, for every public page.
-   Headings use Marcellus and Tiro Bangla, body text Inter and Noto Sans Bengali (fonts.css). Each stack
+   Headings use Marcellus and Noto Serif Bengali, body text Inter and Noto Sans Bengali (fonts.css). Each stack
    holds both, so a sentence that mixes the two languages still reads as one design. */
 :root{
   --ds-font-display:var(--font-heading);
@@ -4139,4 +4139,11 @@ html[data-theme="dark"] .ref-chip-label{color:var(--ds-text-muted,#a9bbb0)}
 .ref-announcement-track{display:block;width:auto;will-change:auto;-webkit-user-select:text;user-select:text}
 .ref-announcement-item{min-width:0;padding-inline-end:0;white-space:normal;line-height:1.6}
 .ref-announcement-item[aria-hidden="true"]{display:none}
+}
+
+/* Signed-out phone bar: Dealer login and Sub-dealer login are two separate tabs (client, 2026-11-27), so six tabs share the width and the two long labels wrap. */
+@media(max-width:1023px){
+.ref-mobile-nav.has-login-pair{grid-template-columns:repeat(6,minmax(0,1fr))}
+body.ref-home .ref-mobile-nav.has-login-pair > a.is-login{padding:0 2px;text-align:center}
+body.ref-home .ref-mobile-nav.has-login-pair > a.is-login > span{white-space:normal;font-size:10px;line-height:1.15;overflow:visible}
 }

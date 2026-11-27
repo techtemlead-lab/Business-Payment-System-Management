@@ -16,6 +16,7 @@ return [
     'label_area' => 'Area of responsibility',
     'label_appointment' => 'Appointed as',
     'label_chamber' => 'Hospital / diagnostic centre / chamber name',
+    'label_shop' => 'Pharmacy / shop name',
     'label_address' => 'Address',
     'label_permanent_address' => 'Permanent address',
     'label_business_area' => 'Business area',

@@ -5,7 +5,7 @@
  *   --font-body-en   English text. Inter: made for screens, very clear at 14 px, 400 to 700.
  *   --font-body-bn   Bangla text. Noto Sans Bengali: full conjunct support, even stroke, 400 to 700 (also the
  *                    Bangla default of the owner's siamsBay shop software).
- *   --font-heading   Public page headings (Marcellus for English, Tiro Bangla for Bangla).
+ *   --font-heading   Public page headings (Marcellus for English, Noto Serif Bengali for Bangla). Tiro Bangla was
  *   --font-fallback  System Bangla and Latin fonts, used while a font loads or if the font host is unreachable.
  *
  * Both body fonts sit in one stack: the browser takes Latin letters from Inter and Bangla letters from Noto Sans
@@ -16,7 +16,7 @@
 :root {
   --font-body-en: 'Inter';
   --font-body-bn: 'Noto Sans Bengali';
-  --font-heading: 'Marcellus', 'Tiro Bangla', 'Noto Serif Bengali', Georgia, serif;
+  --font-heading: 'Marcellus', 'Noto Serif Bengali', 'Noto Sans Bengali', Georgia, serif;
   --font-fallback: 'Nirmala UI', 'Vrinda', 'Noto Sans Bengali', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-stack: 'Madina Digits', var(--font-body-en), var(--font-body-bn), var(--font-fallback);
 }

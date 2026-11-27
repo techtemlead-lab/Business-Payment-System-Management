@@ -162,8 +162,11 @@ class SignedInRoundWordingNavTest extends TestCase
     {
         $shell = (string) file_get_contents(resource_path('js/components/Shell.tsx'));
 
-        $this->assertStringContainsString("dashboardNotice.text && (dashboardNotice.every_page || section === 'overview' || section === '') && (", $shell);
+        $this->assertStringContainsString("dashboardNotice.text && (dashboardNotice.every_page || section === 'overview' || section === ''))", $shell);
         $this->assertStringContainsString('dashboardNotice?.maintenance && !staff && (', $shell);
+        // The dealer and sub-dealer home draws the same notice under the person's card (client, 2026-11-25); every other page keeps it on top.
+        $this->assertStringContainsString('{!partnerHomeHere && noticeNode}', $shell);
+        $this->assertStringContainsString('{slots?.notice}', (string) file_get_contents(resource_path('js/components/DashboardOverview.tsx')));
     }
 
     public function test_activity_log_shows_only_the_plain_label(): void

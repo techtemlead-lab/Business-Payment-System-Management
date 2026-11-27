@@ -130,8 +130,8 @@ return [
     // Owner, 2026-11-21: withdrawals are paid as cash at the office for now. These are only the starting values;
     // the owner switches each method on or off in Finance settings (WithdrawalMethods).
     'withdrawal_methods_default' => array_values(array_filter(array_map('trim', explode(',', (string) env('MADINA_WITHDRAWAL_METHODS', 'Office'))))),
-    // Owner, 2026-11-21: withdrawals are asked for on Wednesday and paid on Thursday. Starting value only;
-    // the owner changes the days or switches the rule off in Finance settings (WithdrawalWeek).
+    // Owner, 2026-11-27: withdrawals are asked for on any day and paid on the weekly payout day (Thursday).
+    // Starting value of the weekly payout day only; the owner changes the day or switches it off in Finance settings (WithdrawalWeek).
     'withdrawal_weekly_window' => (bool) env('MADINA_WITHDRAWAL_WEEKLY_WINDOW', true),
 
     // Partners must accept the agreement before using the portal unless the owner switched that off. Tests turn the default off.

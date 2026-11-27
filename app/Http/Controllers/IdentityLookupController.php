@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountProvisioning;
+use App\Domain\Accounts\PartnerReferrerChange;
 use App\Domain\Identity\BdrisLookup;
 use App\Models\PlaceCode;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -67,6 +69,25 @@ class IdentityLookupController extends Controller
                 'reference_warnings' => $referenceWarnings,
                 'consumers' => $provisioning->commissionConsumers($sponsor, $management),
                 'place_options_hint' => PlaceCode::query()->where('is_active', true)->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Who a typed code would make this partner's referrer, checked by the same rules as saving,
+     * with the two generations above that person so the office sees the whole new chain.
+     */
+    public function referrerLookup(Request $request, User $user, PartnerReferrerChange $referrers, PartnerAccountProvisioning $provisioning): JsonResponse
+    {
+        abort_unless($request->user()?->allows('accounts'), 403);
+        abort_unless(in_array($user->role, PartnerAccountProvisioning::SponsorRoles, true), 404);
+        $data = $request->validate(['code' => 'nullable|string|max:40']);
+        $referrer = $referrers->referrerForCode($user, $data['code'] ?? null, 'code');
+
+        return response()->json([
+            'data' => [
+                'referrer' => PartnerReferrerChange::describe($referrer),
+                'consumers' => $provisioning->commissionConsumers($referrer),
             ],
         ]);
     }
