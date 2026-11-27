@@ -1,14 +1,16 @@
 name: Deploy production
 
+# Merging into main no longer deploys (user's decision, 2026-11-27). A release is a deliberate step:
+#   git push origin <green main commit>:production
+# The job deploys only a commit that is on main and whose "Application quality" run on main succeeded,
+# so the production branch can never carry code that skipped review or tests.
 on:
-  workflow_run:
-    workflows: ["Application quality"]
-    types: [completed]
-    branches: [main]
+  push:
+    branches: [production]
   workflow_dispatch:
     inputs:
       sha:
-        description: "Optional green main commit SHA to deploy (defaults to latest main)"
+        description: "Optional green main commit SHA to deploy (defaults to the production branch head)"
         required: false
         type: string
         default: ""
@@ -25,16 +27,39 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main')
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/production'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
           fetch-depth: 0
+
+      - name: Pick the commit and check it is a green main commit
+        id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_SHA: ${{ inputs.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_SHA:-}" ]; then
+            target_sha="$(git rev-parse "$INPUT_SHA^{commit}")"
+          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            target_sha="$(git rev-parse origin/production)"
+          else
+            target_sha="$GITHUB_SHA"
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$target_sha" origin/main; then
+            echo "Refusing to deploy $target_sha: it is not on main." >&2
+            exit 1
+          fi
+          green="$(gh api "repos/$REPOSITORY/actions/workflows/quality.yml/runs?head_sha=$target_sha&branch=main&event=push&status=success" --jq '.total_count')"
+          if [ "${green:-0}" -lt 1 ]; then
+            echo "Refusing to deploy $target_sha: no successful 'Application quality' run on main for it." >&2
+            exit 1
+          fi
+          echo "sha=$target_sha" >> "$GITHUB_OUTPUT"
+          echo "Deploying commit: $target_sha"
 
       - name: Configure SSH
         env:
@@ -62,23 +87,14 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Deploy green commit from main
+      - name: Deploy the green commit
         env:
           MADINA_DEPLOY_SSH: ${{ secrets.DEPLOY_SSH_TARGET }}
           GH_TOKEN: ${{ github.token }}
-          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
-          INPUT_SHA: ${{ inputs.sha }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
         run: |
           set -euo pipefail
-          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
-            target_sha="$WORKFLOW_SHA"
-          elif [ -n "${INPUT_SHA:-}" ]; then
-            target_sha="$INPUT_SHA"
-          else
-            target_sha="$(git rev-parse origin/main)"
-          fi
-          echo "Deploying commit: $target_sha"
-          MADINA_DEPLOY_KEY="$HOME/.ssh/deploy_key" bash infra/deploy/deploy.sh "$target_sha"
+          MADINA_DEPLOY_KEY="$HOME/.ssh/deploy_key" bash infra/deploy/deploy.sh "$TARGET_SHA"
 
       - name: Clean up SSH key
         if: always()
