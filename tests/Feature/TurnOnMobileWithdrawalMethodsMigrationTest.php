@@ -59,10 +59,46 @@ class TurnOnMobileWithdrawalMethodsMigrationTest extends TestCase
         $this->assertSame(1, DB::table('audit_events')->where('action', 'withdrawal.methods_changed')->count());
     }
 
-    public function test_nothing_is_written_when_no_setting_is_saved_or_all_three_are_on(): void
+    public function test_with_nothing_saved_and_the_server_saying_office_only_the_three_are_saved_on(): void
     {
+        $owner = User::factory()->staff('super_admin')->create();
+        config(['madina.withdrawal_methods_default' => ['Office']]);
+        $this->assertSame(['Office'], app(WithdrawalMethods::class)->enabled());
+
+        $this->migration()->up();
+        $this->migration()->up();
+
+        $row = DB::table('business_settings')->where('key', WithdrawalMethods::SettingKey)->sole();
+        $this->assertSame(['Office' => true, 'Bank' => false, 'bKash' => true, 'Nagad' => true, 'Rocket' => true], json_decode((string) $row->value, true)['enabled']);
+        $this->assertSame(1, (int) $row->version);
+        $this->assertSame($owner->id, (int) $row->updated_by);
+        $this->assertSame(['Office', 'bKash', 'Nagad', 'Rocket'], app(WithdrawalMethods::class)->enabled());
+        $audit = DB::table('audit_events')->where('action', 'withdrawal.methods_changed')->sole();
+        $this->assertNull($audit->actor_id);
+        $metadata = json_decode((string) $audit->metadata, true);
+        $this->assertSame(['Office' => true, 'Bank' => false, 'bKash' => false, 'Nagad' => false, 'Rocket' => false], $metadata['before']);
+        $this->assertSame('migration', $metadata['source']);
+    }
+
+    public function test_with_nothing_saved_office_and_bank_keep_their_current_state(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        config(['madina.withdrawal_methods_default' => ['Bank', 'Nagad']]);
+
+        $this->migration()->up();
+
+        $row = DB::table('business_settings')->where('key', WithdrawalMethods::SettingKey)->sole();
+        $this->assertSame(['Office' => false, 'Bank' => true, 'bKash' => true, 'Nagad' => true, 'Rocket' => true], json_decode((string) $row->value, true)['enabled']);
+        $this->assertSame($owner->id, (int) $row->updated_by);
+    }
+
+    public function test_nothing_is_written_when_no_setting_is_saved_and_the_three_are_already_on_or_all_three_are_saved_on(): void
+    {
+        // The test settings switch every way on, so the ways in force already include the three.
+        User::factory()->staff('super_admin')->create();
         $this->migration()->up();
         $this->assertSame(0, DB::table('business_settings')->where('key', WithdrawalMethods::SettingKey)->count());
+        $this->assertSame(0, DB::table('audit_events')->where('action', 'withdrawal.methods_changed')->count());
 
         $owner = User::factory()->staff('super_admin')->create();
         $this->store($owner, ['Office' => true, 'Bank' => false, 'bKash' => true, 'Nagad' => true, 'Rocket' => true], 2);
