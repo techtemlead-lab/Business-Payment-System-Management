@@ -83,4 +83,5 @@ return [
     'claim_fact_order' => 'Order',
     'claim_fact_partner' => 'Paid by',
     'claim_fact_reference' => 'Transaction number',
+    'flash_verified_approved' => 'The money was recorded and the order is approved.',
 ];

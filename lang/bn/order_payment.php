@@ -83,4 +83,5 @@ return [
     'claim_fact_order' => 'অর্ডার',
     'claim_fact_partner' => 'কে দিয়েছেন',
     'claim_fact_reference' => 'লেনদেন নম্বর',
+    'flash_verified_approved' => 'টাকা জমা হয়েছে আর অর্ডার অনুমোদন হয়েছে।',
 ];

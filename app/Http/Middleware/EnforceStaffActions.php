@@ -253,6 +253,8 @@ class EnforceStaffActions
                 'reviewKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify', 'refund' => [['finance'], 'approve'],
+                // Payment check and approval in one press: the controller also requires the order-review approval right.
+                'verifyAndApprove' => [['finance'], 'approve'],
                 'dispatch', 'delivered', 'supplyDate' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization' => [['content'], 'edit'],
                 'enquiry' => [['content', 'accounts', 'support_desk'], 'edit'],
