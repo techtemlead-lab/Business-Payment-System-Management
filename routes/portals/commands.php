@@ -133,6 +133,7 @@ return function (string $portal): void {
     Route::get('/exports/branch-performance', BranchPerformanceExportController::class)->middleware('throttle:15,1,data-exports');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
+    Route::post('/commands/orders/{order}/verify-and-approve', [CommandController::class, 'verifyAndApprove'])->middleware('throttle:20,1');
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
     Route::post('/commands/orders/{order}/payments', [CommandController::class, 'claim'])->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/pay-from-account', [CommandController::class, 'payFromAccount'])->middleware('throttle:10,1');

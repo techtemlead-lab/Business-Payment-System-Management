@@ -21,6 +21,7 @@ import { returnedByLine } from '../components/office/portalShared';
 import { orderLineDiscountPercent } from '../components/orderLineDiscount';
 import OwedItemsPanel, { type OwedItem } from '../components/OwedItemsPanel';
 import ClaimDecision from '../components/ClaimDecision';
+import VerifyAndApprove from '../components/VerifyAndApprove';
 import OrderNextStep, { type OrderNextStepData } from '../components/OrderNextStep';
 
 /** Units of a line still to send: not sent and not closed by a cancel. */
@@ -163,6 +164,13 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const pickup = order.delivery_method === 'office';
     const staffOnOrder = auth.user.id !== order.user_id;
     const canSendGoods = capabilities.includes('inventory') && (staffActions?.inventory?.edit ?? true) && staffOnOrder;
+    const fullyPaid = Math.round(Number(outstanding) * 100) <= 0;
+    // One waiting payment that pays the whole price: whoever may check payments and approve orders does both with one press.
+    const waitingClaims = claims.filter(claim => claim.status === 'pending');
+    const oneStepClaim = staffOnOrder && waitingClaims.length === 1 && ['submitted', 'held'].includes(order.status)
+        && capabilities.includes('finance') && capabilities.includes('order_review')
+        && Math.round(Number(waitingClaims[0].amount) * 100) === Math.round(Number(outstanding) * 100)
+        && actionAllowed(`/commands/orders/${order.id}/verify-and-approve`, staffActions) ? waitingClaims[0] : null;
     const canChangeDelivery = (capabilities.includes('inventory') || capabilities.includes('order_review')) && staffOnOrder
         && ['submitted', 'held', 'approved'].includes(order.status) && shipments.length === 0;
     // Phone: the one thing this person should do now (see OrderNextStep and mobile-office.css).
@@ -175,6 +183,9 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         }
         if (!staffOnOrder) {
             return null;
+        }
+        if (oneStepClaim) {
+            return { key: 'approve', targetId: 'od-review' };
         }
         if (capabilities.includes('finance') && canVerify && claims.some(claim => claim.status === 'pending')) {
             return { key: 'verify', targetId: 'od-claims' };
@@ -382,9 +393,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 const short = sendableOf(productId) < neededOf(productId);
                 return <li key={productId} className={short ? 'is-warn' : undefined}>{line?.name}: {translate('orders_stock', 'approval_stock')} {number(sendableOf(productId))} / {number(neededOf(productId))}{short ? ` · ${translate('orders_stock', 'approval_stock_short')}` : ''}</li>;
             })}</ul>}{replacementSlots.length>0&&<div className="notice"><p>{translate('portal', 'replacement_hint')}</p><form method="get"><label>{translate('portal', 'find_replacement_partners')}<input name="replacement_q" type="search"/></label><button className="button small">{translate('portal', 'find_partners')}</button></form></div>}
+            {oneStepClaim && <VerifyAndApprove order={order} claim={oneStepClaim} replacementSlots={replacementSlots} replacementCandidates={replacementCandidates} />}
+            {oneStepClaim ? <h3>{translate('order_payment', 'one_step_other_choices')}</h3> : !fullyPaid && <p className="muted" role="note">{translate('order_payment', 'approve_after_payment')}</p>}
+            {/* Approving needs the whole price checked first, so until then this form only holds or rejects. */}
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[
-                { name: 'status', label: translate('portal', 'decision'), required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value, translate) })) },
-                ...replacementSlots.map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:translate('portal','replacement_for_generation',{generation:String(slot.generation),name:String(slot.name)}),search:true,options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??translate('portal','col_partner')}`}))})),
+                { name: 'status', label: translate('portal', 'decision'), required: true, options: (fullyPaid ? ['approved', 'held', 'rejected'] : ['held', 'rejected']).map(value => ({ value, label: label(value, translate) })) },
+                ...(fullyPaid ? replacementSlots : []).map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:translate('portal','replacement_for_generation',{generation:String(slot.generation),name:String(slot.name)}),search:true,options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??translate('portal','col_partner')}`}))})),
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', place: 'order.decision' },
             ]} submit={translate('portal', 'record_decision')} />
         </section>}

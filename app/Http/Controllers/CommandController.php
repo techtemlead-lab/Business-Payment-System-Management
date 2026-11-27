@@ -51,6 +51,7 @@ use App\Http\Requests\Backend\DecideOrderRequest;
 use App\Http\Requests\Backend\DispatchOrderRequest;
 use App\Http\Requests\Backend\RefundOrderRequest;
 use App\Http\Requests\Backend\StoreOrderRequest;
+use App\Http\Requests\Backend\VerifyAndApproveOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Models\AreaDealerAssignment;
 use App\Models\CompanyBranch;
@@ -129,6 +130,28 @@ class CommandController extends Controller
         $s->verify($r->user(), $claim, $d['approve'], ReasonFields::text($d['reason'] ?? null), isset($d['cash_counted']) ? (string) $d['cash_counted'] : null);
 
         return back(fallback: $claimRow ? '/orders/'.$claimRow->order_id : '/payments')->with('success', __('portal.flash_payment_review'));
+    }
+
+    /**
+     * Checks the payment that completes the price and approves the order in one press. Then, like an
+     * approval, staff who send goods go on to the courier page; an office pickup stays on the order.
+     */
+    public function verifyAndApprove(VerifyAndApproveOrderRequest $r, Order $order, OrderService $s): RedirectResponse
+    {
+        // The route checks the payment permission; the approval needs the order-review one as well.
+        abort_unless($r->user()->canAct('order_review', 'approve'), 403, __('portal.err_staff_action_denied'));
+        $d = $r->validated();
+        $s->verifyAndApprove($r->user(), $order, (int) $d['claim_id'], ReasonFields::text($d['reason'] ?? null), $r->replacements(),
+            isset($d['cash_counted']) ? (string) $d['cash_counted'] : null);
+        $message = __('order_payment.flash_verified_approved');
+        if (OfficePickup::isPickupOrder($order->refresh())) {
+            return redirect('/orders/'.$order->id)->with('success', $message);
+        }
+        if ($r->user()->allows('inventory') && in_array($order->status, ['approved', 'partially_dispatched'], true)) {
+            return redirect('/orders/'.$order->id.'/courier')->with('success', $message);
+        }
+
+        return back(fallback: '/orders/'.$order->id)->with('success', $message);
     }
 
     public function dispatch(DispatchOrderRequest $r, Order $order, OrderService $s): RedirectResponse

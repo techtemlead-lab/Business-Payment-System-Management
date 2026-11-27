@@ -362,8 +362,54 @@ class OrderService
         // The gateway can take up to 30 seconds. Ask it before taking the money lock so a
         // slow provider does not stall every other order, payout and settlement.
         $checked = $approve ? $this->gatewayLookupBeforeLock($claimId) : null;
+        $this->reviewClaim($actor, $claimId, $approve, $reason, $checked, $cashCounted);
+    }
+
+    /**
+     * One step for "the money came, approve the order" (owner's request, 2026-11-27): checks the payment
+     * that completes the price and approves the order in the same transaction. It runs every check the two
+     * separate steps run (the payment check, then the approval with the chosen upline replacements) and
+     * writes the same records: `payment.verified`, `order.approved` and `commissions.policy_approved`.
+     * When the approval is refused (for example the price does not fund the commissions) nothing is saved,
+     * and the payment can still be checked on its own. The partner gets one message for both.
+     *
+     * Unlike the automatic approval after a payment check, a held order is approved too: a person chose it.
+     * Pressing twice changes nothing the second time.
+     *
+     * @param  array<int, int>  $replacements
+     */
+    public function verifyAndApprove(User $actor, Order $order, int $claimId, string $reason, array $replacements = [], ?string $cashCounted = null): void
+    {
+        abort_unless($actor->allows('finance') && $actor->allows('order_review'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
+        $claim = DB::table('payment_claims')->where('id', $claimId)->where('order_id', $order->id)->first(['status']);
+        abort_if($claim === null, 404);
+        if ($this->alreadyVerifiedAndApproved((string) $claim->status, $order->fresh() ?? $order)) {
+            return;
+        }
+        $checked = $this->gatewayLookupBeforeLock($claimId);
+        $this->reviewClaim($actor, $claimId, true, $reason, $checked, $cashCounted, $replacements);
+    }
+
+    /** A repeat press of "check payment and approve" after the first one went through. */
+    private function alreadyVerifiedAndApproved(string $claimStatus, Order $order): bool
+    {
+        return $claimStatus === 'verified' && ! in_array($order->status, ['submitted', 'held'], true);
+    }
+
+    /**
+     * The payment check itself. `$approveWith` is null for a plain check (the order may then approve by
+     * itself, {@see approveWhenFullyPaid}); a list of upline replacements (possibly empty) approves the
+     * order in the same transaction, and a refused approval undoes the payment check too.
+     *
+     * @param  array{claim: string, result: array<string, mixed>}|null  $checked
+     * @param  array<int, int>|null  $approveWith
+     */
+    private function reviewClaim(User $actor, int $claimId, bool $approve, string $reason, ?array $checked, ?string $cashCounted, ?array $approveWith = null): void
+    {
         try {
-            DB::transaction(function () use ($actor, $claimId, $approve, $reason, $checked, $cashCounted): void {
+            DB::transaction(function () use ($actor, $claimId, $approve, $reason, $checked, $cashCounted, $approveWith): void {
                 CommissionWallet::lock();
                 $initial = DB::table('payment_claims')->find($claimId);
                 abort_unless($initial, 404);
@@ -372,8 +418,15 @@ class OrderService
                 abort_unless($this->branches->mayOpenOrder($actor, $order), 403);
                 $this->assertNotOwnOrder($actor, $order);
                 $claim = DB::table('payment_claims')->where('id', $claimId)->lockForUpdate()->first();
+                if ($approveWith !== null && $this->alreadyVerifiedAndApproved((string) $claim->status, $order)) {
+                    // A double press that waited for the first one's lock: that one did both steps.
+                    return;
+                }
                 if ($claim->status !== 'pending') {
                     throw ValidationException::withMessages(['payment' => __('portal.err_payment_already_reviewed')]);
+                }
+                if ($approveWith !== null && ! in_array($order->status, ['submitted', 'held'], true)) {
+                    throw ValidationException::withMessages(['status' => __('portal.err_order_already_decided')]);
                 }
                 if ($approve && $claim->channel === self::OfficeChannel) {
                     if ($cashCounted === null || trim($cashCounted) === '') {
@@ -402,6 +455,11 @@ class OrderService
                     if ($paid > Money::cents($order->total) - Money::cents($order->due_credit)) {
                         throw ValidationException::withMessages(['payment' => __('portal.err_payment_overpay')]);
                     }
+                    $stillDue = Money::cents((string) $order->total) - Money::cents((string) $order->due_credit) - $paid;
+                    if ($approveWith !== null && $stillDue > 0) {
+                        // This payment alone does not complete the price, so the order cannot be approved with it.
+                        throw ValidationException::withMessages(['status' => __('portal.err_order_needs_full_payment', ['amount' => Money::grouped(Money::decimal($stillDue))])]);
+                    }
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
                     $partner = User::find($order->user_id);
@@ -425,10 +483,16 @@ class OrderService
                     'amount' => $claim->amount, 'order_paid_after' => $order->paid, 'order_total' => $order->total,
                     ...($approve && $claim->channel === self::OfficeChannel ? ['cash_counted' => $cashCounted] : []),
                 ]);
-                $autoApproved = $approve && $this->approveWhenFullyPaid($actor, $order);
+                if ($approveWith !== null) {
+                    // A person asked for the approval: a refusal stops both steps, so nothing is half done.
+                    $this->applyDecision($actor, $order, 'approved', $reason, $approveWith, false, false);
+                    $orderApproved = true;
+                } else {
+                    $orderApproved = $approve && $this->approveWhenFullyPaid($actor, $order);
+                }
                 // One message for the payment, on each channel. When the check also approved the order it says so
                 // ("verified and the order is approved"), and the approval sends nothing of its own.
-                $outcomeKey = $approve ? ($autoApproved ? 'portal.payment_outcome_verified_approved' : 'portal.payment_outcome_verified') : 'portal.payment_outcome_rejected';
+                $outcomeKey = $approve ? ($orderApproved ? 'portal.payment_outcome_verified_approved' : 'portal.payment_outcome_verified') : 'portal.payment_outcome_rejected';
                 $partner = User::find($order->user_id);
                 $locale = $partner?->preferredLocale() ?? app()->getLocale();
                 $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
