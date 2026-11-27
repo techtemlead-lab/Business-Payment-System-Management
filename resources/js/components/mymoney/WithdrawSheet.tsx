@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowUpRight, CalendarDays, Landmark, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Landmark, ShoppingBag } from 'lucide-react';
 import { ActionForm, Modal, money } from '../UI';
 import { useT } from '../../shared/i18n/t';
 import { randomUuid } from '../../shared/randomUuid';
@@ -33,7 +33,6 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
     const officeOn = methods.includes('Office');
     const onlineChannels = methods.filter((method) => method !== 'Office');
     const [way, setWay] = useState<'office' | 'online'>(officeOn ? 'office' : 'online');
-    const weekClosed = Boolean(withdraw.week?.enabled && !withdraw.week.open);
     const takeLabel =onlineChannels.length === 0 ? translate('office_withdrawal', 'take_money_office') : officeOn ? translate('office_withdrawal', 'take_money_any') : translate('my_money', 'take_money');
     const usable = Number(available);
     const budgetAmount = Number(plainDigits(budget));
@@ -68,22 +67,15 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
 
             {step === 'choose' && (
                 <div className="mm-choices">
-                    {/* Outside the application day the request button gives way to the day rule; the balance stays above. */}
-                    {weekClosed ? (
-                        <div className="notice mm-week-closed" role="status">
-                            <CalendarDays size={22} aria-hidden="true" />
-                            <p>{withdraw.week?.message}</p>
-                        </div>
-                    ) : (
-                        <button type="button" className="mm-choice" disabled={takeRefusal !== null} onClick={() => setStep('take')}>
-                            <Landmark size={22} aria-hidden="true" />
-                            <span>
-                                <b>{takeLabel}</b>
-                                {takeRefusal && <small>{takeRefusal}</small>}
-                                {!takeRefusal && withdraw.week?.enabled && <small>{translate('office_withdrawal', officeOn ? 'payout_line_office' : 'payout_line_online', { day: withdraw.week.payout_day, date: withdraw.week.payout_date })}</small>}
-                            </span>
-                        </button>
-                    )}
+                    {/* Requests are taken on any day (owner, 2026-11-27); the line under the button names the payout day. */}
+                    <button type="button" className="mm-choice" disabled={takeRefusal !== null} onClick={() => setStep('take')}>
+                        <Landmark size={22} aria-hidden="true" />
+                        <span>
+                            <b>{takeLabel}</b>
+                            {takeRefusal && <small>{takeRefusal}</small>}
+                            {!takeRefusal && withdraw.week?.enabled && <small>{translate('office_withdrawal', officeOn ? 'payout_line_office' : 'payout_line_online', { day: withdraw.week.payout_day, date: withdraw.week.payout_date })}</small>}
+                        </span>
+                    </button>
                     <button type="button" className="mm-choice" disabled={orderRefusal !== null} onClick={() => setStep('order')}>
                         <ShoppingBag size={22} aria-hidden="true" />
                         <span>

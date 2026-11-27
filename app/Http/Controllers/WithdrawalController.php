@@ -267,17 +267,16 @@ class WithdrawalController extends Controller
         return $r->expectsJson() ? response()->json(['data' => $limits->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
     }
 
-    /** Owners only: the weekly application day and payout day, and whether the weekly rule applies at all. */
+    /** Owners only: the weekly payout day, and whether the weekly payout day applies at all. Requests are taken on any day. */
     public function week(Request $r, WithdrawalWeek $week): JsonResponse|RedirectResponse
     {
         $d = $r->validate([
             'enabled' => 'required|boolean',
-            'request_day' => 'required|integer|between:1,7',
             'payout_day' => 'required|integer|between:1,7',
             'version' => 'required|integer|min:0',
             'reason' => ReasonFields::rule('money.withdrawal_minimum', 1000, 5),
         ]);
-        $week->save($r->user(), (bool) $d['enabled'], (int) $d['request_day'], (int) $d['payout_day'], (int) $d['version'], ReasonFields::text($d['reason'] ?? null));
+        $week->save($r->user(), (bool) $d['enabled'], (int) $d['payout_day'], (int) $d['version'], ReasonFields::text($d['reason'] ?? null));
 
         return $r->expectsJson() ? response()->json(['data' => $week->settings()]) : back()->with('success', __('portal.flash_changes_recorded'));
     }
