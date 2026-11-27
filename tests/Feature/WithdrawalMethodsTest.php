@@ -13,8 +13,9 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Owner, 2026-11-21: "Office withdrawal" (cash at the office) is the default way to take money out, and
- * for now the only one. bKash, Nagad, Rocket and bank are switched off and the owner turns them on later.
+ * Owner, 2026-11-21: "Office withdrawal" (cash at the office) is the first way to take money out; the owner
+ * switches each way on or off. Owner, 2026-11-27: bKash, Nagad and Rocket are on by default too; bank stays off.
+ * Most tests below start from an install where the owner left only the office on.
  */
 class WithdrawalMethodsTest extends TestCase
 {
@@ -26,11 +27,47 @@ class WithdrawalMethodsTest extends TestCase
         $this->withoutVite();
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
-        // What a real install starts with (the test settings switch every way on for older tests).
+        // An install where only the office way is on (the test settings switch every way on for older tests).
         config(['madina.withdrawal_methods_default' => [WithdrawalMethods::Office]]);
     }
 
-    public function test_only_office_withdrawal_is_on_at_the_start(): void
+    public function test_office_bkash_nagad_and_rocket_are_on_by_default_and_bank_is_off(): void
+    {
+        $saved = ['env' => $_ENV['MADINA_WITHDRAWAL_METHODS'] ?? null, 'server' => $_SERVER['MADINA_WITHDRAWAL_METHODS'] ?? null, 'put' => getenv('MADINA_WITHDRAWAL_METHODS')];
+        unset($_ENV['MADINA_WITHDRAWAL_METHODS'], $_SERVER['MADINA_WITHDRAWAL_METHODS']);
+        putenv('MADINA_WITHDRAWAL_METHODS');
+        try {
+            // The config file read with no MADINA_WITHDRAWAL_METHODS set: what a fresh install uses.
+            $default = (require config_path('madina.php'))['withdrawal_methods_default'];
+        } finally {
+            foreach (['env' => '_ENV', 'server' => '_SERVER'] as $slot => $global) {
+                if ($saved[$slot] !== null) {
+                    $GLOBALS[$global]['MADINA_WITHDRAWAL_METHODS'] = $saved[$slot];
+                }
+            }
+            if ($saved['put'] !== false) {
+                putenv('MADINA_WITHDRAWAL_METHODS='.$saved['put']);
+            }
+        }
+        $this->assertSame(['Office', 'bKash', 'Nagad', 'Rocket'], $default);
+
+        config(['madina.withdrawal_methods_default' => $default]);
+        $this->assertSame(['Office' => true, 'Bank' => false, 'bKash' => true, 'Nagad' => true, 'Rocket' => true], app(WithdrawalMethods::class)->settings()['enabled']);
+        $dealer = $this->partnerWithWallet('5000.00');
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('withdraw.methods', ['Office', 'bKash', 'Nagad', 'Rocket']));
+        foreach (['bKash' => '01711111111', 'Nagad' => '01811111111', 'Rocket' => '017111111112'] as $channel => $number) {
+            $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'channel' => $channel, 'destination' => $number, 'idempotency_key' => (string) Str::uuid()])
+                ->assertSessionHasNoErrors();
+        }
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'channel' => 'Bank', 'destination' => '0123456789', 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors(['channel' => __('office_withdrawal.err_method_off')]);
+        // The partner's history names the way of each request.
+        $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
+            ->assertInertia(fn ($page) => $page->where('withdrawal_history.rows.data', fn ($rows): bool => collect($rows)->pluck('channel')->sort()->values()->all() === ['Nagad', 'Rocket', 'bKash']));
+    }
+
+    public function test_an_install_with_only_the_office_on_offers_only_the_office(): void
     {
         $settings = app(WithdrawalMethods::class)->settings();
 
