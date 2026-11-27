@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -118,6 +119,8 @@ class OfficeDashboardSectionsTest extends TestCase
 
     public function test_partner_activity_shows_when_the_table_exists_and_counts_online_and_today(): void
     {
+        // Mid-day in Dhaka: "30 minutes ago" must still be today (the run just after Dhaka midnight used to fail).
+        $this->travelTo(CarbonImmutable::parse('2026-11-27 12:00:00', (string) config('madina.business_timezone', config('app.timezone')))->utc());
         $dropAfter = ! Schema::hasTable('partner_activity');
         if ($dropAfter) {
             Schema::create('partner_activity', function (Blueprint $table): void {
