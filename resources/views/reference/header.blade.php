@@ -56,6 +56,13 @@
 
         <!-- Desktop Header Links -->
         <div class="ref-header-links">
+            @if($publicPageEnabled['products'] ?? true)
+            <a href="{{ $site('/products') }}" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</b></a>
+            @endif
+            @guest
+            <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-header-login"><i class="fa-solid fa-store" aria-hidden="true"></i><b>{{ __('site.dealer_login') }}</b></a>
+            <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}" class="ref-header-login"><i class="fa-solid fa-shop" aria-hidden="true"></i><b>{{ __('site.subdealer_login') }}</b></a>
+            @endguest
             @if($publicPageEnabled['about'] ?? true)
             <a href="{{ $site('/about') }}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><b>{{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</b></a>
             @endif
@@ -71,8 +78,6 @@
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-header-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><b>{{ auth()->user()->name }}</b></a>
             <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="{{ __('site.log_out') }}" aria-label="{{ __('site.log_out') }}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><b>{{ __('site.log_out') }}</b></button></form>
-            @else
-            <a href="{{ $site('/login') }}"><i class="fa-solid fa-user" aria-hidden="true"></i><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b></a>
             @endauth
             <button type="button" class="ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}">
                 <span class="theme-icon-day" aria-hidden="true">
@@ -88,9 +93,6 @@
                 <button type="submit" name="locale" value="en" class="{{ app()->getLocale() === 'en' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'en' ? 'true' : 'false' }}">EN</button>
                 <button type="submit" name="locale" value="bn" class="{{ app()->getLocale() === 'bn' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'bn' ? 'true' : 'false' }}">বাংলা</button>
             </form>
-            @if($publicPageEnabled['products'] ?? true)
-            <a href="{{ $site('/products') }}" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</b></a>
-            @endif
         </div>
     </div>
 </header>
@@ -211,8 +213,11 @@
                 </button>
             </form>
             @else
-            <a href="{{ $site('/login') }}" class="ref-drawer-btn ref-drawer-btn-primary">
-                <i class="fa-solid fa-user"></i> {{ $chrome('account_sub', $siteCustomization['header_account_subtitle'] ?? null) }}
+            <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-drawer-btn ref-drawer-btn-primary">
+                <i class="fa-solid fa-store"></i> {{ __('site.dealer_login') }}
+            </a>
+            <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}" class="ref-drawer-btn ref-drawer-btn-primary">
+                <i class="fa-solid fa-shop"></i> {{ __('site.subdealer_login') }}
             </a>
             @if(($publicPageEnabled['partnership'] ?? true) || ($publicPageEnabled['contact'] ?? true))
             <a href="{{ $site(($publicPageEnabled['partnership'] ?? true) ? '/partnership' : '/contact#vendor') }}" class="ref-drawer-btn ref-drawer-btn-secondary">

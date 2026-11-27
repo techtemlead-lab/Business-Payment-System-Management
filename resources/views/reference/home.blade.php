@@ -89,7 +89,7 @@
         </div>
     </section>
     @php
-        $announcementText = $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null);
+        $announcementText = \App\Support\SiteChrome::inVisitorLanguage('announcement_text', $siteCustomization['announcement_text'] ?? null);
         // First guess of the time one pass takes (about 45 px a second); reference-home.ts replaces it with the measured width.
         $announcementSeconds = max(8, (int) round(mb_strlen($announcementText) * 0.17));
     @endphp

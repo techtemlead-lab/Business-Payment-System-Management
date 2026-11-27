@@ -97,7 +97,8 @@ class PublicPartnerLoginTest extends TestCase
         $this->onPortal('public')->get('/')
             ->assertOk()
             ->assertSee('lang="bn"', false)
-            ->assertSee('পার্টনার লগইন')
+            ->assertSee('ডিলার লগইন')
+            ->assertSee('সাব-ডিলার লগইন')
             ->assertSee('is-active', false);
     }
 }
