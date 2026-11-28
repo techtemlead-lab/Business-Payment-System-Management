@@ -489,14 +489,31 @@ final class CommissionQualification
         if (! in_array($type, ['bike', 'car'], true)) {
             throw ValidationException::withMessages(['milestone_type' => __('portal.err_qual_milestone')]);
         }
+
+        return $this->milestones($userId)[$type];
+    }
+
+    /**
+     * The bike and the car from one read of the team: each gets the figures milestone() gives it, and a screen that
+     * shows both does not read the team twice.
+     *
+     * @return array{bike: array<string, mixed>, car: array<string, mixed>}
+     */
+    public function milestones(int $userId): array
+    {
         $parameters = $this->rewardParameters();
         $partner = User::find($userId);
         if ($partner) {
             $parameters = PartnerBenefitControls::effectiveVehicleParameters($partner, ['car_bike_incentive' => ['parameters' => $parameters]]);
         }
         $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
+        $volumes = $this->legVolumes($directLegs->pluck('id')->all());
+        $own = $this->legVolumes([$userId], false)[$userId] ?? 0;
 
-        return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()), $this->legVolumes([$userId], false)[$userId] ?? 0);
+        return [
+            'bike' => $this->milestoneFromLegs('bike', $parameters, $directLegs, $volumes, $own),
+            'car' => $this->milestoneFromLegs('car', $parameters, $directLegs, $volumes, $own),
+        ];
     }
 
     /** @return array<string, mixed> */

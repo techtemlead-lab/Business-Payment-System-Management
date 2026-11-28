@@ -41,6 +41,9 @@ final class PartnerDashboardHome
     /** @var Collection<string, RewardMilestoneProgress>|null */
     private ?Collection $vehicleRows = null;
 
+    /** @var array{bike: array<string, mixed>, car: array<string, mixed>}|null Worked out once, only when a stored row is missing. */
+    private ?array $vehicleComputed = null;
+
     public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress, private PartnerEarningsPresenter $earnings, private PartnerMoneyBook $moneyBook, private PartnerPendingMoney $pending) {}
 
     /**
@@ -67,6 +70,7 @@ final class PartnerDashboardHome
         $this->rankRowLoaded = false;
         $this->targetsVolumeLoaded = false;
         $this->vehicleRows = null;
+        $this->vehicleComputed = null;
         $profile = is_array($user->profile) ? $user->profile : [];
 
         $ownSalesToday = $this->purchaseTotal(
@@ -602,10 +606,12 @@ final class PartnerDashboardHome
     private function vehicleVolume(User $user, string $type): int
     {
         $row = $this->vehicleRows?->get($type);
+        if ($row !== null) {
+            return Money::cents((string) $row->qualifying_volume);
+        }
+        $this->vehicleComputed ??= $this->qualification->milestones($user->id);
 
-        return Money::cents((string) ($row === null
-            ? $this->qualification->milestone($user->id, $type)['qualifying_volume']
-            : $row->qualifying_volume));
+        return Money::cents((string) $this->vehicleComputed[$type]['qualifying_volume']);
     }
 
     /**
