@@ -96,6 +96,20 @@
         </div>
     </div>
 </header>
+{{-- Phones and tablets (client voice notes, 2026-11-28): Products and the two logins, or the account and Sign out, sit
+     right under the Home line in big buttons, so a dealer finds them at once instead of in the small bottom bar. --}}
+<nav class="ref-quick-row" aria-label="{{ __('site.quick_links') }}">
+    @if($publicPageEnabled['products'] ?? true)
+    <a href="{{ $site('/products') }}" class="ref-quick-link is-products"@if(request()->is('products*')) aria-current="page"@endif><i class="fa-solid fa-leaf" aria-hidden="true"></i><span>{{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</span></a>
+    @endif
+    @guest
+    <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-quick-link is-login"><i class="fa-solid fa-store" aria-hidden="true"></i><span>{{ __('site.dealer_login') }}</span></a>
+    <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}" class="ref-quick-link is-login"><i class="fa-solid fa-shop" aria-hidden="true"></i><span>{{ __('site.subdealer_login') }}</span></a>
+    @else
+    <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-quick-link is-account"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span>{{ __('site.my_account') }}</span></a>
+    <form method="POST" action="/logout" class="ref-quick-logout"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-quick-link is-logout"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span>{{ __('findability.sign_out') }}</span></button></form>
+    @endguest
+</nav>
 </div>
 
 <!-- Mobile Fullscreen Search Overlay -->

@@ -36,6 +36,7 @@ use App\Domain\Notifications\PartnerEventEmail;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\SmsText;
 use App\Domain\Orders\OfficePickup;
+use App\Domain\Orders\OrderDeliveryMethod;
 use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
 use App\Domain\Payouts\WithdrawalHolds;
@@ -136,7 +137,7 @@ class CommandController extends Controller
      * Checks the payment that completes the price and approves the order in one press. Then, like an
      * approval, staff who send goods go on to the courier page; an office pickup stays on the order.
      */
-    public function verifyAndApprove(VerifyAndApproveOrderRequest $r, Order $order, OrderService $s): RedirectResponse
+    public function verifyAndApprove(VerifyAndApproveOrderRequest $r, Order $order, OrderService $s, OrderDeliveryMethod $methods): RedirectResponse
     {
         // The route checks the payment permission; the approval needs the order-review one as well.
         abort_unless($r->user()->canAct('order_review', 'approve'), 403, __('portal.err_staff_action_denied'));
@@ -145,6 +146,22 @@ class CommandController extends Controller
             isset($d['cash_counted']) ? (string) $d['cash_counted'] : null);
         $message = __('order_payment.flash_verified_approved');
         if (OfficePickup::isPickupOrder($order->refresh())) {
+            // Cash at the counter: the goods can go out in the same press. The money and the approval are already
+            // saved; if the goods cannot go out now, the order page says why and the hand-over box stays open.
+            if ($r->boolean('hand_over') && $r->user()->canAct('inventory', 'edit')) {
+                try {
+                    $methods->handOver($r->user(), $order, [
+                        'idempotency_key' => (string) $d['idempotency_key'],
+                        'branch_id' => isset($d['branch_id']) ? (int) $d['branch_id'] : null,
+                        'note' => $d['handover_note'] ?? null,
+                    ]);
+                } catch (ValidationException $refused) {
+                    return redirect('/orders/'.$order->id.'#od-handover')->with('success', $message)->withErrors($refused->errors());
+                }
+
+                return redirect('/orders/'.$order->id)->with('success', __('order_payment.flash_verified_approved_handed'));
+            }
+
             return redirect('/orders/'.$order->id)->with('success', $message);
         }
         if ($r->user()->allows('inventory') && in_array($order->status, ['approved', 'partially_dispatched'], true)) {
@@ -1535,7 +1552,7 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_rank_incentive_paid', [
             'amount' => $result['amount'],
             'name' => $user->name,
-            'rank' => RankLabel::of($result['rank']),
+            'rank' => RankLabel::name((string) $result['rank']),
         ]));
     }
 

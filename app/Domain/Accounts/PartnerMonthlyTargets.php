@@ -216,7 +216,7 @@ final class PartnerMonthlyTargets
         $code = $currentRank === 'dealer' ? 'mo' : $currentRank;
         $default = $monthlyTarget ?? Money::cents((string) ($rules['rank_maintenance']['parameters'][$code.'_min_monthly_volume'] ?? '0'));
 
-        return $this->moneyRow(self::Royalty, __('partner_file.target_royalty', ['rank' => RankLabel::of($code)]), __('partner_file.target_royalty_hint', ['rank' => RankLabel::of($code)]), $volume, $default, $overrides);
+        return $this->moneyRow(self::Royalty, __('partner_file.target_royalty', ['rank' => RankLabel::name($code)]), __('partner_file.target_royalty_hint', ['rank' => RankLabel::name($code)]), $volume, $default, $overrides);
     }
 
     /**
@@ -231,7 +231,7 @@ final class PartnerMonthlyTargets
             $default = Money::cents((string) ($parameters['mo_target'] ?? '500000.00'));
             $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
 
-            return $this->moneyRow(self::Rank, __('partner_file.target_rank', ['rank' => 'MO']), __('partner_file.target_rank_mo_hint'), $lifetime, $default, $overrides);
+            return $this->moneyRow(self::Rank, __('partner_file.target_rank', ['rank' => RankLabel::name('mo')]), __('partner_file.target_rank_mo_hint'), $lifetime, $default, $overrides);
         }
         $levels = CommissionQualification::RankLevels;
         $next = $levels[array_search($currentRank, $levels, true) + 1] ?? null;
@@ -244,7 +244,7 @@ final class PartnerMonthlyTargets
         $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
         $have = CommissionQualification::leadersAtOrAbove($counts, $required);
 
-        return $this->countRow(self::Rank, __('partner_file.target_rank', ['rank' => RankLabel::of($next)]), __('partner_file.target_rank_team_hint', ['needed' => $needed, 'rank' => RankLabel::of($required), 'depth' => $depth]), $have, $needed, $overrides);
+        return $this->countRow(self::Rank, __('partner_file.target_rank', ['rank' => RankLabel::name($next)]), __('partner_file.target_rank_team_hint', ['needed' => $needed, 'rank' => RankLabel::name($required), 'depth' => $depth]), $have, $needed, $overrides);
     }
 
     /**

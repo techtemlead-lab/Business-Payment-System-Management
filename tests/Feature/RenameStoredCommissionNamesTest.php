@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -65,5 +66,26 @@ class RenameStoredCommissionNamesTest extends TestCase
 
         $this->artisan('madina:rename-stored-commission-names')->expectsOutputToContain('Nothing to change')->assertSuccessful();
         $this->assertSame('Sub-dealer salary', $this->nameOf('sub_dealer_salary'));
+    }
+
+    public function test_old_rank_prize_notices_get_the_full_rank_names_and_a_second_run_changes_nothing(): void
+    {
+        $user = User::factory()->create();
+        DB::table('account_notices')->insert([
+            ['user_id' => $user->id, 'title' => 'Rank prize added', 'body' => 'MO Rank Reward (One time): ৳5,000 has been added to your balance.', 'created_at' => now(), 'updated_at' => now()],
+            ['user_id' => $user->id, 'title' => 'র‍্যাঙ্ক পুরস্কার', 'body' => 'AM র‍্যাঙ্ক পুরস্কার (ওয়ান টাইম): ৳১৫,০০০ যোগ হয়েছে।', 'created_at' => now(), 'updated_at' => now()],
+            ['user_id' => $user->id, 'title' => 'Other', 'body' => 'Something else', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        $this->artisan('madina:rename-stored-commission-names', ['--dry-run' => true])->assertSuccessful();
+        $this->assertSame(1, DB::table('account_notices')->where('body', 'like', 'MO Rank Reward%')->count(), 'A dry run writes nothing.');
+
+        $this->artisan('madina:rename-stored-commission-names')->assertSuccessful();
+        $bodies = DB::table('account_notices')->orderBy('id')->pluck('body')->all();
+        $this->assertSame('Marketing Officer Rank Reward (One time): ৳5,000 has been added to your balance.', $bodies[0]);
+        $this->assertSame('এরিয়া ম্যানেজার র‍্যাঙ্ক পুরস্কার (ওয়ান টাইম): ৳১৫,০০০ যোগ হয়েছে।', $bodies[1]);
+        $this->assertSame('Something else', $bodies[2]);
+
+        $this->artisan('madina:rename-stored-commission-names')->expectsOutputToContain('Nothing to change')->assertSuccessful();
     }
 }

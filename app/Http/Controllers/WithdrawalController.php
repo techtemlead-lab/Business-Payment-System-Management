@@ -46,19 +46,7 @@ class WithdrawalController extends Controller
     {
         abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
         CommissionWallet::requireActive();
-        // "Office withdrawal" (cash at the office) needs no account. Otherwise, V3: a partner with saved payout accounts
-        // picks one; its channel and number are read from the saved record, never typed.
-        $office = $r->input('channel') === WithdrawalMethods::Office;
-        $saved = app(PartnerPayoutAccounts::class);
-        $hasSaved = ! $office && $saved->listFor($r->user()) !== [];
-        $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'payout_account_id' => [$hasSaved ? 'required' : 'nullable', 'integer'],
-            'channel' => [$hasSaved ? 'nullable' : 'required', 'in:'.implode(',', WithdrawalMethods::all())],
-            'destination' => [$hasSaved || $office ? 'nullable' : 'required', 'string', 'min:6', 'max:200'], 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
-        if ($office) {
-            $data['destination'] = WithdrawalMethods::OfficeDestination;
-        } elseif ($hasSaved) {
-            $data = [...$data, ...$saved->asWithdrawal($r->user(), (int) $data['payout_account_id'])];
-        }
+        $data = $r->is('api/*') ? $this->apiRequestData($r) : $this->portalRequestData($r);
         ['id' => $id, 'created' => $created] = $service->submit($r->user(), $data);
         // A replayed request (same idempotency key) already sent its SMS the first time.
         if ($created) {
@@ -81,6 +69,53 @@ class WithdrawalController extends Controller
         }
 
         return redirect('/withdrawals/'.$id)->with('success', $payoutLine === null ? __('portal.flash_withdrawal_requested') : __('portal.flash_withdrawal_requested').' '.$payoutLine);
+    }
+
+    /**
+     * The portal (owner, 2026-11-28): "Office withdrawal" (cash at the office) needs no account; any other way must
+     * name one of the partner's own saved payout accounts. Its channel and number are read from the saved record,
+     * never typed, so the money can only go where the partner saved it.
+     *
+     * @return array<string, mixed>
+     */
+    private function portalRequestData(Request $r): array
+    {
+        $office = $r->input('channel') === WithdrawalMethods::Office;
+        $saved = app(PartnerPayoutAccounts::class);
+        $required = __($saved->listFor($r->user()) === [] ? 'leftovers_partner.pa_add_first' : 'leftovers_partner.pa_pick_required');
+        $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'payout_account_id' => [$office ? 'nullable' : 'required', 'integer'],
+            'channel' => ['nullable', 'in:'.implode(',', WithdrawalMethods::all())], 'idempotency_key' => 'required|uuid'],
+            ['amount.regex' => __('payouts.err_amount_digits'), 'payout_account_id.required' => $required, 'payout_account_id.integer' => $required]);
+        if ($office) {
+            return [...$data, 'channel' => WithdrawalMethods::Office, 'destination' => WithdrawalMethods::OfficeDestination];
+        }
+        $data = [...$data, ...$saved->asWithdrawal($r->user(), (int) $data['payout_account_id'])];
+        app(WithdrawalMethods::class)->refuseOff($data['channel']);
+
+        return $data;
+    }
+
+    /**
+     * The API (v1) keeps its documented request: a partner with saved accounts picks one, otherwise the channel and
+     * the destination are sent in the request. Only the portal insists on a saved account.
+     *
+     * @return array<string, mixed>
+     */
+    private function apiRequestData(Request $r): array
+    {
+        $office = $r->input('channel') === WithdrawalMethods::Office;
+        $saved = app(PartnerPayoutAccounts::class);
+        $hasSaved = ! $office && $saved->listFor($r->user()) !== [];
+        $data = $r->validate(['amount' => ['required', 'regex:'.self::AmountPattern], 'payout_account_id' => [$hasSaved ? 'required' : 'nullable', 'integer'],
+            'channel' => [$hasSaved ? 'nullable' : 'required', 'in:'.implode(',', WithdrawalMethods::all())],
+            'destination' => [$hasSaved || $office ? 'nullable' : 'required', 'string', 'min:6', 'max:200'], 'idempotency_key' => 'required|uuid'], ['amount.regex' => __('payouts.err_amount_digits')]);
+        if ($office) {
+            $data['destination'] = WithdrawalMethods::OfficeDestination;
+        } elseif ($hasSaved) {
+            $data = [...$data, ...$saved->asWithdrawal($r->user(), (int) $data['payout_account_id'])];
+        }
+
+        return $data;
     }
 
     public function show(Request $r, string $id, ManualPayoutService $service): Response

@@ -35,8 +35,8 @@ return [
 
     'jargon_question' => 'What do :terms mean?',
     'jargon_mo' => 'Marketing Officer. The first rank after dealer.',
-    'jargon_am' => 'Area Manager. The rank after MO.',
-    'jargon_sm' => 'Sales Manager. The rank after AM.',
+    'jargon_am' => 'Area Manager. The rank after Marketing Officer.',
+    'jargon_sm' => 'Sales Manager. The rank after Area Manager.',
     'jargon_me' => 'ED. The highest rank.',
     'jargon_tds' => 'Tax taken out for the government before your money is sent (tax at source).',
 ];

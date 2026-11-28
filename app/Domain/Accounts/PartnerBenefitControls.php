@@ -267,7 +267,7 @@ final class PartnerBenefitControls
         $summaryIn = function (string $language) use ($controls, $rank, $customConditions): string {
             $enabled = collect([
                 $controls['unconditional_salary'] ? __('portal.pbc_flag_salary', [], $language) : null,
-                $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => RankLabel::of($rank)], $language) : null,
+                $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => RankLabel::name($rank, $language)], $language) : null,
                 $controls['unconditional_rank_incentive'] ? __('portal.pbc_flag_incentive', [], $language) : null,
                 $customConditions !== [] ? __('portal.pbc_flag_custom', ['count' => count($customConditions)], $language) : null,
             ])->filter()->implode(', ');

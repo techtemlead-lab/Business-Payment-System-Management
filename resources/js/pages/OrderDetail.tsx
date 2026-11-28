@@ -393,7 +393,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 const short = sendableOf(productId) < neededOf(productId);
                 return <li key={productId} className={short ? 'is-warn' : undefined}>{line?.name}: {translate('orders_stock', 'approval_stock')} {number(sendableOf(productId))} / {number(neededOf(productId))}{short ? ` · ${translate('orders_stock', 'approval_stock_short')}` : ''}</li>;
             })}</ul>}{replacementSlots.length>0&&<div className="notice"><p>{translate('portal', 'replacement_hint')}</p><form method="get"><label>{translate('portal', 'find_replacement_partners')}<input name="replacement_q" type="search"/></label><button className="button small">{translate('portal', 'find_partners')}</button></form></div>}
-            {oneStepClaim && <VerifyAndApprove order={order} claim={oneStepClaim} replacementSlots={replacementSlots} replacementCandidates={replacementCandidates} />}
+            {oneStepClaim && <VerifyAndApprove order={order} claim={oneStepClaim} replacementSlots={replacementSlots} replacementCandidates={replacementCandidates}
+                handOverBranches={pickup && canSendGoods && itemsLeft && oneStepClaim.channel === 'Office' && actionAllowed(`/commands/orders/${order.id}/office-handover`, staffActions) ? stockByBranch : null} />}
             {oneStepClaim ? <h3>{translate('order_payment', 'one_step_other_choices')}</h3> : !fullyPaid && <p className="muted" role="note">{translate('order_payment', 'approve_after_payment')}</p>}
             {/* Approving needs the whole price checked first, so until then this form only holds or rejects. */}
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[

@@ -92,4 +92,9 @@ return [
     'one_step_other_choices' => 'Or hold or reject the order',
     'approve_after_payment' => 'The order can be approved once its whole price is checked. Until then you can hold or reject it here.',
     'flash_verified_approved' => 'The money was recorded and the order is approved.',
+    'flash_verified_approved_handed' => 'The money was recorded, the order is approved and the goods were handed over.',
+    'one_step_handover_label' => 'Also hand the goods over now (the partner is at the counter)',
+    'one_step_handover_hint' => 'The goods leave the stock and the order is marked delivered in the same press.',
+    'one_step_button_handover' => 'Money received, hand over goods',
+    'one_step_confirm_title_handover' => 'Record the money, approve and hand over the goods?',
 ];

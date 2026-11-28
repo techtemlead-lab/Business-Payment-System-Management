@@ -26,6 +26,7 @@ return [
     'owner_login' => 'মালিক লগইন',
     'owner_login_help' => 'সুপার অ্যাডমিন, ব্যবস্থাপনা পরিচালক ও চেয়ারম্যান।',
     'dealer_login' => 'ডিলার লগইন',
+    'login_short' => 'লগইন',
     'dealer_login_help' => 'অনুমোদিত ডিলার — অর্ডার, নেটওয়ার্ক ও আয়।',
     'subdealer_login' => 'সাব-ডিলার লগইন',
     'subdealer_login_help' => 'সাব-ডিলার — পণ্য অর্ডার ও মাসিক বেতন।',

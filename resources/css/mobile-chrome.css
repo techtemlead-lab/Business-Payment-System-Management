@@ -97,9 +97,27 @@
     margin-left: auto;
   }
   /* Language, text size, theme, website, tour and branch moved into the avatar menu and the drawer. */
-  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .header-actions > :is(.language-switcher,.text-size-toggle,.text-size-switch,.theme-toggle,.portal-website-link,.tour-guide-launcher,.psignout-bar),
+  .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .header-actions > :is(.language-switcher,.text-size-toggle,.text-size-switch,.theme-toggle,.portal-website-link,.tour-guide-launcher),
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .branch-workspace-select {
     display: none;
+  }
+  /* Dealers and sub-dealers keep Sign out in the top bar on a phone too (client, 2026-11-28: many will not look inside the
+     menu). Icon over a short word, so the page title keeps its room. */
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .workspace-header .header-actions > .psignout-bar {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: var(--t44);
+    min-height: var(--t44);
+    padding: 3px 5px;
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .app-shell.app-shell:is(.dealer-shell,.subdealer-shell) .workspace-header .header-actions > .psignout-bar svg {
+    width: 18px;
+    height: 18px;
   }
   .app-shell.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header .header-actions :is(.icon-button,.global-search-trigger,.pcart-icon,.notice-bell) {
     width: var(--t44);

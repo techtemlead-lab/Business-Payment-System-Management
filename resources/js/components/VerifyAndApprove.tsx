@@ -7,6 +7,7 @@ import { AutoSelect } from './SearchSelect';
 import { ProofLink, proofKindOf } from './ProofViewer';
 import { useT } from '../shared/i18n/t';
 import { useReasonField } from '../shared/reasonFields';
+import { randomUuid } from '../shared/randomUuid';
 
 /** The payment method in plain words ("bKash", "Office cash"); unknown codes show as sent. */
 function channelText(channel: unknown, translate: (group: string, key: string) => string): string {
@@ -24,19 +25,32 @@ function channelText(channel: unknown, translate: (group: string, key: string) =
  * once to `/commands/orders/{id}/verify-and-approve`. The server checks the payment and approves the
  * order together, or does neither.
  */
-export default function VerifyAndApprove({ order, claim, replacementSlots = [], replacementCandidates = [] }: {
+/** A stock branch the goods can be handed over from (the order page's branch stock rows). */
+export type HandOverBranch = { branch_id: number; name: string; can_send_all: boolean };
+
+export default function VerifyAndApprove({ order, claim, replacementSlots = [], replacementCandidates = [], handOverBranches = null }: {
     order: Row; claim: Row; replacementSlots?: Row[]; replacementCandidates?: Row[];
+    /** Set when the cash is paid at the counter for an office pickup and this person may hand goods over (owner, 2026-11-28). */
+    handOverBranches?: HandOverBranch[] | null;
 }) {
     const translate = useT();
     const office = claim.channel === 'Office';
     const reason = useReasonField('payment.verify');
+    const handoverNote = useReasonField('order.delivery_confirm');
     const [asking, setAsking] = useState(false);
+    const canHandOver = office && handOverBranches !== null;
+    const firstBranch = handOverBranches?.find((branch) => branch.branch_id === order.fulfillment_branch_id)
+        ?? handOverBranches?.find((branch) => branch.can_send_all) ?? handOverBranches?.[0];
     const form = useForm<Record<string, string>>({
         claim_id: String(claim.id),
         ...(reason.shown ? { reason: '' } : {}),
         ...(office ? { cash_counted: '' } : {}),
         ...Object.fromEntries(replacementSlots.map((slot: Row) => [`referral_replacement_${slot.generation}`, ''])),
+        // One key for this hand-over: a double press gives the goods out once.
+        ...(canHandOver ? { hand_over: '1', idempotency_key: randomUuid(), ...(firstBranch ? { branch_id: String(firstBranch.branch_id) } : {}), ...(handoverNote.shown ? { handover_note: '' } : {}) } : {}),
     });
+    const handingOver = canHandOver && form.data.hand_over === '1';
+    const buttonLabel = translate('order_payment', handingOver ? 'one_step_button_handover' : 'one_step_button');
     const partner = [order.user?.name, order.user?.dealer_code].filter(Boolean).join(' · ');
     const facts: ConfirmFact[] = [
         { label: translate('order_payment', 'claim_fact_order'), value: String(order.number ?? '') },
@@ -56,17 +70,17 @@ export default function VerifyAndApprove({ order, claim, replacementSlots = [], 
         {claim.has_proof && <p><ProofLink className="text-link" href={`/commands/operations/receipts/payment/${claim.id}`} kind={proofKindOf(claim.proof_mime)}>{translate('portal', 'payment_proof_view')}</ProofLink></p>}
         <div className="decision-buttons">
             <button type="button" className="button dark" onClick={() => { form.clearErrors(); setAsking(true); }}>
-                <CheckCheck size={18} aria-hidden="true" />{translate('order_payment', 'one_step_button')}
+                <CheckCheck size={18} aria-hidden="true" />{buttonLabel}
             </button>
         </div>
         {asking && (
             <ConfirmSheet
-                title={translate('order_payment', 'one_step_confirm_title')}
+                title={translate('order_payment', handingOver ? 'one_step_confirm_title_handover' : 'one_step_confirm_title')}
                 sentence={translate('order_payment', 'one_step_confirm_sentence', { name: String(order.user?.name ?? ''), number: String(order.number ?? '') })}
                 amount={claim.amount}
                 facts={facts}
                 tone="primary"
-                confirmLabel={translate('order_payment', 'one_step_button')}
+                confirmLabel={buttonLabel}
                 reason={reason.shown ? { label: reason.label(translate(office ? 'order_payment' : 'portal', office ? 'office_who_took' : 'verification_evidence')), required: reason.required, maxLength: 1000, value: form.data.reason ?? '', onChange: (value) => form.setData('reason', value) } : undefined}
                 pending={form.processing}
                 errors={form.errors}
@@ -78,6 +92,24 @@ export default function VerifyAndApprove({ order, claim, replacementSlots = [], 
                     <label>{translate('payouts', 'cash_counted')}
                         <input type="number" inputMode="decimal" step="any" required value={form.data.cash_counted ?? ''} onChange={(event) => form.setData('cash_counted', event.target.value)} />
                         <small className="field-hint">{translate('payouts', 'cash_counted_hint', { amount: money(claim.amount) })}</small>
+                    </label>
+                )}
+                {canHandOver && (
+                    <label className="hub-choice" data-testid="one-step-handover">
+                        <input type="checkbox" checked={handingOver} onChange={(event) => form.setData('hand_over', event.target.checked ? '1' : '0')} />
+                        <span><b>{translate('order_payment', 'one_step_handover_label')}</b> <small>{translate('order_payment', 'one_step_handover_hint')}</small></span>
+                    </label>
+                )}
+                {handingOver && (handOverBranches?.length ?? 0) > 1 && (
+                    <label>{translate('order_delivery', 'handover_branch')}
+                        <select value={form.data.branch_id ?? ''} onChange={(event) => form.setData('branch_id', event.target.value)}>
+                            {handOverBranches?.map((branch) => <option key={branch.branch_id} value={String(branch.branch_id)}>{branch.name}</option>)}
+                        </select>
+                    </label>
+                )}
+                {handingOver && handoverNote.shown && (
+                    <label>{handoverNote.label(translate('order_delivery', 'handover_note'))}
+                        <textarea maxLength={500} required={handoverNote.required} value={form.data.handover_note ?? ''} onChange={(event) => form.setData('handover_note', event.target.value)} />
                     </label>
                 )}
                 {replacementSlots.map((slot: Row) => {

@@ -14,6 +14,7 @@ import SalaryNotes from '../components/mymoney/SalaryNotes';
 import WithdrawalHistory from '../components/mymoney/WithdrawalHistory';
 import WithdrawalRequests from '../components/mymoney/WithdrawalRequests';
 import WithdrawSheet from '../components/mymoney/WithdrawSheet';
+import PayoutAccounts from '../components/PayoutAccounts';
 import type { CompanyBenefits, Certificates, HeldCommission, IncomeCard, MoneySummary, NotEarnedArea, PendingMoney, ReserveReceipt, SalaryNote, StatementTable, WithdrawalHistoryData, WithdrawalRequest, WithdrawInfo } from '../components/mymoney/types';
 import { useT } from '../shared/i18n/t';
 import { useIsPhone } from '../shared/useIsPhone';
@@ -78,6 +79,9 @@ export default function MyMoney({ summary, cards, table, withdrawal_requests: wi
                     )}
                 />
                 {withdrawalHistory ? <WithdrawalHistory data={withdrawalHistory} allowCancel /> : <WithdrawalRequests requests={withdrawalRequests} />}
+                <section className="mm-accounts-card" data-testid="my-money-payout-accounts">
+                    <PayoutAccounts accounts={withdraw.saved_accounts ?? []} />
+                </section>
                 {hasWaiting && (
                     <details key={isPhone ? 'phone' : 'wide'} className="mm-fold" open={!isPhone} data-testid="my-money-waiting">
                         <summary>

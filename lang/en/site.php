@@ -26,6 +26,7 @@ return [
     'owner_login' => 'Owner Login',
     'owner_login_help' => 'Super Admin, Managing Director, and Chairman.',
     'dealer_login' => 'Dealer Login',
+    'login_short' => 'Login',
     'dealer_login_help' => 'Authorized dealers — orders, network, and earnings.',
     'subdealer_login' => 'Sub-dealer Login',
     'subdealer_login_help' => 'Sub-dealers — product orders and monthly salary.',
