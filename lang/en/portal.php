@@ -882,7 +882,7 @@ return [
     'target_bike_incentive' => 'Bike reward',
     'target_bike_incentive_hint' => 'Team sales that count toward the bike reward (limit per team line applied).',
     'target_car_incentive' => 'Car reward',
-    'target_car_incentive_hint' => 'Team sales that count toward the car reward. It starts after the bike reward is full.',
+    'target_car_incentive_hint' => 'Team sales that count toward the car reward (limit per team line applied).',
     'view_all' => 'View all',
     'csv_col_order' => 'Order',
     'csv_col_date_dhaka' => 'Date (Dhaka)',

@@ -2,7 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import {
     ArrowUpRight, ChevronRight, ShoppingBag, Package, Truck, Wallet, Users, Settings,
-    GitBranch, Coins, BadgeCheck, Target, Bike, Share2, Copy, Check, Plane,
+    GitBranch, Coins, BadgeCheck, Target, Bike, Car, Share2, Copy, Check, Plane,
     Phone, MessageCircle, ListChecks,
 } from 'lucide-react';
 import IncomeCards from './mymoney/IncomeCards';
@@ -240,7 +240,7 @@ function PartnerHome({ home, orders, tools, moneyCards }: { home: Row; orders: R
                         ) : (
                             <article key={target.key}>
                                 <div className="partner-home-target-top">
-                                    <b>{target.key === 'bike_incentive' ? <Bike size={14} /> : null}{target.label}</b>
+                                    <b>{target.key === 'bike_incentive' ? <Bike size={14} /> : target.key === 'car_incentive' ? <Car size={14} /> : null}{target.label}</b>
                                     <span>{isCountRow(target) ? `${number(target.current)}/${number(target.target)}` : `${number(target.percent)}%`}</span>
                                 </div>
                                 <div

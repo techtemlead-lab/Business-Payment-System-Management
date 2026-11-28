@@ -48,7 +48,8 @@ class PartnerDashboardHomeTest extends TestCase
                 ->where('data.partner_home.targets.1.key', 'salary_state')
                 ->where('data.partner_home.targets.2.key', 'rank_reward')
                 ->where('data.partner_home.targets.3.key', 'bike_incentive')
-                ->missing('data.partner_home.targets.4'));
+                ->where('data.partner_home.targets.4.key', 'car_incentive')
+                ->missing('data.partner_home.targets.5'));
     }
 
     public function test_sub_dealer_home_shows_shop_name_salary_step_royalty_target_and_his_own_rank_bar(): void
@@ -68,7 +69,7 @@ class PartnerDashboardHomeTest extends TestCase
 
         $this->assertSame('Green Care Pharmacy', $home['profile']['shop_name']);
         $this->assertSame('MNHC501-000001', $home['profile']['area_code']);
-        $this->assertSame(['monthly_purchase', 'sub_dealer_salary', 'sub_dealer_royalty', 'rank_reward', 'bike_incentive'], array_column($home['targets'], 'key'));
+        $this->assertSame(['monthly_purchase', 'sub_dealer_salary', 'sub_dealer_royalty', 'rank_reward', 'bike_incentive', 'car_incentive'], array_column($home['targets'], 'key'));
         $this->assertSame('dealer', $home['card']['rank']);
     }
 
