@@ -18,4 +18,18 @@ final class RankLabel
 
         return self::Shown[$key] ?? strtoupper($key);
     }
+
+    /**
+     * The name a person reads on screen: the full name of Marketing Officer, Area Manager and Sales Manager in the
+     * reader's language (client, 2026-11-28), "ED" for the top rank. Not for stored values or file names: use of().
+     */
+    public static function name(string $key, ?string $locale = null): string
+    {
+        $key = strtolower(trim($key));
+        if (in_array($key, ['mo', 'am', 'sm'], true)) {
+            return (string) __('portal.rank_short_'.$key, [], $locale);
+        }
+
+        return self::of($key);
+    }
 }

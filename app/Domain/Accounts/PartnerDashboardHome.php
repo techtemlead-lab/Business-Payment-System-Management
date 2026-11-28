@@ -573,10 +573,10 @@ final class PartnerDashboardHome
                 // The same team count rank promotion uses.
                 $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
                 $count = CommissionQualification::leadersAtOrAbove($counts, $requiredRank);
-                $requiredLabel = RankLabel::of($requiredRank);
+                $requiredLabel = RankLabel::name($requiredRank);
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => __('portal.target_named_rank_reward', ['rank' => RankLabel::of($code)]),
+                    'label' => __('portal.target_named_rank_reward', ['rank' => RankLabel::name($code)]),
                     'current' => (string) $count,
                     'target' => (string) $needed,
                     'remaining' => (string) max(0, $needed - $count),

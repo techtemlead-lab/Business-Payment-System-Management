@@ -104,7 +104,7 @@ class FundSpendingReportExportTest extends TestCase
 
         $this->assertStringContainsString('পুরস্কার #4', $strings);
         $this->assertStringContainsString(__('portal.settle_kind_salary', [], 'bn'), $strings);
-        $this->assertStringContainsString('র‍্যাঙ্ক পুরস্কার (MO)', $strings);
+        $this->assertStringContainsString('র‍্যাঙ্ক পুরস্কার (মার্কেটিং অফিসার)', $strings);
         $this->assertStringNotContainsString('Award 4', $strings);
     }
 

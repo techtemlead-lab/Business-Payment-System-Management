@@ -115,9 +115,9 @@ class PartnerIncomeHeadsTest extends TestCase
             $this->assertSame($labels, array_values(array_unique($labels)), 'Two heads share a label.');
         }
         // The one-time rank prize head names its rank and says it is paid once.
-        $this->assertStringStartsWith('MO ', $bangla['head_rank_mo']);
+        $this->assertStringStartsWith('মার্কেটিং অফিসার ', $bangla['head_rank_mo']);
         $this->assertStringContainsString('ওয়ান টাইম', $bangla['head_rank_mo']);
-        $this->assertSame('MO Rank Reward (One time)', $english['head_rank_mo']);
+        $this->assertSame('Marketing Officer Rank Reward (One time)', $english['head_rank_mo']);
     }
 
     public function test_the_income_page_lists_every_head_of_a_dealer_even_at_zero_and_adds_up_to_the_wallet(): void

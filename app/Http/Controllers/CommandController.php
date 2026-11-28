@@ -1535,7 +1535,7 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_rank_incentive_paid', [
             'amount' => $result['amount'],
             'name' => $user->name,
-            'rank' => RankLabel::of($result['rank']),
+            'rank' => RankLabel::name((string) $result['rank']),
         ]));
     }
 
