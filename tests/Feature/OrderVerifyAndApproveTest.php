@@ -201,6 +201,70 @@ class OrderVerifyAndApproveTest extends TestCase
         $this->assertSame('pending', DB::table('payment_claims')->where('order_id', $other->id)->value('status'));
     }
 
+    public function test_cash_at_the_counter_for_an_office_pickup_also_hands_the_goods_over_in_the_same_press(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $order = $this->orderPaidByOffice(User::factory()->dealer()->create(), 'office');
+        $fields = ['claim_id' => $this->claimId($order), 'reason' => 'Cash counted', 'cash_counted' => '200.00',
+            'hand_over' => '1', 'idempotency_key' => (string) Str::uuid(), 'handover_note' => 'Taken by the dealer himself'];
+
+        $this->actingAs($owner)->onPortal('sadmin')->from('/orders/'.$order->id)
+            ->post('/commands/orders/'.$order->id.'/verify-and-approve', $fields)
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/orders/'.$order->id)
+            ->assertSessionHas('success', __('order_payment.flash_verified_approved_handed'));
+        // A double press gives the goods out once.
+        $this->actingAs($owner)->onPortal('sadmin')->from('/orders/'.$order->id)
+            ->post('/commands/orders/'.$order->id.'/verify-and-approve', $fields);
+
+        $order->refresh();
+        $this->assertSame('delivered', $order->status);
+        $this->assertSame('verified', DB::table('payment_claims')->where('order_id', $order->id)->value('status'));
+        $this->assertSame(1, DB::table('shipments')->where('order_id', $order->id)->count());
+        foreach (['payment.verified', 'order.approved', 'order.office_handover'] as $action) {
+            $this->assertDatabaseHas('order_events', ['order_id' => $order->id, 'action' => $action, 'actor_id' => $owner->id]);
+        }
+    }
+
+    public function test_without_the_hand_over_tick_an_office_pickup_is_only_approved(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $order = $this->orderPaidByOffice(User::factory()->dealer()->create(), 'office');
+
+        $this->actingAs($owner)->onPortal('sadmin')
+            ->post('/commands/orders/'.$order->id.'/verify-and-approve', ['claim_id' => $this->claimId($order), 'reason' => 'Cash counted', 'cash_counted' => '200.00', 'hand_over' => '0'])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/orders/'.$order->id);
+
+        $this->assertSame('approved', $order->fresh()->status);
+        $this->assertSame(0, DB::table('shipments')->where('order_id', $order->id)->count());
+    }
+
+    public function test_staff_who_may_not_send_goods_get_the_money_and_approval_but_no_hand_over(): void
+    {
+        $finance = User::factory()->staff('finance')->create();
+        $order = $this->orderPaidByOffice(User::factory()->dealer()->create(), 'office');
+
+        $this->press($finance, $order, ['cash_counted' => '200.00', 'hand_over' => '1', 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success', __('order_payment.flash_verified_approved'));
+
+        $this->assertSame('approved', $order->fresh()->status);
+        $this->assertSame(0, DB::table('shipments')->where('order_id', $order->id)->count());
+    }
+
+    public function test_the_hand_over_needs_a_request_key(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $order = $this->orderPaidByOffice(User::factory()->dealer()->create(), 'office');
+
+        $this->actingAs($owner)->onPortal('sadmin')
+            ->post('/commands/orders/'.$order->id.'/verify-and-approve', ['claim_id' => $this->claimId($order), 'reason' => 'Cash counted', 'cash_counted' => '200.00', 'hand_over' => '1'])
+            ->assertSessionHasErrors('idempotency_key');
+
+        $this->assertSame('submitted', $order->fresh()->status);
+    }
+
     /** @param array<string, mixed> $fields */
     private function press(User $staff, Order $order, array $fields): TestResponse
     {
@@ -214,13 +278,14 @@ class OrderVerifyAndApproveTest extends TestCase
     }
 
     /** A ৳200 order with a cash-at-the-office payment waiting for the finance team. */
-    private function orderPaidByOffice(User $dealer): Order
+    private function orderPaidByOffice(User $dealer, ?string $deliveryMethod = null): Order
     {
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 500]);
         $this->actingAs($dealer)->post('/commands/orders', [
             'items' => [['product_id' => $product->id, 'quantity' => 2]],
             'idempotency_key' => (string) Str::uuid(),
             'channel' => 'Office',
+            ...($deliveryMethod !== null ? ['delivery_method' => $deliveryMethod] : []),
         ])->assertSessionHasNoErrors();
 
         return Order::where('user_id', $dealer->id)->latest('created_at')->firstOrFail();
