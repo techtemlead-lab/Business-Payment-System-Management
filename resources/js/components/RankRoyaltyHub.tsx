@@ -4,7 +4,7 @@ import { money, date, Table, number, Pagination, type Row } from './UI';
 import ServerListSearch from './ServerListSearch';
 import JargonHint from './JargonHint';
 import { useT } from '../shared/i18n/t';
-import { rankLabel } from '../shared/rankLabel';
+import { rankName } from '../shared/rankLabel';
 import { useEscape } from '../shared/useEscape';
 
 /** A live policy number, or null when the policy does not set it. */
@@ -156,12 +156,12 @@ export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters
                             <h2>{translate('portal','rank_history_title')}</h2>
                             <p className="muted">{translate('portal','rank_history_hint')}</p>
                         </div>
-                        <span className="badge">{rankLabel(String(ranks[0].current_rank))}</span>
+                        <span className="badge">{rankName(String(ranks[0].current_rank), translate)}</span>
                     </div>
                     <ol className="rk-history">
                         {personalHistory.map((entry, index) => (
                             <li key={`${entry.rank}-${entry.achieved_at}-${index}`}>
-                                <b>{rankLabel(String(entry.rank))}</b>
+                                <b>{rankName(String(entry.rank), translate)}</b>
                                 <span className="muted"> · {date(entry.achieved_at)}</span>
                             </li>
                         ))}

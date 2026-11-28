@@ -373,12 +373,22 @@ export default function NetworkTreeExplorer({ dealers, treeStats = null, serverF
 
                 <div className="hub-tile is-accent tone-violet">
                     <div className="hub-label ops-row">
-                        <Award size={16} /> {translate('portal','net_kpi_sm_me')}
+                        <Award size={16} /> {translate('portal','net_kpi_sm')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        {stats.smCount + stats.meCount}
+                        {number(stats.smCount)}
                     </div>
-                    <div className="hub-hint">{translate('portal','net_higher_ranks')}</div>
+                    <div className="hub-hint">{translate('portal','net_kpi_sm_hint')}</div>
+                </div>
+
+                <div className="hub-tile is-accent tone-violet">
+                    <div className="hub-label ops-row">
+                        <Award size={16} /> {translate('portal','net_kpi_me')}
+                    </div>
+                    <div className="ops-figure ops-mt-1">
+                        {number(stats.meCount)}
+                    </div>
+                    <div className="hub-hint">{translate('portal','net_kpi_me_hint')}</div>
                 </div>
             </div>
 

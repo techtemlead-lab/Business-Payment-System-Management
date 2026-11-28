@@ -193,7 +193,7 @@ class RankRoyaltyFourFundsTest extends TestCase
         $this->purchase($this->partner('dealer', $this->union, 'mo'), '30000.00');
 
         $cards = collect($treasury->cards(true))->keyBy('key');
-        foreach (['royalty_mo' => 'MO', 'royalty_am' => 'AM', 'royalty_sm' => 'SM', 'royalty_me' => 'ED'] as $key => $rank) {
+        foreach (['royalty_mo' => 'Marketing Officer', 'royalty_am' => 'Area Manager', 'royalty_sm' => 'Sales Manager', 'royalty_me' => 'ED'] as $key => $rank) {
             $this->assertSame('300.00', $cards[$key]['money_in'], $key);
             $this->assertSame('300.00', $cards[$key]['balance'], $key);
             $this->assertFalse($cards[$key]['spendable'], $key);

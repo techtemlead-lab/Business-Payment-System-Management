@@ -22,6 +22,12 @@ class RankNameInLangTest extends TestCase
         $this->assertSame('DEALER', RankLabel::of('dealer'));
     }
 
+    public function test_the_visible_name_is_the_full_name_for_the_first_three_ranks(): void
+    {
+        $this->assertSame('ED', RankLabel::name('me'));
+        $this->assertSame('DEALER', RankLabel::name('dealer'));
+    }
+
     public function test_the_react_label_map_is_the_same_as_the_php_one(): void
     {
         $source = (string) file_get_contents(dirname(__DIR__, 2).'/resources/js/shared/rankLabel.ts');

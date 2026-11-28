@@ -2,7 +2,7 @@ import { useForm, usePage } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { type Row } from './UI';
 import { useT } from '../shared/i18n/t';
-import { rankLabel } from '../shared/rankLabel';
+import { rankName } from '../shared/rankLabel';
 import { useReasonField } from '../shared/reasonFields';
 
 const DEALER_CUSTOM_KEYS = [
@@ -113,10 +113,10 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                             value={form.data.forced_royalty_rank}
                             onChange={(e) => form.setData('forced_royalty_rank', e.target.value)}
                         >
-                            <option value="mo">MO</option>
-                            <option value="am">AM</option>
-                            <option value="sm">SM</option>
-                            <option value="me">{rankLabel('me')}</option>
+                            <option value="mo">{rankName('mo', translate)}</option>
+                            <option value="am">{rankName('am', translate)}</option>
+                            <option value="sm">{rankName('sm', translate)}</option>
+                            <option value="me">{rankName('me', translate)}</option>
                         </select>
                     </label>
                 )}

@@ -299,27 +299,22 @@ final class PartnerDashboardHome
                 ->where('user_id', $user->id)
                 ->whereIn('milestone_type', ['bike', 'car'])
                 ->get()->keyBy('milestone_type');
-            // One reward row at a time: the bike first; the car starts only once the bike target is full.
+            // Both reward rows are always shown, the bike first and then the car, each with its own volume and target.
             $vehicleParams = PartnerBenefitControls::effectiveVehicleParameters($user, $rules);
-            $bikeTarget = Money::cents((string) $vehicleParams['bike_target']);
-            $bikeCurrent = $this->vehicleVolume($user, 'bike');
-            if ($bikeTarget > 0 && $bikeCurrent >= $bikeTarget) {
-                $targets[] = $this->progress(
-                    key: 'car_incentive',
-                    label: __('portal.target_car_incentive'),
-                    current: $this->vehicleVolume($user, 'car'),
-                    target: Money::cents((string) $vehicleParams['car_target']),
-                    hint: __('portal.target_car_incentive_hint'),
-                );
-            } else {
-                $targets[] = $this->progress(
-                    key: 'bike_incentive',
-                    label: __('portal.target_bike_incentive'),
-                    current: $bikeCurrent,
-                    target: $bikeTarget,
-                    hint: __('portal.target_bike_incentive_hint'),
-                );
-            }
+            $targets[] = $this->progress(
+                key: 'bike_incentive',
+                label: __('portal.target_bike_incentive'),
+                current: $this->vehicleVolume($user, 'bike'),
+                target: Money::cents((string) $vehicleParams['bike_target']),
+                hint: __('portal.target_bike_incentive_hint'),
+            );
+            $targets[] = $this->progress(
+                key: 'car_incentive',
+                label: __('portal.target_car_incentive'),
+                current: $this->vehicleVolume($user, 'car'),
+                target: Money::cents((string) $vehicleParams['car_target']),
+                hint: __('portal.target_car_incentive_hint'),
+            );
         }
 
         // The owner's own target for this dealer this month is put into the rows by the targets class.
@@ -573,10 +568,10 @@ final class PartnerDashboardHome
                 // The same team count rank promotion uses.
                 $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
                 $count = CommissionQualification::leadersAtOrAbove($counts, $requiredRank);
-                $requiredLabel = RankLabel::of($requiredRank);
+                $requiredLabel = RankLabel::name($requiredRank);
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => __('portal.target_named_rank_reward', ['rank' => RankLabel::of($code)]),
+                    'label' => __('portal.target_named_rank_reward', ['rank' => RankLabel::name($code)]),
                     'current' => (string) $count,
                     'target' => (string) $needed,
                     'remaining' => (string) max(0, $needed - $count),
