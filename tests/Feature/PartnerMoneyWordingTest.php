@@ -71,7 +71,7 @@ class PartnerMoneyWordingTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/[0-9]/', $message);
     }
 
-    public function test_a_short_payout_number_is_refused_with_a_bangla_field_name(): void
+    public function test_a_withdrawal_to_no_saved_account_asks_to_add_one_in_plain_bangla(): void
     {
         $this->enableFinancialPosting();
         $dealer = User::factory()->dealer()->create(['status' => 'active', 'locale' => 'bn']);
@@ -79,25 +79,24 @@ class PartnerMoneyWordingTest extends TestCase
         $response = $this->actingAs($dealer)->onPortal('dealer')->withSession(['locale' => 'bn'])->post('/commands/withdrawals', [
             'amount' => '250',
             'channel' => 'bKash',
-            'destination' => '123',
+            'destination' => '01712345678',
             'idempotency_key' => (string) Str::uuid(),
         ]);
 
-        $response->assertSessionHasErrors('destination');
-        $message = (string) session('errors')->first('destination');
-        $this->assertStringContainsString('অ্যাকাউন্ট বা ওয়ালেট নম্বর', $message);
-        $this->assertStringNotContainsString('destination', $message);
+        $response->assertSessionHasErrors('payout_account_id');
+        $this->assertSame('আগে টাকা নেওয়ার অ্যাকাউন্ট যোগ করুন।', (string) session('errors')->first('payout_account_id'));
+        $this->assertSame(0, DB::table('withdrawals')->count());
     }
 
     public function test_the_minimum_withdrawal_refusal_is_written_in_bangla_digits(): void
     {
         $this->enableFinancialPosting();
         $dealer = User::factory()->dealer()->create(['status' => 'active', 'locale' => 'bn']);
+        $account = $this->savePayoutAccount($dealer);
 
         $response = $this->actingAs($dealer)->onPortal('dealer')->withSession(['locale' => 'bn'])->post('/commands/withdrawals', [
             'amount' => '50',
-            'channel' => 'bKash',
-            'destination' => '01712345678',
+            'payout_account_id' => $account,
             'idempotency_key' => (string) Str::uuid(),
         ]);
 

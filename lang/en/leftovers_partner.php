@@ -38,7 +38,7 @@ return [
     'notice_nid_back_title' => 'Your NID was sent back',
     'notice_nid_back_body' => 'The office did not accept your NID. Reason: :reason. Please send it again from your profile.',
 
-    'pa_title' => 'My payout accounts',
+    'pa_title' => 'Payout accounts',
     'pa_hint' => 'Keep your bank, bKash, Nagad or Rocket numbers here. When you withdraw you pick one instead of typing it again. After you change an account, withdrawals pause for a short while for your safety.',
     'pa_none' => 'No account saved yet.',
     'pa_default_badge' => 'Usual account',
@@ -71,4 +71,8 @@ return [
     'pa_pick' => 'Which account to receive on',
     'pa_manage_link' => 'Add or change accounts',
     'pa_none_withdraw' => 'It is best to save at least one account in your profile before withdrawing.',
+    'pa_add_first' => 'First add the account where you want to receive money.',
+    'pa_pick_required' => 'Pick the account where you want to receive the money.',
+    'pa_add_another' => 'Add another account',
+    'pa_channel_off' => 'This way is not open right now.',
 ];

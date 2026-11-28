@@ -56,11 +56,11 @@ class WithdrawalMethodsTest extends TestCase
         $dealer = $this->partnerWithWallet('5000.00');
         $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
             ->assertInertia(fn ($page) => $page->where('withdraw.methods', ['Office', 'bKash', 'Nagad', 'Rocket']));
-        foreach (['bKash' => '01711111111', 'Nagad' => '01811111111', 'Rocket' => '017111111112'] as $channel => $number) {
-            $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'channel' => $channel, 'destination' => $number, 'idempotency_key' => (string) Str::uuid()])
+        foreach (['bKash' => '01711111111', 'Nagad' => '01811111111', 'Rocket' => '01911111111'] as $channel => $number) {
+            $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'payout_account_id' => $this->savePayoutAccount($dealer, $channel, $number), 'idempotency_key' => (string) Str::uuid()])
                 ->assertSessionHasNoErrors();
         }
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'channel' => 'Bank', 'destination' => '0123456789', 'idempotency_key' => (string) Str::uuid()])
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'payout_account_id' => $this->savePayoutAccount($dealer, 'Bank'), 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasErrors(['channel' => __('office_withdrawal.err_method_off')]);
         // The partner's history names the way of each request.
         $this->actingAs($dealer)->onPortal('dealer')->get('/my-money')->assertOk()
@@ -105,9 +105,9 @@ class WithdrawalMethodsTest extends TestCase
     {
         $dealer = $this->partnerWithWallet('5000.00');
 
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '1000.00', 'channel' => 'bKash', 'destination' => '01700000000', 'idempotency_key' => (string) Str::uuid()])
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '1000.00', 'payout_account_id' => $this->savePayoutAccount($dealer, 'bKash'), 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasErrors(['channel' => __('office_withdrawal.err_method_off')]);
-        $this->actingAs($dealer)->postJson('/api/v1/withdrawals', ['amount' => '1000.00', 'channel' => 'Bank', 'destination' => '0123456789', 'idempotency_key' => (string) Str::uuid()])
+        $this->actingAs($dealer)->postJson('/api/v1/withdrawals', ['amount' => '1000.00', 'payout_account_id' => $this->savePayoutAccount($dealer, 'Bank'), 'idempotency_key' => (string) Str::uuid()])
             ->assertUnprocessable()->assertJsonValidationErrors('channel');
 
         $this->assertSame(0, DB::table('withdrawals')->where('user_id', $dealer->id)->count());
@@ -120,8 +120,9 @@ class WithdrawalMethodsTest extends TestCase
         $account = app(PartnerPayoutAccounts::class)->save($dealer, ['channel' => 'Nagad', 'number' => '01811111111']);
         DB::table('users')->where('id', $dealer->id)->update(['credentials_changed_at' => null]);
 
+        // The saved Nagad account stays listed (the dialog greys it out); only the Office way is open.
         $this->actingAs($dealer->fresh())->onPortal('dealer')->get('/my-money')->assertOk()
-            ->assertInertia(fn ($page) => $page->where('withdraw.methods', ['Office'])->where('withdraw.saved_accounts', []));
+            ->assertInertia(fn ($page) => $page->where('withdraw.methods', ['Office'])->has('withdraw.saved_accounts', 1)->where('withdraw.saved_accounts.0.channel', 'Nagad')->where('withdraw.saved_accounts.0.number', '01811111111'));
         $this->actingAs($dealer->fresh())->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '500.00', 'payout_account_id' => $account, 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasErrors(['channel' => __('office_withdrawal.err_method_off')]);
         $this->assertSame(1, DB::table('partner_payout_accounts')->where('user_id', $dealer->id)->count());
@@ -139,7 +140,7 @@ class WithdrawalMethodsTest extends TestCase
 
         $this->assertSame(['Office', 'bKash'], app(WithdrawalMethods::class)->enabled());
         $this->assertDatabaseHas('audit_events', ['action' => 'withdrawal.methods_changed', 'actor_id' => $owner->id]);
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '1000.00', 'channel' => 'bKash', 'destination' => '01700000000', 'idempotency_key' => (string) Str::uuid()])
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', ['amount' => '1000.00', 'payout_account_id' => $this->savePayoutAccount($dealer, 'bKash'), 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasNoErrors();
         $this->assertSame('bKash', DB::table('withdrawals')->where('user_id', $dealer->id)->value('channel'));
     }

@@ -5,6 +5,7 @@ namespace Tests;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Clinic\PrescriptionSettings;
 use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Payouts\PartnerPayoutAccounts;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -29,6 +30,23 @@ abstract class TestCase extends BaseTestCase
             return;
         }
         $settings->save($owner ?? User::factory()->staff('super_admin')->create(), true, $settings->otherMedicines()['version']);
+    }
+
+    /**
+     * Saves a payout account for a partner (the portal takes a withdrawal only to a saved account) without starting
+     * the security wait that adding one normally starts. Returns the account id.
+     */
+    protected function savePayoutAccount(User $partner, string $channel = 'bKash', string $number = '01700000000'): int
+    {
+        $input = ['channel' => $channel, 'number' => $number];
+        if ($channel === 'Bank') {
+            $input += ['bank_name' => 'Sonali Bank', 'branch' => 'Pirganj', 'account_name' => 'Test Holder'];
+            $input['number'] = $number === '01700000000' ? '0123456789' : $number;
+        }
+        $id = app(PartnerPayoutAccounts::class)->save($partner, $input);
+        DB::table('users')->where('id', $partner->id)->update(['credentials_changed_at' => null]);
+
+        return $id;
     }
 
     /**

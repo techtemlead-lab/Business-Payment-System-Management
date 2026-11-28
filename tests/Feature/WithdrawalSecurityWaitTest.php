@@ -69,12 +69,13 @@ class WithdrawalSecurityWaitTest extends TestCase
     public function test_the_refusal_is_shown_to_the_partner_on_the_website_in_both_languages(): void
     {
         $partner = $this->partnerWithWallet();
+        $account = $this->savePayoutAccount($partner);
         $partner->update(['phone' => '01712345678']);
 
         foreach (['en', 'bn'] as $locale) {
             $partner->forceFill(['locale' => $locale])->save();
             $response = $this->actingAs($partner->fresh())->onPortal('dealer')->post('/commands/withdrawals', [
-                'amount' => '300.00', 'channel' => 'bKash', 'destination' => '01700000000', 'idempotency_key' => (string) Str::uuid(),
+                'amount' => '300.00', 'payout_account_id' => $account, 'idempotency_key' => (string) Str::uuid(),
             ]);
             $response->assertSessionHasErrors('amount');
             $this->assertStringContainsString(Str::before(__('withdrawal_wait.wd_wait_reason', [], $locale), ':time'), (string) session('errors')->first('amount'));
