@@ -44,19 +44,19 @@ class PaymentCheckAndPayoutLimitsTest extends TestCase
     {
         $dealer = $this->partnerWithWallet('90000.00');
 
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request('50000.00', 'bKash'))
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request($dealer, '50000.00', 'bKash'))
             ->assertSessionHasErrors(['amount' => __('payouts.err_channel_limit', ['channel' => __('portal.pay_channel_bkash'), 'limit' => '৳30,000', 'balance' => '৳90,000'])]);
         // Bank has no limit of its own; the same amount goes through.
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request('50000.00', 'Bank'))->assertSessionHasNoErrors();
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request($dealer, '50000.00', 'Bank'))->assertSessionHasNoErrors();
     }
 
     public function test_an_amount_above_the_balance_names_the_balance_instead_of_saying_it_is_badly_written(): void
     {
         $dealer = $this->partnerWithWallet('1000.00');
 
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request('100000000.00', 'Bank'))
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request($dealer, '100000000.00', 'Bank'))
             ->assertSessionHasErrors(['amount' => __('payouts.err_over_balance', ['balance' => '৳1,000'])]);
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request('12,000', 'Bank'))
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request($dealer, '12,000', 'Bank'))
             ->assertSessionHasErrors(['amount' => __('payouts.err_amount_digits')]);
     }
 
@@ -163,7 +163,7 @@ class PaymentCheckAndPayoutLimitsTest extends TestCase
         DB::table('users')->where('id', $dealer->id)->update(['nid' => null]);
         $dealer->refresh();
 
-        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request('1000.00', 'Bank'))
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals', $this->request($dealer, '1000.00', 'Bank'))
             ->assertSessionHasErrors(['amount' => __('payouts.err_nid_first')]);
 
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals/tax-number', ['tin' => '১২৩৪৫৬৭৮৯০১২'])->assertSessionHasNoErrors();
@@ -171,7 +171,7 @@ class PaymentCheckAndPayoutLimitsTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->post('/commands/withdrawals/tax-number', ['tin' => '12345'])->assertSessionHasErrors('tin');
 
         DB::table('users')->where('id', $dealer->id)->update(['nid' => encrypt('1990123456789', false)]);
-        $this->actingAs($dealer->fresh())->onPortal('dealer')->post('/commands/withdrawals', $this->request('1000.00', 'Bank'))->assertSessionHasNoErrors();
+        $this->actingAs($dealer->fresh())->onPortal('dealer')->post('/commands/withdrawals', $this->request($dealer, '1000.00', 'Bank'))->assertSessionHasNoErrors();
     }
 
     public function test_readiness_warns_while_no_tax_is_withheld_from_payouts(): void
@@ -219,9 +219,11 @@ class PaymentCheckAndPayoutLimitsTest extends TestCase
     }
 
     /** @return array<string, string> */
-    private function request(string $amount, string $channel): array
+    private function request(User $dealer, string $amount, string $channel): array
     {
-        return ['amount' => $amount, 'channel' => $channel, 'destination' => '01700000000', 'idempotency_key' => (string) Str::uuid()];
+        $account = DB::table('partner_payout_accounts')->where('user_id', $dealer->id)->where('channel', $channel)->value('id') ?? $this->savePayoutAccount($dealer, $channel);
+
+        return ['amount' => $amount, 'payout_account_id' => (int) $account, 'idempotency_key' => (string) Str::uuid()];
     }
 
     private function partnerWithWallet(string $available): User
