@@ -105,7 +105,10 @@ export type NotEarnedArea = { month: string; amount: string };
 /** The weekly payout day: requests on any day, money on the payout day (the same day when asked before the cut-off). */
 export type WithdrawWeek = { enabled: boolean; payout_day: string; payout_date: string; same_day?: boolean; same_day_until?: string | null };
 
-export type WithdrawInfo ={ can: boolean; kyc_block: boolean; nid_block?: boolean; nid_request?: NidRequest; saved_accounts?: Array<{ id: number; label: string; is_default: boolean; channel?: string }>; methods?: string[]; week?: WithdrawWeek; security_wait: string | null; minimum: string; channel_limits?: Record<string, string | null>; tin_last4?: string | null };
+/** A saved payout account of the partner, with every way (also one the owner switched off, which is shown greyed). */
+export type SavedPayoutAccount = { id: number; channel: string; label: string; is_default: boolean; bank_name: string; branch: string; account_name: string; number: string };
+
+export type WithdrawInfo ={ can: boolean; kyc_block: boolean; nid_block?: boolean; nid_request?: NidRequest; saved_accounts?: SavedPayoutAccount[]; methods?: string[]; week?: WithdrawWeek; security_wait: string | null; minimum: string; channel_limits?: Record<string, string | null>; tin_last4?: string | null };
 
 export type Certificates = { years: number[]; rank: boolean };
 

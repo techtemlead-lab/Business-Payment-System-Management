@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { ArrowLeft, ArrowUpRight, Landmark, ShoppingBag } from 'lucide-react';
-import { ActionForm, Modal, money } from '../UI';
+import { ActionForm, FormErrors, Modal, money } from '../UI';
+import PayoutAccountForm, { payoutChannels } from '../PayoutAccountForm';
 import { useT } from '../../shared/i18n/t';
 import { randomUuid } from '../../shared/randomUuid';
-import type { WithdrawInfo } from './types';
+import type { SavedPayoutAccount, WithdrawInfo } from './types';
 
 type Step = 'choose' | 'take' | 'order';
 
@@ -33,6 +34,22 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
     const officeOn = methods.includes('Office');
     const onlineChannels = methods.filter((method) => method !== 'Office');
     const [way, setWay] = useState<'office' | 'online'>(officeOn ? 'office' : 'online');
+    const usableAccounts = saved.filter((account) => methods.includes(account.channel));
+    const [pickedId, setPickedId] = useState<number | null>(null);
+    const [adding, setAdding] = useState(false);
+    const knownIds = useRef<Set<number>>(new Set(saved.map((account) => account.id)));
+    const chosen = usableAccounts.find((account) => account.id === pickedId) ?? usableAccounts.find((account) => account.is_default) ?? usableAccounts[0] ?? null;
+    const withdrawForm = useForm({ amount: '', payout_account_id: '', idempotency_key: requestKey.current });
+
+    // An account added in this dialog is picked straight away.
+    useEffect(() => {
+        const fresh = saved.filter((account) => !knownIds.current.has(account.id) && methods.includes(account.channel));
+        knownIds.current = new Set(saved.map((account) => account.id));
+        if (fresh.length > 0) {
+            setPickedId(fresh[fresh.length - 1].id);
+            setAdding(false);
+        }
+    }, [saved.map((account) => account.id).join(',')]);
     const takeLabel =onlineChannels.length === 0 ? translate('office_withdrawal', 'take_money_office') : officeOn ? translate('office_withdrawal', 'take_money_any') : translate('my_money', 'take_money');
     const usable = Number(available);
     const budgetAmount = Number(plainDigits(budget));
@@ -102,7 +119,7 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                 </fieldset>
             )}
 
-            {step === 'take' && way === 'office' && (
+            {step === 'take' && way === 'office' && takeRefusal === null && (
                 <>
                     <p className="muted">{translate('office_withdrawal', 'method_office')} · {translate('office_withdrawal', 'method_office_hint')}</p>
                     <ActionForm
@@ -116,41 +133,50 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                 </>
             )}
 
-            {/* V3: with saved accounts the partner picks one; its channel and number are read from the saved record. */}
-            {step === 'take' && way === 'online' && saved.length > 0 && (
-                <>
-                    <ActionForm
-                        action="/commands/withdrawals"
-                        defaults={{ idempotency_key: requestKey.current, payout_account_id: String((saved.find((account) => account.is_default) ?? saved[0]).id) }}
-                        submit={translate('portal', 'request_withdrawal')}
-                        fields={[
-                            { name: 'amount', type: 'number', label: translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) }), required: true },
-                            { name: 'payout_account_id', label: translate('leftovers_partner', 'pa_pick'), required: true, options: saved.map((account) => ({ value: String(account.id), label: account.label })) },
-                        ]}
-                    />
-                    <Link className="text-link" href={`${base}/profile`}>{translate('leftovers_partner', 'pa_manage_link')}</Link>
-                </>
-            )}
+            {step === 'take' && takeRefusal !== null && <p className="notice" role="alert">{takeRefusal}</p>}
 
-            {step === 'take' && way === 'online' && saved.length === 0 && (
-                <>
-                <p className="muted">{translate('leftovers_partner', 'pa_none_withdraw')} <Link className="text-link" href={`${base}/profile`}>{translate('leftovers_partner', 'pa_manage_link')}</Link></p>
-                <ActionForm
-                    action="/commands/withdrawals"
-                    defaults={{ idempotency_key: requestKey.current }}
-                    submit={translate('portal', 'request_withdrawal')}
-                    fields={[
-                        { name: 'amount', type: 'number', label: translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) }), required: true },
-                        // Each method shows its own most-per-withdrawal, so nobody asks bKash for ৳9 crore (MA-08).
-                        { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: onlineChannels.map((channel) => {
-                            const limit = withdraw.channel_limits?.[channel];
-                            const name = translate('portal', `pay_channel_${channel.toLowerCase()}`);
-                            return { value: channel, label: limit ? `${name} · ${translate('payouts', 'withdraw_limit_hint', { limit: money(limit) })}` : name };
-                        }) },
-                        { name: 'destination', label: translate('portal', 'account_or_wallet'), required: true },
-                    ]}
-                />
-                </>
+            {/* Owner, 2026-11-28: the partner picks one of his saved accounts; none saved yet means adding one right here. */}
+            {step === 'take' && way === 'online' && takeRefusal === null && (
+                <div className="mm-online">
+                    {saved.length > 0 && usableAccounts.length === 0 && (
+                        <div className="mm-accounts-off">
+                            {saved.map((account) => <AccountCard key={account.id} account={account} limits={withdraw.channel_limits} off />)}
+                        </div>
+                    )}
+                    {usableAccounts.length > 0 && (
+                        <form
+                            className="action-form"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                withdrawForm.transform((data) => ({ ...data, amount: plainDigits(data.amount), payout_account_id: String(chosen?.id ?? '') }));
+                                withdrawForm.post('/commands/withdrawals', { preserveScroll: true, onSuccess: onClose });
+                            }}
+                        >
+                            <label>
+                                {translate('portal', 'amount_minimum', { amount: String(withdraw.minimum) })}
+                                <input type="number" step="any" inputMode="decimal" required value={withdrawForm.data.amount} onChange={(event) => withdrawForm.setData('amount', event.target.value)} />
+                                {withdrawForm.errors.amount && <span className="field-error" role="alert">{withdrawForm.errors.amount}</span>}
+                            </label>
+                            <fieldset className="mm-accounts">
+                                <legend>{translate('leftovers_partner', 'pa_pick')}</legend>
+                                {saved.map((account) => (
+                                    <AccountCard key={account.id} account={account} limits={withdraw.channel_limits} off={!methods.includes(account.channel)} checked={chosen?.id === account.id} onPick={() => setPickedId(account.id)} />
+                                ))}
+                            </fieldset>
+                            <FormErrors errors={withdrawForm.errors} besideFields={['amount']} />
+                            <button className="button dark" disabled={withdrawForm.processing || chosen === null}>{translate('portal', 'request_withdrawal')}<ArrowUpRight size={17} /></button>
+                        </form>
+                    )}
+                    {usableAccounts.length > 0 && !adding && (
+                        <button type="button" className="text-link" data-testid="withdraw-add-account" onClick={() => setAdding(true)}>{translate('leftovers_partner', 'pa_add_another')}</button>
+                    )}
+                    {(usableAccounts.length === 0 || adding) && (
+                        <section className="mm-add-account" data-testid="withdraw-add-account-form">
+                            <h4>{translate('leftovers_partner', usableAccounts.length === 0 ? 'pa_add_first' : 'pa_add')}</h4>
+                            <PayoutAccountForm account={null} channels={payoutChannels.filter((channel) => onlineChannels.includes(channel))} onSaved={() => setAdding(false)} />
+                        </section>
+                    )}
+                </div>
             )}
 
             {step === 'take' && (
@@ -183,5 +209,25 @@ export default function WithdrawSheet({ available, withdraw, onClose }: { availa
                 </button>
             )}
         </Modal>
+    );
+}
+
+/** One saved account as a large choice: the way and number (a bank also shows its name and branch); greyed when that way is switched off. */
+function AccountCard({ account, limits, off = false, checked = false, onPick }: { account: SavedPayoutAccount; limits?: Record<string, string | null>; off?: boolean; checked?: boolean; onPick?: () => void }) {
+    const translate = useT();
+    const name = translate('portal', `pay_channel_${account.channel.toLowerCase()}`);
+    const limit = limits?.[account.channel];
+
+    return (
+        <label className={`mm-account${off ? ' is-off' : ''}${checked ? ' is-picked' : ''}`} data-testid="withdraw-account-card">
+            <input type="radio" name="wd-account" checked={checked} disabled={off} onChange={onPick} />
+            <span>
+                <b>{name} · {account.number}</b>
+                {account.channel === 'Bank' && <small>{[account.bank_name, account.branch].filter(Boolean).join(', ')}</small>}
+                {account.is_default && !off && <small>{translate('leftovers_partner', 'pa_default_badge')}</small>}
+                {off && <small>{translate('leftovers_partner', 'pa_channel_off')}</small>}
+                {!off && limit && <small>{translate('payouts', 'withdraw_limit_hint', { limit: money(limit) })}</small>}
+            </span>
+        </label>
     );
 }
