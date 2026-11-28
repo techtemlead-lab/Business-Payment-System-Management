@@ -9,8 +9,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Client voice note, 2026-11-27: Dealer login and Sub-dealer login must be two separate links in the top line, the
- * menu and the phone bar (the phone "Account" tab only led to the dealer login).
+ * Client voice note, 2026-11-27: Dealer login and Sub-dealer login must be two separate links in the top line and the
+ * menu. Voice notes of 2026-11-28: on a phone they sit with Products in big buttons under the Home line (the bottom
+ * bar was too crowded), and a signed-in visitor gets Sign out there too.
  */
 class PublicHeaderLoginsTest extends TestCase
 {
@@ -35,8 +36,11 @@ class PublicHeaderLoginsTest extends TestCase
             $this->assertSame(1, substr_count($html, '<a href="'.$subDealer.'" class="ref-header-login">'));
             $this->assertSame(1, substr_count($html, '<a href="'.$dealer.'" class="ref-drawer-btn ref-drawer-btn-primary">'));
             $this->assertSame(1, substr_count($html, '<a href="'.$subDealer.'" class="ref-drawer-btn ref-drawer-btn-primary">'));
-            $this->assertSame(1, substr_count($html, '<a href="'.$dealer.'" class="ref-mobile-nav-item is-login">'));
-            $this->assertSame(1, substr_count($html, '<a href="'.$subDealer.'" class="ref-mobile-nav-item is-login">'));
+            $this->assertSame(1, substr_count($html, '<a href="'.$dealer.'" class="ref-quick-link is-login">'));
+            $this->assertSame(1, substr_count($html, '<a href="'.$subDealer.'" class="ref-quick-link is-login">'));
+            // The bottom bar keeps one Login tab that opens the dealer / sub-dealer choice.
+            $this->assertSame(1, substr_count($html, 'class="ref-mobile-nav-item is-login"'));
+            $this->assertStringNotContainsString('<a href="'.$dealer.'" class="ref-mobile-nav-item', $html);
             $this->assertStringContainsString(__('site.subdealer_login', [], $locale), $html);
         }
     }
@@ -62,5 +66,35 @@ class PublicHeaderLoginsTest extends TestCase
         $this->assertStringNotContainsString('class="ref-header-login"', $html);
         $this->assertStringNotContainsString('is-login"', $html);
         $this->assertStringContainsString('ref-header-logout-btn', $html);
+        $this->assertStringContainsString('class="ref-quick-link is-logout"', $html);
+        $this->assertStringContainsString('class="ref-quick-link is-account"', $html);
+    }
+
+    /**
+     * Regression (live, 2026-11-28): `class="ref-mobile-nav@guest ...@endguest"` was never compiled by Blade (a directive
+     * glued to a word is plain text), so the bottom bar lost its class and showed unstyled under the footer.
+     */
+    public function test_the_bottom_bar_keeps_its_class_and_no_blade_word_leaks_into_the_page(): void
+    {
+        foreach ([null, User::factory()->create()] as $user) {
+            $request = $user !== null ? $this->actingAs($user) : $this;
+            $html = $request->withCookie('locale', 'bn')->get('/')->assertOk()->getContent();
+
+            $this->assertStringContainsString('<nav class="ref-mobile-nav" aria-label=', $html);
+            foreach (['@guest', '@endguest', '@auth', '@endauth', '@endif'] as $directive) {
+                $this->assertStringNotContainsString($directive, $html);
+            }
+        }
+    }
+
+    public function test_the_phone_quick_row_follows_the_home_line_with_products_first(): void
+    {
+        $this->withCookie('locale', 'bn')->get('/')->assertOk()->assertSeeInOrder([
+            'class="ref-nav-home"',
+            'class="ref-quick-row"',
+            'class="ref-quick-link is-products"',
+            'ডিলার লগইন',
+            'সাব-ডিলার লগইন',
+        ], false);
     }
 }

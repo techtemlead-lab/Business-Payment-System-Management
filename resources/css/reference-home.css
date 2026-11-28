@@ -4141,9 +4141,20 @@ html[data-theme="dark"] .ref-chip-label{color:var(--ds-text-muted,#a9bbb0)}
 .ref-announcement-item[aria-hidden="true"]{display:none}
 }
 
-/* Signed-out phone bar: Dealer login and Sub-dealer login are two separate tabs (client, 2026-11-27), so six tabs share the width and the two long labels wrap. */
+/* Phones and tablets: Products and the two logins (or My account and Sign out) under the Home line, in big buttons
+   (client voice notes, 2026-11-28; the small bottom-bar tabs were hard to read). Computers keep the top line. */
+.ref-quick-row{display:none}
 @media(max-width:1023px){
-.ref-mobile-nav.has-login-pair{grid-template-columns:repeat(6,minmax(0,1fr))}
-body.ref-home .ref-mobile-nav.has-login-pair > a.is-login{padding:0 2px;text-align:center}
-body.ref-home .ref-mobile-nav.has-login-pair > a.is-login > span{white-space:normal;font-size:10px;line-height:1.15;overflow:visible}
+.ref-quick-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;padding:6px 8px 8px;background:#0c3b2a;border-top:1px solid rgba(255,255,255,.12)}
+.ref-quick-logout{display:contents;margin:0}
+.ref-quick-link{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:14px;font-weight:700;line-height:1.25;text-align:center;cursor:pointer}
+.ref-quick-link i{font-size:16px;color:#e9c766;flex:none}
+.ref-quick-link span{min-width:0}
+.ref-quick-link.is-products{background:#c8992e;border-color:#c8992e}
+.ref-quick-link.is-products i{color:#fff}
+.ref-quick-link[aria-current="page"]{outline:2px solid #e9c766;outline-offset:-2px}
+.ref-quick-link:hover,.ref-quick-link:focus-visible{background:rgba(255,255,255,.16)}
+.ref-quick-link.is-products:hover,.ref-quick-link.is-products:focus-visible{background:#b58a25}
 }
+@media(max-width:380px){.ref-quick-row{gap:4px;padding-inline:6px}.ref-quick-link{flex-direction:column;gap:2px;font-size:13px;padding:5px 4px}}
+

@@ -135,7 +135,7 @@
     </a>
 </aside>
 @endif
-<nav class="ref-mobile-nav@guest has-login-pair@endguest" aria-label="{{ __('site.mobile_navigation') }}">
+<nav class="ref-mobile-nav" aria-label="{{ __('site.mobile_navigation') }}">
     @if($publicPageEnabled['products'] ?? true)
     <a href="{{ $site('/products') }}" class="ref-mobile-nav-item"@if(request()->is('products*')) aria-current="page"@endif>
         <i class="fa-solid fa-store" aria-hidden="true"></i>
@@ -196,13 +196,10 @@
         <span>{{ $chrome('account', $siteCustomization['mobile_nav_account'] ?? null) }}</span>
     </a>
     @else
-    <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-mobile-nav-item is-login">
-        <i class="fa-solid fa-store" aria-hidden="true"></i>
-        <span>{{ __('site.dealer_login') }}</span>
-    </a>
-    <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}" class="ref-mobile-nav-item is-login">
-        <i class="fa-solid fa-shop" aria-hidden="true"></i>
-        <span>{{ __('site.subdealer_login') }}</span>
+    {{-- The two logins sit in big buttons under the Home line (client, 2026-11-28); this tab opens the dealer / sub-dealer choice. --}}
+    <a href="{{ $site('/login') }}" class="ref-mobile-nav-item is-login"@if(request()->is('login')) aria-current="page"@endif>
+        <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+        <span>{{ __('site.login_short') }}</span>
     </a>
     @endauth
 </nav>
